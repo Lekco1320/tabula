@@ -1,0 +1,6 @@
+dependencies:
+  100askTeam/esp_freetype:
+    git: https://github.com/100askTeam/esp_freetype.git
+    version: "*"
+  espressif/led_strip:
+    version: "*"
