@@ -12,7 +12,10 @@
 #include "esp_chip_info.h"
 #include "esp_flash.h"
 #include "esp_system.h"
+#include "esp_log.h"
 #include "led_strip.h"
+
+#include <epd_panel.h>
 
 // GPIO assignment
 #define LED_STRIP_BLINK_GPIO 48
@@ -47,7 +50,7 @@ led_strip_handle_t configure_led(void)
     return led_strip;
 }
 
-void app_main(void)
+void print_params(void)
 {
     led_strip_handle_t led_strip = configure_led();
     uint8_t brightness = 50;
@@ -91,4 +94,63 @@ void app_main(void)
     printf("Restarting now.\n");
     fflush(stdout);
     esp_restart();
+}
+
+void app_main(void)
+{
+    led_strip_handle_t led_strip = configure_led();
+    uint8_t brightness = 0;
+    uint8_t red = (0 * brightness) / 100;
+    uint8_t green = (0 * brightness) / 100;
+    uint8_t blue = (139 * brightness) / 100;
+    led_strip_set_pixel(led_strip, 0, red, green, blue);
+    led_strip_refresh(led_strip);
+
+    epd_panel_cfg_t config = {
+        .pin_reset = GPIO_NUM_2,
+        .pin_dc    = GPIO_NUM_3,
+        .pin_busy  = GPIO_NUM_4,
+        .pin_cs    = GPIO_NUM_10,
+        .pin_mosi  = GPIO_NUM_11,
+        .pin_sclk  = GPIO_NUM_12,
+        .spi_host  = SPI2_HOST,
+        .width     = 640,
+        .height    = 384,
+    };
+
+    esp_err_t   ret   = ESP_OK;
+    epd_panel_t panel = NULL;
+    ret = epd_panel_create(&config, &panel);
+    if (ret != ESP_OK) {
+        ESP_LOGE("epd_test", "EPD panel creation failed! err=%s", esp_err_to_name(ret));
+        return;
+    } else {
+        ESP_LOGI("epd_test", "EPD panel created! addr:0x%x", panel);
+    }
+
+    ret = epd_panel_init(panel);
+    if (ret != ESP_OK) {
+        ESP_LOGE("epd_test", "EPD panel initialization failed! err=%s", esp_err_to_name(ret));
+        return;
+    } else {
+        ESP_LOGI("epd_test", "EPD panel initialized");
+    }
+
+    ret = epd_panel_fill(panel, EPD_PANEL_RED);
+    if (ret != ESP_OK) {
+        ESP_LOGE("epd_test", "EPD panel clear failed! err=%s", esp_err_to_name(ret));
+        return;
+    } else {
+        ESP_LOGI("epd_test", "EPD panel cleared!");
+    }
+
+    ret = epd_panel_sleep(panel);
+    if (ret != ESP_OK) {
+        ESP_LOGE("epd_test", "EPD panel sleeping failed! err=%s", esp_err_to_name(ret));
+        return;
+    } else {
+        ESP_LOGI("epd_test", "EPD panel slept!");
+    }
+
+    (void)epd_panel_destroy(panel);
 }
