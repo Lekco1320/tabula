@@ -54,6 +54,7 @@
 struct epd_panel_impl {
     epd_panel_cfg_t     cfg;
     spi_device_handle_t spi;
+    bool                spi_bus_inited;
 };
 
 static esp_err_t epd_wait_idle(epd_panel_t panel, int timeout_ms)
@@ -121,9 +122,9 @@ static esp_err_t epd_send_data(epd_panel_t panel, const void* data, size_t len)
     return spi_device_transmit(panel->spi, &t);
 }
 
-static inline uint8_t epd_panel_encode_2bbp(uint8_t bbit, uint8_t rbit)
+static inline uint8_t epd_panel_encode_2bbp(uint8_t wbit, uint8_t rbit)
 {
-    uint8_t t = (1 ^ rbit) & bbit;
+    uint8_t t = (1 ^ rbit) & wbit;
     uint8_t w = (t << 1) | t;
     uint8_t r = (rbit << 2);
     return r | w;
@@ -132,6 +133,17 @@ static inline uint8_t epd_panel_encode_2bbp(uint8_t bbit, uint8_t rbit)
 esp_err_t epd_panel_create(const epd_panel_cfg_t* cfg, epd_panel_t* out_panel)
 {
     if (!cfg || !out_panel) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (cfg->width == 0 || cfg->height == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (!GPIO_IS_VALID_OUTPUT_GPIO(cfg->pin_dc) ||
+        !GPIO_IS_VALID_OUTPUT_GPIO(cfg->pin_cs) ||
+        !GPIO_IS_VALID_OUTPUT_GPIO(cfg->pin_mosi) ||
+        !GPIO_IS_VALID_OUTPUT_GPIO(cfg->pin_sclk) ||
+        !GPIO_IS_VALID_OUTPUT_GPIO(cfg->pin_reset) ||
+        !GPIO_IS_VALID_GPIO(cfg->pin_busy)) {
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -185,14 +197,15 @@ esp_err_t epd_panel_create(const epd_panel_cfg_t* cfg, epd_panel_t* out_panel)
 
     // initialize SPI bus
     spi_bus_config_t buscfg = {
-        .mosi_io_num = cfg->pin_mosi,
-        .miso_io_num = -1,
-        .sclk_io_num = cfg->pin_sclk,
-        .quadwp_io_num = -1,
-        .quadhd_io_num = -1,
+        .mosi_io_num     = cfg->pin_mosi,
+        .miso_io_num     = -1,
+        .sclk_io_num     = cfg->pin_sclk,
+        .quadwp_io_num   = -1,
+        .quadhd_io_num   = -1,
         .max_transfer_sz = (uint32_t)cfg->width * cfg->height / 2 + 16,
     };
     EPD_CHECK_GOTO(spi_bus_initialize(cfg->spi_host, &buscfg, SPI_DMA_CH_AUTO), fail);
+    panel->spi_bus_inited = true;
 
     // mount SPI device
     spi_device_interface_config_t devcfg = {
@@ -210,6 +223,9 @@ esp_err_t epd_panel_create(const epd_panel_cfg_t* cfg, epd_panel_t* out_panel)
 fail:
     if (panel->spi) {
         spi_bus_remove_device(panel->spi);
+    }
+    if (panel->spi_bus_inited) {
+        spi_bus_free(cfg->spi_host);
     }
     free(panel);
     return ret;
@@ -333,6 +349,9 @@ esp_err_t epd_panel_destroy(epd_panel_t panel)
     if (panel->spi) {
         ret = spi_bus_remove_device(panel->spi);
     }
+    if (panel->spi_bus_inited) {
+        ret = spi_bus_free(panel->cfg.spi_host);
+    }
 
     free(panel);
     return ret;
@@ -367,6 +386,7 @@ esp_err_t epd_panel_fill(epd_panel_t panel, epd_panel_color_t color)
     EPD_CHECK_GOTO(epd_send_data(panel, &data, 1), fail);
     EPD_CHECK_GOTO(epd_send_command(panel, EPD_CMD_DISPLAY_REFRESH), fail);
 
+    free(chunk);
     return epd_wait_idle(panel, EPD_BUSY_TIMEOUT_MS);
 
 fail:
@@ -410,10 +430,10 @@ esp_err_t epd_panel_show(epd_panel_t panel, const void* data, uint32_t size)
     return epd_wait_idle(panel, EPD_BUSY_TIMEOUT_MS);
 }
 
-esp_err_t epd_panel_show_planes(epd_panel_t panel, const void* pblk,
+esp_err_t epd_panel_show_planes(epd_panel_t panel, const void* pwht,
     const void* pred, uint32_t size)
 {
-    if (!panel || !pblk || !pred) {
+    if (!panel || !pwht || !pred) {
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -431,17 +451,17 @@ esp_err_t epd_panel_show_planes(epd_panel_t panel, const void* pblk,
     }
 
     esp_err_t ret = ESP_OK;
-    EPD_CHECK_RET(epd_send_command(panel, EPD_CMD_DTM1));
+    EPD_CHECK_GOTO(epd_send_command(panel, EPD_CMD_DTM1), fail);
     
-    const uint8_t* blk = (const uint8_t*)pblk;
+    const uint8_t* wht = (const uint8_t*)pwht;
     const uint8_t* red = (const uint8_t*)pred;
     for (uint16_t prow = 0; prow < height; ++prow) {
         for (uint32_t pcol = 0; pcol < raw_str; ++pcol) {
             uint32_t pidx  = prow * pln_str + pcol / 4U;
             uint8_t  digit = 7U - (pcol % 4U) * 2;
-            uint8_t  c0    = epd_panel_encode_2bbp((blk[pidx] >> (digit - 0)) & 1, (red[pidx] >> (digit - 0)) & 1);
-            uint8_t  c1    = epd_panel_encode_2bbp((blk[pidx] >> (digit - 1)) & 1, (red[pidx] >> (digit - 1)) & 1);
-            buffer[pcol] = ((c0 << 4) | (c1 & 0x0F));
+            uint8_t  c0    = epd_panel_encode_2bbp((wht[pidx] >> (digit - 0)) & 1, (red[pidx] >> (digit - 0)) & 1);
+            uint8_t  c1    = epd_panel_encode_2bbp((wht[pidx] >> (digit - 1)) & 1, (red[pidx] >> (digit - 1)) & 1);
+            buffer[pcol]   = ((c0 << 4) | (c1 & 0x0F));
         }
 
         ret = epd_send_data(panel, buffer, raw_str);

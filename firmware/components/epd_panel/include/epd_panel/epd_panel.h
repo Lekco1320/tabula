@@ -13,6 +13,11 @@
 #define _EPD_PANEL_H_
 
 #include <driver/gpio.h>
+#include <driver/spi_master.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct epd_panel_impl* epd_panel_t;
 
@@ -99,16 +104,29 @@ esp_err_t epd_panel_show(epd_panel_t panel, const void* data, uint32_t size);
 
 /**
  * @brief Sends image data to the e-paper panel for display.
- * The input data is in plane format, which consists of two planes: black and red.
+ * The input data is in plane format, which consists of two planes: white and red.
  * Each byte in the plane represents 8 pixels, with each pixel encoded as black, white, or red.
  * 
+ * @remark
+ * +---+---+-------+
+ * | r | w | color |
+ * +---+---+-------+
+ * | 0 | 0 | black |
+ * | 0 | 1 | white |
+ * | 1 | - |  red  |
+ * +---+---+-------+
+ * 
  * @param panel The handle of the e-paper panel.
- * @param pblk Pointer to the black plane image data (1bpp).
+ * @param pwht Pointer to the white plane image data (1bpp).
  * @param pred Pointer to the red plane image data (1bpp).
  * @param size The size of the input data. The size must be equal to stride * height.
  * @return `ESP_OK` on success, or an error code from `esp_err_t` if the operation fails.
  */
-esp_err_t epd_panel_show_planes(epd_panel_t panel, const void* pblk,
+esp_err_t epd_panel_show_planes(epd_panel_t panel, const void* pwht,
     const void* pred, uint32_t size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _EPD_PANEL_H_
