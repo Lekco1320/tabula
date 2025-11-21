@@ -15,7 +15,7 @@
 #include "esp_log.h"
 #include "led_strip.h"
 
-#include <epd_panel.h>
+#include <epd_panel/epd_panel.h>
 
 // GPIO assignment
 #define LED_STRIP_BLINK_GPIO 48
@@ -136,7 +136,7 @@ void app_main(void)
         ESP_LOGI("epd_test", "EPD panel initialized");
     }
 
-    ret = epd_panel_fill(panel, EPD_PANEL_RED);
+    ret = epd_panel_fill(panel, EPD_PANEL_WHITE);
     if (ret != ESP_OK) {
         ESP_LOGE("epd_test", "EPD panel clear failed! err=%s", esp_err_to_name(ret));
         return;

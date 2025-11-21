@@ -1,5 +1,5 @@
 /**
- * @file epd_panel.h
+ * @file epd_panel.c
  * @brief Driver for 7.5\" tri-color e-paper (DEPG0750* UC8159).
  *
  * @author Lukaß Zhang <lekco_1320@qq.com>
@@ -14,7 +14,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#include "epd_panel.h"
+#include "epd_panel/epd_panel.h"
 
 #define EPD_CMD_PANEL_SETTING      0x00    // PSR
 #define EPD_CMD_POWER_SETTING      0x01    // PWR
@@ -121,6 +121,14 @@ static esp_err_t epd_send_data(epd_panel_t panel, const void* data, size_t len)
     return spi_device_transmit(panel->spi, &t);
 }
 
+static inline uint8_t epd_panel_encode_2bbp(uint8_t bbit, uint8_t rbit)
+{
+    uint8_t t = (1 ^ rbit) & bbit;
+    uint8_t w = (t << 1) | t;
+    uint8_t r = (rbit << 2);
+    return r | w;
+}
+
 esp_err_t epd_panel_create(const epd_panel_cfg_t* cfg, epd_panel_t* out_panel)
 {
     if (!cfg || !out_panel) {
@@ -197,7 +205,6 @@ esp_err_t epd_panel_create(const epd_panel_cfg_t* cfg, epd_panel_t* out_panel)
     EPD_CHECK_GOTO(spi_bus_add_device((spi_host_device_t)cfg->spi_host, &devcfg, &panel->spi), fail);
 
     *out_panel = panel;
-    ESP_LOGI(TAG, "EPD panel created: %dx%d", cfg->width, cfg->height);
     return ESP_OK;
 
 fail:
@@ -328,7 +335,6 @@ esp_err_t epd_panel_destroy(epd_panel_t panel)
     }
 
     free(panel);
-    ESP_LOGI(TAG, "EPD panel destroyed");
     return ret;
 }
 
@@ -338,30 +344,36 @@ esp_err_t epd_panel_fill(epd_panel_t panel, epd_panel_color_t color)
         return ESP_ERR_INVALID_ARG;
     }
 
-    const uint32_t pixels      = (uint32_t)panel->cfg.width * panel->cfg.height;
-    const uint32_t total_bytes = (pixels + 1) / 2;
-    const uint8_t  color_byte  = ((color << 4) | (color & 0x0F)); // duplicate in one byte
+    const uint16_t height     = panel->cfg.height;
+    const uint32_t stride     = (panel->cfg.width + 1U) / 2U;
+    const uint8_t  color_byte = ((color << 4) | (color & 0x0F)); // duplicate in one byte
 
-    uint8_t chunk[256];
-    memset(chunk, color_byte, sizeof(chunk));
+    uint8_t* chunk = (uint8_t*)malloc(stride);
+    if (!chunk) {
+        return ESP_ERR_NO_MEM;
+    }
+    memset(chunk, color_byte, stride);
 
     esp_err_t ret = ESP_OK;
-    EPD_CHECK_RET(epd_send_command(panel, EPD_CMD_DTM1));
+    EPD_CHECK_GOTO(epd_send_command(panel, EPD_CMD_DTM1), fail);
 
-    uint32_t remaining = total_bytes;
-    while (remaining > 0) {
-        size_t n = (remaining > sizeof(chunk) ? sizeof(chunk) : remaining);
-        EPD_CHECK_RET(epd_send_data(panel, chunk, n));
-        remaining -= n;
+    for (uint16_t row = 0; row < height; ++row) {
+        EPD_CHECK_GOTO(epd_send_data(panel, chunk, stride), fail);
     }
 
     // Data stop and refresh the display
     uint8_t data = 0x80;
-    EPD_CHECK_RET(epd_send_command(panel, EPD_CMD_DATA_STOP));
-    EPD_CHECK_RET(epd_send_data(panel, &data, 1));
-    EPD_CHECK_RET(epd_send_command(panel, EPD_CMD_DISPLAY_REFRESH));
+    EPD_CHECK_GOTO(epd_send_command(panel, EPD_CMD_DATA_STOP), fail);
+    EPD_CHECK_GOTO(epd_send_data(panel, &data, 1), fail);
+    EPD_CHECK_GOTO(epd_send_command(panel, EPD_CMD_DISPLAY_REFRESH), fail);
 
     return epd_wait_idle(panel, EPD_BUSY_TIMEOUT_MS);
+
+fail:
+    if (chunk) {
+        free(chunk);
+    }
+    return ret;
 }
 
 esp_err_t epd_panel_clear(epd_panel_t panel)
@@ -369,27 +381,25 @@ esp_err_t epd_panel_clear(epd_panel_t panel)
     return epd_panel_fill(panel, EPD_PANEL_WHITE);
 }
 
-esp_err_t epd_panel_show(epd_panel_t panel, const void* data, size_t size)
+esp_err_t epd_panel_show(epd_panel_t panel, const void* data, uint32_t size)
 {
-    if (!panel) {
+    if (!panel || !data) {
         return ESP_ERR_INVALID_ARG;
     }
 
-    const uint32_t pixels      = (uint32_t)panel->cfg.width * panel->cfg.height;
-    const uint32_t total_bytes = (pixels + 1) / 2;
-    if (size != total_bytes) {
+    const uint16_t height = panel->cfg.height;
+    const uint32_t stride = (panel->cfg.width + 1U) / 2U;
+    const uint32_t length = stride * panel->cfg.height;
+    if (size != length) {
         return ESP_ERR_INVALID_SIZE;
     }
 
-    esp_err_t ret       = ESP_OK;
-    void*     ptr       = (void*)data;
-    uint32_t  remaining = total_bytes;
+    esp_err_t      ret = ESP_OK;
+    const uint8_t* ptr = (const uint8_t*)data;
     EPD_CHECK_RET(epd_send_command(panel, EPD_CMD_DTM1));
-    while (remaining > 0) {
-        size_t n = (remaining > 256 ? 256 : remaining);
-        EPD_CHECK_RET(epd_send_data(panel, (void*)ptr, n));
-        remaining -= n;
-        ptr       += n;
+    for (uint16_t row = 0; row < height; ++row) {
+        EPD_CHECK_RET(epd_send_data(panel, (void*)ptr, stride));
+        ptr += stride;
     }
 
     uint8_t flag = 0x80;
@@ -398,4 +408,59 @@ esp_err_t epd_panel_show(epd_panel_t panel, const void* data, size_t size)
     EPD_CHECK_RET(epd_send_command(panel, EPD_CMD_DISPLAY_REFRESH));
 
     return epd_wait_idle(panel, EPD_BUSY_TIMEOUT_MS);
+}
+
+esp_err_t epd_panel_show_planes(epd_panel_t panel, const void* pblk,
+    const void* pred, uint32_t size)
+{
+    if (!panel || !pblk || !pred) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    const uint16_t height  = panel->cfg.height;
+    const uint32_t pln_str = (panel->cfg.width + 7U) / 8U;
+    const uint32_t pln_len = pln_str * height;
+    if (size != pln_len) {
+        return ESP_ERR_INVALID_SIZE;
+    }
+
+    const uint32_t raw_str = (panel->cfg.width + 1U) / 2U;
+    uint8_t* buffer = (uint8_t*)calloc(raw_str, sizeof(uint8_t));
+    if (!buffer) {
+        return ESP_ERR_NO_MEM;
+    }
+
+    esp_err_t ret = ESP_OK;
+    EPD_CHECK_RET(epd_send_command(panel, EPD_CMD_DTM1));
+    
+    const uint8_t* blk = (const uint8_t*)pblk;
+    const uint8_t* red = (const uint8_t*)pred;
+    for (uint16_t prow = 0; prow < height; ++prow) {
+        for (uint32_t pcol = 0; pcol < raw_str; ++pcol) {
+            uint32_t pidx  = prow * pln_str + pcol / 4U;
+            uint8_t  digit = 7U - (pcol % 4U) * 2;
+            uint8_t  c0    = epd_panel_encode_2bbp((blk[pidx] >> (digit - 0)) & 1, (red[pidx] >> (digit - 0)) & 1);
+            uint8_t  c1    = epd_panel_encode_2bbp((blk[pidx] >> (digit - 1)) & 1, (red[pidx] >> (digit - 1)) & 1);
+            buffer[pcol] = ((c0 << 4) | (c1 & 0x0F));
+        }
+
+        ret = epd_send_data(panel, buffer, raw_str);
+        if (ret != ESP_OK) {
+            EPD_CHECK_GOTO(epd_send_command(panel, EPD_CMD_DATA_STOP), fail);
+            goto fail;
+        }
+    }
+
+    // Data stop and refresh the display
+    uint8_t data = 0x80;
+    EPD_CHECK_GOTO(epd_send_command(panel, EPD_CMD_DATA_STOP), fail);
+    EPD_CHECK_GOTO(epd_send_data(panel, &data, 1), fail);
+    EPD_CHECK_GOTO(epd_send_command(panel, EPD_CMD_DISPLAY_REFRESH), fail);
+
+    free(buffer);
+    return epd_wait_idle(panel, EPD_BUSY_TIMEOUT_MS);
+
+fail:
+    free(buffer);
+    return ret;
 }
