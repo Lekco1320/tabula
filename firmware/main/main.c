@@ -118,10 +118,10 @@ void app_main(void)
         .height    = 384,
     };
 
-    esp_err_t   ret   = ESP_OK;
+    epd_err_t   ret   = EPD_OK;
     epd_panel_t panel = NULL;
     ret = epd_panel_create(&config, &panel);
-    if (ret != ESP_OK) {
+    if (ret != EPD_OK) {
         ESP_LOGE("epd_test", "EPD panel creation failed! err=%s", esp_err_to_name(ret));
         return;
     } else {
@@ -136,7 +136,7 @@ void app_main(void)
         ESP_LOGI("epd_test", "EPD panel initialized");
     }
 
-    ret = epd_panel_fill(panel, EPD_PANEL_WHITE);
+    ret = epd_panel_fill(panel, EPD_GFX_WHITE);
     if (ret != ESP_OK) {
         ESP_LOGE("epd_test", "EPD panel clear failed! err=%s", esp_err_to_name(ret));
         return;

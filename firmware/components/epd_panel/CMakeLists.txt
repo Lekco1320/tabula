@@ -1,8 +1,9 @@
 idf_component_register(
     SRCS
-        "src/epd_panel.c"
+        epd_panel.c
     REQUIRES
         driver
         esp_timer
+        epd_gfx
     INCLUDE_DIRS
-        "include")
+        include)

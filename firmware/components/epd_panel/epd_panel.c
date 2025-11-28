@@ -7,8 +7,7 @@
  * @license MIT
  */
 
-#include <esp_log.h>
-#include <esp_err.h>
+#include <string.h>
 #include <esp_timer.h>
 #include <driver/spi_master.h>
 #include <freertos/FreeRTOS.h>
@@ -41,13 +40,13 @@
 
 #define EPD_CHECK_GOTO(EXP, LABEL) \
     ret = (EXP); \
-    if (ret != ESP_OK) { \
+    if (ret != EPD_OK) { \
         goto LABEL; \
     }
 
 #define EPD_CHECK_RET(EXP) \
     ret = (EXP); \
-    if (ret != ESP_OK) { \
+    if (ret != EPD_OK) { \
         return ret; \
     }
 
@@ -57,31 +56,31 @@ struct epd_panel_impl {
     bool                spi_bus_inited;
 };
 
-static esp_err_t epd_wait_idle(epd_panel_t panel, int timeout_ms)
+static epd_err_t epd_wait_idle(epd_panel_t panel, int timeout_ms)
 {
     if (panel->cfg.pin_busy < 0) {
-        return ESP_OK;
+        return EPD_OK;
     }
 
     int64_t start = esp_timer_get_time() / 1000; // us -> ms
     while (true) {
         int level = gpio_get_level(panel->cfg.pin_busy);
         if (level == 1) {
-            return ESP_OK;
+            return EPD_OK;
         }
 
         int64_t now = esp_timer_get_time() / 1000;
         if ((now - start) > timeout_ms) {
-            return ESP_ERR_TIMEOUT;
+            return EPD_ERR_TIMEOUT;
         }
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 
-static esp_err_t epd_panel_reset(epd_panel_t panel)
+static epd_err_t epd_panel_reset(epd_panel_t panel)
 {
     if (panel->cfg.pin_reset < 0) {
-        return ESP_OK;
+        return EPD_OK;
     }
 
     gpio_set_level(panel->cfg.pin_reset, 1);
@@ -91,10 +90,10 @@ static esp_err_t epd_panel_reset(epd_panel_t panel)
     gpio_set_level(panel->cfg.pin_reset, 1);
     vTaskDelay(pdMS_TO_TICKS(10));
 
-    return ESP_OK;
+    return EPD_OK;
 }
 
-static esp_err_t epd_send_command(epd_panel_t panel, uint8_t cmd)
+static epd_err_t epd_send_command(epd_panel_t panel, uint8_t cmd)
 {
     gpio_set_level(panel->cfg.pin_dc, 0); // command
 
@@ -107,10 +106,10 @@ static esp_err_t epd_send_command(epd_panel_t panel, uint8_t cmd)
     return spi_device_transmit(panel->spi, &t);
 }
 
-static esp_err_t epd_send_data(epd_panel_t panel, const void* data, size_t len)
+static epd_err_t epd_send_data(epd_panel_t panel, const void* data, size_t len)
 {
     if (len == 0) {
-        return ESP_OK;
+        return EPD_OK;
     }
 
     gpio_set_level(panel->cfg.pin_dc, 1); // data
@@ -130,13 +129,13 @@ static inline uint8_t epd_panel_encode_2bbp(uint8_t wbit, uint8_t rbit)
     return r | w;
 }
 
-esp_err_t epd_panel_create(const epd_panel_cfg_t* cfg, epd_panel_t* out_panel)
+epd_err_t epd_panel_create(const epd_panel_cfg_t* cfg, epd_panel_t* out_panel)
 {
     if (!cfg || !out_panel) {
-        return ESP_ERR_INVALID_ARG;
+        return EPD_ERR_INVALID_ARG;
     }
     if (cfg->width == 0 || cfg->height == 0) {
-        return ESP_ERR_INVALID_ARG;
+        return EPD_ERR_INVALID_ARG;
     }
     if (!GPIO_IS_VALID_OUTPUT_GPIO(cfg->pin_dc) ||
         !GPIO_IS_VALID_OUTPUT_GPIO(cfg->pin_cs) ||
@@ -144,56 +143,41 @@ esp_err_t epd_panel_create(const epd_panel_cfg_t* cfg, epd_panel_t* out_panel)
         !GPIO_IS_VALID_OUTPUT_GPIO(cfg->pin_sclk) ||
         !GPIO_IS_VALID_OUTPUT_GPIO(cfg->pin_reset) ||
         !GPIO_IS_VALID_GPIO(cfg->pin_busy)) {
-        return ESP_ERR_INVALID_ARG;
+        return EPD_ERR_INVALID_ARG;
     }
 
-    esp_err_t ret = ESP_OK;
+    epd_err_t ret = EPD_OK;
     epd_panel_t panel = calloc(1, sizeof(struct epd_panel_impl));
     if (!panel) {
-        return ESP_ERR_NO_MEM;
+        return EPD_ERR_NO_MEM;
     }
     panel->cfg = *cfg;
 
     // Configure GPIO:
     // Output: RESET, DC
     // Input:  BUSY
-    uint64_t out_mask = 0;
-    if (cfg->pin_reset >= 0) {
-        out_mask |= 1ULL << cfg->pin_reset;
-    }
-    if (cfg->pin_dc >= 0) {
-        out_mask |= 1ULL << cfg->pin_dc;
-    }
+    uint64_t out_mask = (1ULL << cfg->pin_reset) | (1ULL << cfg->pin_dc);
+    gpio_config_t io_out = {
+        .pin_bit_mask = out_mask,
+        .mode         = GPIO_MODE_OUTPUT,
+        .pull_up_en   = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type    = GPIO_INTR_DISABLE,
+    };
+    EPD_CHECK_GOTO(gpio_config(&io_out), fail);
 
-    if (out_mask) {
-        gpio_config_t io_out = {
-            .pin_bit_mask = out_mask,
-            .mode         = GPIO_MODE_OUTPUT,
-            .pull_up_en   = GPIO_PULLUP_DISABLE,
-            .pull_down_en = GPIO_PULLDOWN_DISABLE,
-            .intr_type    = GPIO_INTR_DISABLE,
-        };
-        EPD_CHECK_GOTO(gpio_config(&io_out), fail);
-    }
-
-    if (cfg->pin_busy >= 0) {
-        gpio_config_t io_in = {
-            .pin_bit_mask = 1ULL << cfg->pin_busy,
-            .mode         = GPIO_MODE_INPUT,
-            .pull_up_en   = GPIO_PULLUP_ENABLE,
-            .pull_down_en = GPIO_PULLDOWN_DISABLE,
-            .intr_type    = GPIO_INTR_DISABLE,
-        };
-        EPD_CHECK_GOTO(gpio_config(&io_in), fail);
-    }
+    gpio_config_t io_in = {
+        .pin_bit_mask = 1ULL << cfg->pin_busy,
+        .mode         = GPIO_MODE_INPUT,
+        .pull_up_en   = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type    = GPIO_INTR_DISABLE,
+    };
+    EPD_CHECK_GOTO(gpio_config(&io_in), fail);
 
     // Set default
-    if (cfg->pin_reset >= 0) {
-        gpio_set_level(cfg->pin_reset, 1);
-    }
-    if (cfg->pin_dc >= 0) {
-        gpio_set_level(cfg->pin_dc, 0);
-    }
+    gpio_set_level(cfg->pin_reset, 1);
+    gpio_set_level(cfg->pin_dc, 0);
 
     // initialize SPI bus
     spi_bus_config_t buscfg = {
@@ -218,7 +202,7 @@ esp_err_t epd_panel_create(const epd_panel_cfg_t* cfg, epd_panel_t* out_panel)
     EPD_CHECK_GOTO(spi_bus_add_device((spi_host_device_t)cfg->spi_host, &devcfg, &panel->spi), fail);
 
     *out_panel = panel;
-    return ESP_OK;
+    return EPD_OK;
 
 fail:
     if (panel->spi) {
@@ -231,14 +215,14 @@ fail:
     return ret;
 }
 
-esp_err_t epd_panel_init(epd_panel_t panel)
+epd_err_t epd_panel_init(epd_panel_t panel)
 {
     if (!panel) {
-        return ESP_ERR_INVALID_ARG;
+        return EPD_ERR_INVALID_ARG;
     }
 
     // 1. HW reset
-    esp_err_t ret = ESP_OK;
+    epd_err_t ret = EPD_OK;
     EPD_CHECK_RET(epd_panel_reset(panel));
 
     // 2. Booster soft start
@@ -321,16 +305,16 @@ esp_err_t epd_panel_init(epd_panel_t panel)
         EPD_CHECK_RET(epd_send_data(panel, data, sizeof(data)));
     }
 
-    return ESP_OK;
+    return EPD_OK;
 }
 
-esp_err_t epd_panel_sleep(epd_panel_t panel)
+epd_err_t epd_panel_sleep(epd_panel_t panel)
 {
     if (!panel) {
-        return ESP_ERR_INVALID_ARG;
+        return EPD_ERR_INVALID_ARG;
     }
 
-    esp_err_t ret;
+    epd_err_t ret;
     EPD_CHECK_RET(epd_send_command(panel, EPD_CMD_POWER_OFF));
     EPD_CHECK_RET(epd_wait_idle(panel, EPD_BUSY_TIMEOUT_MS));
 
@@ -339,28 +323,27 @@ esp_err_t epd_panel_sleep(epd_panel_t panel)
     return epd_send_data(panel, &data, 1);
 }
 
-esp_err_t epd_panel_destroy(epd_panel_t panel)
+epd_err_t epd_panel_destroy(epd_panel_t panel)
 {
     if (!panel) {
-        return ESP_ERR_INVALID_ARG;
+        return EPD_ERR_INVALID_ARG;
     }
 
-    esp_err_t ret = ESP_OK;
     if (panel->spi) {
-        ret = spi_bus_remove_device(panel->spi);
+        (void)spi_bus_remove_device(panel->spi);
     }
     if (panel->spi_bus_inited) {
-        ret = spi_bus_free(panel->cfg.spi_host);
+        (void)spi_bus_free(panel->cfg.spi_host);
     }
 
     free(panel);
-    return ret;
+    return EPD_OK;
 }
 
-esp_err_t epd_panel_fill(epd_panel_t panel, epd_panel_color_t color)
+epd_err_t epd_panel_fill(epd_panel_t panel, epd_gfx_color_t color)
 {
     if (!panel) {
-        return ESP_ERR_INVALID_ARG;
+        return EPD_ERR_INVALID_ARG;
     }
 
     const uint16_t height     = panel->cfg.height;
@@ -369,11 +352,11 @@ esp_err_t epd_panel_fill(epd_panel_t panel, epd_panel_color_t color)
 
     uint8_t* chunk = (uint8_t*)malloc(stride);
     if (!chunk) {
-        return ESP_ERR_NO_MEM;
+        return EPD_ERR_NO_MEM;
     }
     memset(chunk, color_byte, stride);
 
-    esp_err_t ret = ESP_OK;
+    epd_err_t ret = EPD_OK;
     EPD_CHECK_GOTO(epd_send_command(panel, EPD_CMD_DTM1), fail);
 
     for (uint16_t row = 0; row < height; ++row) {
@@ -396,25 +379,25 @@ fail:
     return ret;
 }
 
-esp_err_t epd_panel_clear(epd_panel_t panel)
+epd_err_t epd_panel_clear(epd_panel_t panel)
 {
-    return epd_panel_fill(panel, EPD_PANEL_WHITE);
+    return epd_panel_fill(panel, EPD_GFX_WHITE);
 }
 
-esp_err_t epd_panel_show(epd_panel_t panel, const void* data, uint32_t size)
+epd_err_t epd_panel_show(epd_panel_t panel, const void* data, uint32_t size)
 {
     if (!panel || !data) {
-        return ESP_ERR_INVALID_ARG;
+        return EPD_ERR_INVALID_ARG;
     }
 
     const uint16_t height = panel->cfg.height;
     const uint32_t stride = (panel->cfg.width + 1U) / 2U;
     const uint32_t length = stride * panel->cfg.height;
     if (size != length) {
-        return ESP_ERR_INVALID_SIZE;
+        return EPD_ERR_INVALID_SIZE;
     }
 
-    esp_err_t      ret = ESP_OK;
+    epd_err_t      ret = EPD_OK;
     const uint8_t* ptr = (const uint8_t*)data;
     EPD_CHECK_RET(epd_send_command(panel, EPD_CMD_DTM1));
     for (uint16_t row = 0; row < height; ++row) {
@@ -430,27 +413,27 @@ esp_err_t epd_panel_show(epd_panel_t panel, const void* data, uint32_t size)
     return epd_wait_idle(panel, EPD_BUSY_TIMEOUT_MS);
 }
 
-esp_err_t epd_panel_show_planes(epd_panel_t panel, const void* pwht,
+epd_err_t epd_panel_show_planes(epd_panel_t panel, const void* pwht,
     const void* pred, uint32_t size)
 {
     if (!panel || !pwht || !pred) {
-        return ESP_ERR_INVALID_ARG;
+        return EPD_ERR_INVALID_ARG;
     }
 
     const uint16_t height  = panel->cfg.height;
     const uint32_t pln_str = (panel->cfg.width + 7U) / 8U;
     const uint32_t pln_len = pln_str * height;
     if (size != pln_len) {
-        return ESP_ERR_INVALID_SIZE;
+        return EPD_ERR_INVALID_SIZE;
     }
 
     const uint32_t raw_str = (panel->cfg.width + 1U) / 2U;
     uint8_t* buffer = (uint8_t*)calloc(raw_str, sizeof(uint8_t));
     if (!buffer) {
-        return ESP_ERR_NO_MEM;
+        return EPD_ERR_NO_MEM;
     }
 
-    esp_err_t ret = ESP_OK;
+    epd_err_t ret = EPD_OK;
     EPD_CHECK_GOTO(epd_send_command(panel, EPD_CMD_DTM1), fail);
     
     const uint8_t* wht = (const uint8_t*)pwht;
@@ -465,7 +448,7 @@ esp_err_t epd_panel_show_planes(epd_panel_t panel, const void* pwht,
         }
 
         ret = epd_send_data(panel, buffer, raw_str);
-        if (ret != ESP_OK) {
+        if (ret != EPD_OK) {
             EPD_CHECK_GOTO(epd_send_command(panel, EPD_CMD_DATA_STOP), fail);
             goto fail;
         }
