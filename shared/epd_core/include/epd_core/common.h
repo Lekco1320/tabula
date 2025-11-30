@@ -14,6 +14,18 @@
 
 #include <stdbool.h>
 
+#define EPD_CHECK_GOTO(EXP, LABEL) \
+    ret = (EXP); \
+    if (ret != EPD_OK) { \
+        goto LABEL; \
+    }
+
+#define EPD_CHECK_RET(EXP) \
+    ret = (EXP); \
+    if (ret != EPD_OK) { \
+        return ret; \
+    }
+
 typedef enum {
     EPD_OK                   = 0,      /*!< value indicating success (no error) */
     EPD_FAIL                 = -1,     /*!< Generic epd_err_t code indicating failure */

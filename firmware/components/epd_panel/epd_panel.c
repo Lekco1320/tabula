@@ -38,18 +38,6 @@
 
 #define TAG "epd_panel"
 
-#define EPD_CHECK_GOTO(EXP, LABEL) \
-    ret = (EXP); \
-    if (ret != EPD_OK) { \
-        goto LABEL; \
-    }
-
-#define EPD_CHECK_RET(EXP) \
-    ret = (EXP); \
-    if (ret != EPD_OK) { \
-        return ret; \
-    }
-
 struct epd_panel_impl {
     epd_panel_cfg_t     cfg;
     spi_device_handle_t spi;
