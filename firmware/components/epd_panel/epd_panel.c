@@ -455,3 +455,38 @@ fail:
     free(buffer);
     return ret;
 }
+
+static epd_err_t epd_panel_flush_impl(void* context, const epd_gfx_frame_view_t* frame_view)
+{
+    epd_panel_t panel = (epd_panel_t)context;
+    if (!panel || !frame_view) {
+        return EPD_ERR_INVALID_ARG;
+    }
+
+    uint32_t size = frame_view->height * frame_view->stride;
+    switch (frame_view->format)
+    {
+    case EPD_GFX_FORMAT_NATIVE:
+        return epd_panel_show(panel, frame_view->buf_native, size);
+    
+    case EPD_GFX_FORMAT_PLANES:
+        return epd_panel_show_planes(panel, frame_view->buf_wht, frame_view->buf_red, size);
+
+    default:
+        return EPD_ERR_INVALID_ARG;
+    }
+}
+
+epd_err_t epd_panel_make_sink(epd_panel_t panel, epd_gfx_frame_view_sink_t** sink)
+{
+    if (!panel || !sink) {
+        return EPD_ERR_INVALID_ARG;
+    }
+
+    epd_gfx_frame_view_sink_t* new_sink = (epd_gfx_frame_view_sink_t*)calloc(1, sizeof(epd_gfx_frame_view_sink_t));
+    new_sink->context    = panel;
+    new_sink->flush_impl = epd_panel_flush_impl;
+
+    *sink = new_sink;
+    return EPD_OK;
+}

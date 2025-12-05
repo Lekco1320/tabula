@@ -1,6 +1,6 @@
 /**
  * @file canvas.h
- * @brief Graphics layer for 7.5\" tri-color e-paper (DEPG0750* UC8159).
+ * @brief Canvas API for drawing into EPD buffers (native or planes).
  *
  * @author Lukaß Zhang <lekco_1320@qq.com>
  * @date 2025-11-21
@@ -16,6 +16,7 @@
 #include <epd_core/common.h>
 
 #include "epd_gfx/common.h"
+#include "epd_gfx/frame_view.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -186,6 +187,15 @@ epd_err_t epd_gfx_canvas_draw_rect(epd_gfx_canvas_t canvas,
  */
 epd_err_t epd_gfx_canvas_fill_rect(epd_gfx_canvas_t canvas,
     uint16_t x, uint16_t y, uint16_t w, uint16_t h, epd_gfx_color_t color);
+
+/**
+ * @brief Present the canvas buffer to a frame sink.
+ *
+ * @param canvas Canvas handle.
+ * @param sink Frame sink to receive the view; must not be null.
+ * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
+ */
+epd_err_t epd_gfx_canvas_flush(const epd_gfx_canvas_t canvas, const epd_gfx_frame_view_sink_t* sink);
 
 #ifdef __cplusplus
 }

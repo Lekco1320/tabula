@@ -1,6 +1,6 @@
 /**
  * @file canvas.c
- * @brief Graphics layer for 7.5\" tri-color e-paper (DEPG0750* UC8159).
+ * @brief Canvas API for drawing into EPD buffers (native or planes).
  *
  * @author Lukaß Zhang <lekco_1320@qq.com>
  * @date 2025-11-21
@@ -16,18 +16,24 @@ typedef void (*epd_gfx_map_fn_t)(const epd_gfx_canvas_t, uint16_t*, uint16_t*);
 typedef uint16_t (*epd_gfx_size_fn_t)(const epd_gfx_canvas_t);
 
 struct epd_gfx_canvas_impl {
-    uint16_t           width;
-    uint16_t           height;
-    epd_gfx_rotation_t rotation;
-    epd_gfx_map_fn_t   map_fn;
-    epd_gfx_size_fn_t  lwidth_fn;
-    epd_gfx_size_fn_t  lheight_fn;
+    uint16_t          width;
+    uint16_t          height;
+    uint8_t           flags;      // bit0=format (0 native / 1 planes), bits1-2=rotation (0/90/180/270)
+    epd_gfx_map_fn_t  map_fn;
+    epd_gfx_size_fn_t lwidth_fn;
+    epd_gfx_size_fn_t lheight_fn;
 
-    uint16_t           buf_stride;
-    uint32_t           buf_size;
-    uint8_t*           buf_native;
-    uint8_t*           buf_wht;
-    uint8_t*           buf_red;
+    uint16_t          buf_stride;
+    uint32_t          buf_size;
+    union {
+        struct {
+            uint8_t*  buf_native;
+        };
+        struct {
+            uint8_t*  buf_wht;
+            uint8_t*  buf_red;
+        };
+    };
 };
 
 static inline void swap(uint16_t* a, uint16_t* b)
@@ -39,7 +45,7 @@ static inline void swap(uint16_t* a, uint16_t* b)
 
 static inline bool epd_gfx_canvas_in_planes(const epd_gfx_canvas_t canvas)
 {
-    return !canvas->buf_native;
+    return (canvas->flags & 1);
 }
 
 static void epd_gfx_canvas_map_rot0(const epd_gfx_canvas_t canvas, uint16_t* px, uint16_t* py)
@@ -101,6 +107,7 @@ epd_err_t epd_gfx_canvas_create(const epd_gfx_canvas_config_t* config, epd_gfx_c
     switch (config->format)
     {
     case EPD_GFX_FORMAT_NATIVE:
+        canvas->flags      = 0;
         canvas->buf_stride = (canvas->width + 1U) / 2U;
         canvas->buf_size   = (uint32_t)canvas->buf_stride * canvas->height;
         canvas->buf_native = (uint8_t*)calloc(canvas->buf_size, sizeof(uint8_t));
@@ -111,6 +118,7 @@ epd_err_t epd_gfx_canvas_create(const epd_gfx_canvas_config_t* config, epd_gfx_c
         break;
 
     case EPD_GFX_FORMAT_PLANES:
+        canvas->flags      = 1;
         canvas->buf_stride = (canvas->width + 7U) / 8U;
         canvas->buf_size   = (uint32_t)canvas->buf_stride * canvas->height;
         canvas->buf_wht    = (uint8_t*)calloc(canvas->buf_size, sizeof(uint8_t));
@@ -163,12 +171,12 @@ epd_err_t epd_gfx_canvas_destroy(epd_gfx_canvas_t canvas)
 
 epd_gfx_rotation_t epd_gfx_canvas_get_rotation(const epd_gfx_canvas_t canvas)
 {
-    return (!canvas ? EPD_GFX_ROTATE_UNKNOWN : canvas->rotation);
+    return (!canvas ? EPD_GFX_ROTATE_UNKNOWN : (epd_gfx_rotation_t)((canvas->flags >> 1) & 3));
 }
 
 epd_gfx_format_t epd_gfx_canvas_get_format(const epd_gfx_canvas_t canvas)
 {
-    return (!canvas ? EPD_GFX_FORMAT_UNKNOWN : (!canvas->buf_native));
+    return (!canvas ? EPD_GFX_FORMAT_UNKNOWN : (epd_gfx_format_t)(canvas->flags & 1));
 }
 
 epd_err_t epd_gfx_canvas_set_rotation(epd_gfx_canvas_t canvas, epd_gfx_rotation_t rotation)
@@ -180,28 +188,28 @@ epd_err_t epd_gfx_canvas_set_rotation(epd_gfx_canvas_t canvas, epd_gfx_rotation_
     switch (rotation)
     {
     case EPD_GFX_ROTATE_0:
-        canvas->rotation   = EPD_GFX_ROTATE_0;
+        canvas->flags      = (canvas->flags & 0xF9) | (EPD_GFX_ROTATE_0 << 1);
         canvas->map_fn     = epd_gfx_canvas_map_rot0;
         canvas->lwidth_fn  = epd_gfx_canvas_get_width;
         canvas->lheight_fn = epd_gfx_canvas_get_height;
         break;
     
     case EPD_GFX_ROTATE_90:
-        canvas->rotation   = EPD_GFX_ROTATE_90;
+        canvas->flags      = (canvas->flags & 0xF9) | (EPD_GFX_ROTATE_90 << 1);
         canvas->map_fn     = epd_gfx_canvas_map_rot90;
         canvas->lwidth_fn  = epd_gfx_canvas_get_height;
         canvas->lheight_fn = epd_gfx_canvas_get_width;
         break;
 
     case EPD_GFX_ROTATE_180:
-        canvas->rotation   = EPD_GFX_ROTATE_180;
+        canvas->flags      = (canvas->flags & 0xF9) | (EPD_GFX_ROTATE_180 << 1);
         canvas->map_fn     = epd_gfx_canvas_map_rot180;
         canvas->lwidth_fn  = epd_gfx_canvas_get_width;
         canvas->lheight_fn = epd_gfx_canvas_get_height;
         break;
 
     case EPD_GFX_ROTATE_270:
-        canvas->rotation   = EPD_GFX_ROTATE_270;
+        canvas->flags      = (canvas->flags & 0xF9) | (EPD_GFX_ROTATE_270 << 1);
         canvas->map_fn     = epd_gfx_canvas_map_rot270;
         canvas->lwidth_fn  = epd_gfx_canvas_get_height;
         canvas->lheight_fn = epd_gfx_canvas_get_width;
@@ -427,7 +435,8 @@ epd_err_t epd_gfx_canvas_draw_hline(epd_gfx_canvas_t canvas,
         return EPD_ERR_INVALID_ARG;
     }
 
-    switch (canvas->rotation)
+    epd_gfx_rotation_t rotation = epd_gfx_canvas_get_rotation(canvas);
+    switch (rotation)
     {
     case EPD_GFX_ROTATE_0:
         return epd_gfx_canvas_draw_hline_impl(canvas, x, y, w, color);    
@@ -466,7 +475,8 @@ epd_err_t epd_gfx_canvas_draw_vline(epd_gfx_canvas_t canvas,
         return EPD_ERR_INVALID_ARG;
     }
 
-    switch (canvas->rotation)
+    epd_gfx_rotation_t rotation = epd_gfx_canvas_get_rotation(canvas);
+    switch (rotation)
     {
     case EPD_GFX_ROTATE_0:
         return epd_gfx_canvas_draw_vline_impl(canvas, x, y, h, color);
@@ -526,7 +536,8 @@ epd_err_t epd_gfx_canvas_fill_rect(epd_gfx_canvas_t canvas,
     uint16_t y0;
     uint16_t y1;
     uint16_t width;
-    switch (canvas->rotation)
+    epd_gfx_rotation_t rotation = epd_gfx_canvas_get_rotation(canvas);
+    switch (rotation)
     {
     case EPD_GFX_ROTATE_0:
         x0    = x;
@@ -569,4 +580,28 @@ epd_err_t epd_gfx_canvas_fill_rect(epd_gfx_canvas_t canvas,
         EPD_CHECK_RET(epd_gfx_canvas_draw_hline_impl(canvas, x0, y, width, color));
     }
     return EPD_OK;
+}
+
+epd_err_t epd_gfx_canvas_flush(const epd_gfx_canvas_t canvas, const epd_gfx_frame_view_sink_t* sink)
+{
+    if (!canvas || !sink || !sink->flush_impl) {
+        return EPD_ERR_INVALID_ARG;
+    }
+
+    epd_gfx_frame_view_t frame_view = {
+        .format  = epd_gfx_canvas_get_format(canvas),
+        .width   = canvas->width,
+        .height  = canvas->height,
+        .stride  = canvas->buf_stride,
+        .buf_wht = NULL,
+        .buf_red = NULL,
+    };
+    if (frame_view.format) {
+        frame_view.buf_wht = canvas->buf_wht;
+        frame_view.buf_red = canvas->buf_red;
+    } else {
+        frame_view.buf_native = canvas->buf_native;
+    }
+
+    return sink->flush_impl(sink->context, &frame_view);
 }

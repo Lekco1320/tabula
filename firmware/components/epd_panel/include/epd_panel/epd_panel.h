@@ -16,6 +16,7 @@
 #include <driver/spi_master.h>
 #include <epd_core/common.h>
 #include <epd_gfx/common.h>
+#include <epd_gfx/frame_view.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -120,6 +121,16 @@ epd_err_t epd_panel_show(epd_panel_t panel, const void* data, uint32_t size);
  */
 epd_err_t epd_panel_show_planes(epd_panel_t panel, const void* pwht,
     const void* pred, uint32_t size);
+
+/**
+ * @brief Build a frame sink bound to the panel for `epd_gfx_canvas_flush`.
+ *
+ * @param panel The handle of the e-paper panel.
+ * @param sink Output sink to fill; must not be null.
+ * @note Ownership of the allocated sink is transferred to the caller.
+ * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
+ */
+epd_err_t epd_panel_make_sink(epd_panel_t panel, epd_gfx_frame_view_sink_t** sink);
 
 #ifdef __cplusplus
 }
