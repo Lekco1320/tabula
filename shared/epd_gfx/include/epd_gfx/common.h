@@ -13,10 +13,9 @@
 #define _EPD_GFX_COMMON_H_
 
 typedef enum {
-    EPD_GFX_BLACK       = 0b000,
-    EPD_GFX_WHITE       = 0b011,
-    EPD_GFX_RED         = 0b100,
-    EPD_GFX_TRANSPARENT = 0b111,
+    EPD_GFX_BLACK = 0b000,
+    EPD_GFX_WHITE = 0b011,
+    EPD_GFX_RED   = 0b100,
 } epd_gfx_color_t;
 
 typedef enum {

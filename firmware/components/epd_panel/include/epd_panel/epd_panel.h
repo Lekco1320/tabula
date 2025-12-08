@@ -38,7 +38,7 @@ typedef struct {
 } epd_panel_cfg_t;
 
 /**
- * @brief Creates a new e-paper panel instance based on the configuration.
+ * @brief Create a new e-paper panel instance based on the configuration.
  * 
  * @param cfg Configuration settings for the e-paper panel.
  * @param panel Pointer to the panel handle to be initialized.
@@ -47,7 +47,7 @@ typedef struct {
 epd_err_t epd_panel_create(const epd_panel_cfg_t* cfg, epd_panel_t* panel);
 
 /**
- * @brief Initializes the e-paper panel, setting up communication and panel configuration.
+ * @brief Initialize the e-paper panel, setting up communication and panel configuration.
  * 
  * @param panel The handle of the e-paper panel to be initialized.
  * @return `EPD_OK` on success, or an error code from `epd_err_t` if the operation fails.
@@ -55,7 +55,7 @@ epd_err_t epd_panel_create(const epd_panel_cfg_t* cfg, epd_panel_t* panel);
 epd_err_t epd_panel_init(epd_panel_t panel);
 
 /**
- * @brief Puts the e-paper panel into a low-power sleep state.
+ * @brief Put the e-paper panel into a low-power sleep state.
  * 
  * @param panel The handle of the e-paper panel to be put to sleep.
  * @return `EPD_OK` on success, or an error code from `epd_err_t` if the operation fails.
@@ -63,7 +63,7 @@ epd_err_t epd_panel_init(epd_panel_t panel);
 epd_err_t epd_panel_sleep(epd_panel_t panel);
 
 /**
- * @brief Destroys the e-paper panel instance, releasing allocated resources.
+ * @brief Destroy the e-paper panel instance, releasing allocated resources.
  * 
  * @param panel The handle of the e-paper panel to be destroyed.
  * @return `EPD_OK` on success, or an error code from `epd_err_t` if the operation fails.
@@ -71,7 +71,7 @@ epd_err_t epd_panel_sleep(epd_panel_t panel);
 epd_err_t epd_panel_destroy(epd_panel_t panel);
 
 /**
- * @brief Fills the entire e-paper display with the specified color.
+ * @brief Fill the entire e-paper display with the specified color.
  * The color is applied to all pixels on the display.
  * 
  * @param panel The handle of the e-paper panel.
@@ -81,7 +81,7 @@ epd_err_t epd_panel_destroy(epd_panel_t panel);
 epd_err_t epd_panel_fill(epd_panel_t panel, epd_gfx_color_t color);
 
 /**
- * @brief Clears the e-paper display, resetting all pixels to the default color (usually white).
+ * @brief Clear the e-paper display, resetting all pixels to the default color (usually white).
  * 
  * @param panel The handle of the e-paper panel to be cleared.
  * @return `EPD_OK` on success, or an error code from `epd_err_t` if the operation fails.
@@ -89,20 +89,17 @@ epd_err_t epd_panel_fill(epd_panel_t panel, epd_gfx_color_t color);
 epd_err_t epd_panel_clear(epd_panel_t panel);
 
 /**
- * @brief Sends image data to the e-paper panel for display.
- * The input data is in native format, where 2 pixels are packed into one byte (4bpp).
+ * @brief Send image data in native format to the e-paper panel for display.
  * 
  * @param panel The handle of e-paper panel.
- * @param data Image data in native format (4bpp).
+ * @param data Image data in native format.
  * @param size Size of data. The size must match the expected buffer size: stride * height.
  * @return `EPD_OK` on success, or an error code from `epd_err_t` if the operation fails.
  */
-epd_err_t epd_panel_show(epd_panel_t panel, const void* data, uint32_t size);
+epd_err_t epd_panel_show(epd_panel_t panel, const uint8_t* data, uint32_t size);
 
 /**
- * @brief Sends image data to the e-paper panel for display.
- * The input data is in plane format, which consists of two planes: white and red.
- * Each byte in the plane represents 8 pixels, with each pixel encoded as black, white, or red.
+ * @brief Send image data in white/red planes format to the e-paper panel for display.
  * 
  * @remark
  * +---+---+-------+
@@ -114,13 +111,13 @@ epd_err_t epd_panel_show(epd_panel_t panel, const void* data, uint32_t size);
  * +---+---+-------+
  * 
  * @param panel The handle of the e-paper panel.
- * @param pwht Pointer to the white plane image data (1bpp).
- * @param pred Pointer to the red plane image data (1bpp).
+ * @param pwht Pointer to the white plane image data.
+ * @param pred Pointer to the red plane image data.
  * @param size The size of the input data. The size must be equal to stride * height.
  * @return `EPD_OK` on success, or an error code from `epd_err_t` if the operation fails.
  */
-epd_err_t epd_panel_show_planes(epd_panel_t panel, const void* pwht,
-    const void* pred, uint32_t size);
+epd_err_t epd_panel_show_planes(epd_panel_t panel, const uint8_t* pwht,
+    const uint8_t* pred, uint32_t size);
 
 /**
  * @brief Build a frame sink bound to the panel for `epd_gfx_canvas_flush`.

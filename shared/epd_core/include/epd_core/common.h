@@ -14,6 +14,14 @@
 
 #include <stdbool.h>
 
+#ifdef _MSC_VER
+    #define EPD_INLINE __forceinline
+#elif defined(__GNUC__) && !defined(_DEBUG)
+    #define EPD_INLINE __attribute__((always_inline)) inline
+#else
+    #define EPD_INLINE inline
+#endif
+
 #define EPD_CHECK_GOTO(EXP, LABEL) \
     ret = (EXP); \
     if (ret != EPD_OK) { \

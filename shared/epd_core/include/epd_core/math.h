@@ -14,6 +14,8 @@
 
 #include <stdint.h>
 
+#include "epd_core/common.h"
+
 #define EPD_MIN(A, B) (((A) <= (B)) ? (A) : (B))
 #define EPD_MAX(A, B) (((A) >= (B)) ? (A) : (B))
 
@@ -24,7 +26,7 @@
  * @param b Right operand.
  * @return Sum of `a + b`, saturated at `0xFFFF` on overflow.
  */
-static inline uint16_t epd_sat_add_uint16(uint16_t a, uint16_t b)
+static EPD_INLINE uint16_t epd_sat_add_uint16(uint16_t a, uint16_t b)
 {
     uint32_t s = (uint32_t)a + (uint32_t)b;
     uint32_t carry = s >> 16;
@@ -39,7 +41,7 @@ static inline uint16_t epd_sat_add_uint16(uint16_t a, uint16_t b)
  * @param b Subtrahend.
  * @return `a - b`, saturated at `0` on underflow.
  */
-static inline uint16_t epd_sat_sub_uint16(uint16_t a, uint16_t b)
+static EPD_INLINE uint16_t epd_sat_sub_uint16(uint16_t a, uint16_t b)
 {
     uint32_t d = (uint32_t)a - (uint32_t)b;
     uint32_t borrow = (a < b);

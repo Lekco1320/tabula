@@ -12,6 +12,7 @@
 #include <driver/spi_master.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <epd_gfx/codec.h>
 
 #include "epd_panel/epd_panel.h"
 
@@ -107,14 +108,6 @@ static epd_err_t epd_send_data(epd_panel_t panel, const void* data, size_t len)
         .tx_buffer = data,
     };
     return spi_device_transmit(panel->spi, &t);
-}
-
-static inline uint8_t epd_panel_encode_2bbp(uint8_t wbit, uint8_t rbit)
-{
-    uint8_t t = (1 ^ rbit) & wbit;
-    uint8_t w = (t << 1) | t;
-    uint8_t r = (rbit << 2);
-    return r | w;
 }
 
 epd_err_t epd_panel_create(const epd_panel_cfg_t* cfg, epd_panel_t* out_panel)
@@ -335,8 +328,8 @@ epd_err_t epd_panel_fill(epd_panel_t panel, epd_gfx_color_t color)
     }
 
     const uint16_t height     = panel->cfg.height;
-    const uint32_t stride     = (panel->cfg.width + 1U) / 2U;
-    const uint8_t  color_byte = ((color << 4) | (color & 0x0F)); // duplicate in one byte
+    const uint32_t stride     = epd_gfx_native_stride(panel->cfg.width);
+    const uint8_t  color_byte = epd_gfx_pack_colors(color, color);
 
     uint8_t* chunk = (uint8_t*)malloc(stride);
     if (!chunk) {
@@ -372,21 +365,21 @@ epd_err_t epd_panel_clear(epd_panel_t panel)
     return epd_panel_fill(panel, EPD_GFX_WHITE);
 }
 
-epd_err_t epd_panel_show(epd_panel_t panel, const void* data, uint32_t size)
+epd_err_t epd_panel_show(epd_panel_t panel, const uint8_t* data, uint32_t size)
 {
     if (!panel || !data) {
         return EPD_ERR_INVALID_ARG;
     }
 
     const uint16_t height = panel->cfg.height;
-    const uint32_t stride = (panel->cfg.width + 1U) / 2U;
+    const uint32_t stride = epd_gfx_native_stride(panel->cfg.width);
     const uint32_t length = stride * panel->cfg.height;
     if (size != length) {
         return EPD_ERR_INVALID_SIZE;
     }
 
     epd_err_t      ret = EPD_OK;
-    const uint8_t* ptr = (const uint8_t*)data;
+    const uint8_t* ptr = data;
     EPD_CHECK_RET(epd_send_command(panel, EPD_CMD_DTM1));
     for (uint16_t row = 0; row < height; ++row) {
         EPD_CHECK_RET(epd_send_data(panel, (void*)ptr, stride));
@@ -401,22 +394,22 @@ epd_err_t epd_panel_show(epd_panel_t panel, const void* data, uint32_t size)
     return epd_wait_idle(panel, EPD_BUSY_TIMEOUT_MS);
 }
 
-epd_err_t epd_panel_show_planes(epd_panel_t panel, const void* pwht,
-    const void* pred, uint32_t size)
+epd_err_t epd_panel_show_planes(epd_panel_t panel, const uint8_t* pwht,
+    const uint8_t* pred, uint32_t size)
 {
     if (!panel || !pwht || !pred) {
         return EPD_ERR_INVALID_ARG;
     }
 
-    const uint16_t height  = panel->cfg.height;
-    const uint32_t pln_str = (panel->cfg.width + 7U) / 8U;
-    const uint32_t pln_len = pln_str * height;
-    if (size != pln_len) {
+    const uint16_t height       = panel->cfg.height;
+    const uint32_t plane_stride = epd_gfx_planes_stride(panel->cfg.width);
+    const uint32_t plane_length = plane_stride * height;
+    if (size != plane_length) {
         return EPD_ERR_INVALID_SIZE;
     }
 
-    const uint32_t raw_str = (panel->cfg.width + 1U) / 2U;
-    uint8_t* buffer = (uint8_t*)calloc(raw_str, sizeof(uint8_t));
+    const uint32_t native_stride = epd_gfx_native_stride(panel->cfg.width);
+    uint8_t* buffer = (uint8_t*)calloc(native_stride, sizeof(uint8_t));
     if (!buffer) {
         return EPD_ERR_NO_MEM;
     }
@@ -424,18 +417,10 @@ epd_err_t epd_panel_show_planes(epd_panel_t panel, const void* pwht,
     epd_err_t ret = EPD_OK;
     EPD_CHECK_GOTO(epd_send_command(panel, EPD_CMD_DTM1), fail);
     
-    const uint8_t* wht = (const uint8_t*)pwht;
-    const uint8_t* red = (const uint8_t*)pred;
     for (uint16_t prow = 0; prow < height; ++prow) {
-        for (uint32_t pcol = 0; pcol < raw_str; ++pcol) {
-            uint32_t pidx  = prow * pln_str + pcol / 4U;
-            uint8_t  digit = 7U - (pcol % 4U) * 2;
-            uint8_t  c0    = epd_panel_encode_2bbp((wht[pidx] >> (digit - 0)) & 1, (red[pidx] >> (digit - 0)) & 1);
-            uint8_t  c1    = epd_panel_encode_2bbp((wht[pidx] >> (digit - 1)) & 1, (red[pidx] >> (digit - 1)) & 1);
-            buffer[pcol]   = ((c0 << 4) | (c1 & 0x0F));
-        }
-
-        ret = epd_send_data(panel, buffer, raw_str);
+        uint32_t index = prow * plane_stride;
+        epd_gfx_planes_to_native_buffer(pwht + index, pred + index, panel->cfg.width, buffer);
+        ret = epd_send_data(panel, buffer, native_stride);
         if (ret != EPD_OK) {
             EPD_CHECK_GOTO(epd_send_command(panel, EPD_CMD_DATA_STOP), fail);
             goto fail;

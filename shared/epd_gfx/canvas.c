@@ -9,7 +9,9 @@
 
 #include <string.h>
 #include <epd_core/math.h>
+#include <epd_core/common.h>
 
+#include "epd_gfx/codec.h"
 #include "epd_gfx/canvas.h"
 
 typedef void (*epd_gfx_map_fn_t)(const epd_gfx_canvas_t, uint16_t*, uint16_t*);
@@ -36,14 +38,14 @@ struct epd_gfx_canvas_impl {
     };
 };
 
-static inline void swap(uint16_t* a, uint16_t* b)
+static EPD_INLINE void swap(uint16_t* a, uint16_t* b)
 {
     uint16_t temp = *a;
     *a = *b;
     *b = temp;
 }
 
-static inline bool epd_gfx_canvas_in_planes(const epd_gfx_canvas_t canvas)
+static EPD_INLINE bool epd_gfx_canvas_in_planes(const epd_gfx_canvas_t canvas)
 {
     return (canvas->flags & 1);
 }
@@ -80,12 +82,12 @@ static void epd_gfx_canvas_map_rot270(const epd_gfx_canvas_t canvas, uint16_t* p
     *py = canvas->height - 1U - x;
 }
 
-static inline bool epd_gfx_check_bound(const epd_gfx_canvas_t canvas, uint16_t x, uint16_t y)
+static EPD_INLINE bool epd_gfx_check_bound(const epd_gfx_canvas_t canvas, uint16_t x, uint16_t y)
 {
     return x <= canvas->width && y <= canvas->height && x > 0 && y > 0;
 }
 
-static inline bool epd_gfx_check_bound_mapped(const epd_gfx_canvas_t canvas, uint16_t x, uint16_t y)
+static EPD_INLINE bool epd_gfx_check_bound_mapped(const epd_gfx_canvas_t canvas, uint16_t x, uint16_t y)
 {
     return x < canvas->width && y < canvas->height;
 }
@@ -108,7 +110,7 @@ epd_err_t epd_gfx_canvas_create(const epd_gfx_canvas_config_t* config, epd_gfx_c
     {
     case EPD_GFX_FORMAT_NATIVE:
         canvas->flags      = 0;
-        canvas->buf_stride = (canvas->width + 1U) / 2U;
+        canvas->buf_stride = epd_gfx_native_stride(canvas->width);
         canvas->buf_size   = (uint32_t)canvas->buf_stride * canvas->height;
         canvas->buf_native = (uint8_t*)calloc(canvas->buf_size, sizeof(uint8_t));
         if (!canvas->buf_native) {
@@ -119,7 +121,7 @@ epd_err_t epd_gfx_canvas_create(const epd_gfx_canvas_config_t* config, epd_gfx_c
 
     case EPD_GFX_FORMAT_PLANES:
         canvas->flags      = 1;
-        canvas->buf_stride = (canvas->width + 7U) / 8U;
+        canvas->buf_stride = epd_gfx_planes_stride(canvas->width);
         canvas->buf_size   = (uint32_t)canvas->buf_stride * canvas->height;
         canvas->buf_wht    = (uint8_t*)calloc(canvas->buf_size, sizeof(uint8_t));
         canvas->buf_red    = (uint8_t*)calloc(canvas->buf_size, sizeof(uint8_t));
@@ -254,11 +256,9 @@ epd_err_t epd_gfx_canvas_fill(epd_gfx_canvas_t canvas, epd_gfx_color_t color)
     }
 
     if (epd_gfx_canvas_in_planes(canvas)) {
-        memset(canvas->buf_wht, (uint8_t)-(color & 1U), canvas->buf_size);
-        memset(canvas->buf_red, (uint8_t)-((color >> 2) & 1U), canvas->buf_size);
+        epd_gfx_planes_set_bytes(canvas->buf_wht, canvas->buf_red, canvas->buf_size, color);
     } else {
-        uint8_t color_byte = ((color << 4) | (color & 0x0F));
-        memset(canvas->buf_native, color_byte, canvas->buf_size);
+        epd_gfx_native_set_bytes(canvas->buf_native, canvas->buf_size, color);
     }
 
     return EPD_OK;
@@ -277,21 +277,13 @@ epd_err_t epd_gfx_canvas_draw_pixel(epd_gfx_canvas_t canvas,
     }
 
     if (epd_gfx_canvas_in_planes(canvas)) {
-        uint16_t index = canvas->buf_stride * y + (x >> 3);
-        uint8_t  mask  = 1U << (7 - (x & 7));
-        uint8_t  wold  = canvas->buf_wht[index];
-        uint8_t  rold  = canvas->buf_red[index];
-        uint8_t  wsel  = (uint8_t)-(color & 1U);
-        uint8_t  rsel  = (uint8_t)-((color >> 2) & 1U);
-        canvas->buf_wht[index] = (uint8_t)((wold & (uint8_t)~mask) | (wsel & mask));
-        canvas->buf_red[index] = (uint8_t)((rold & (uint8_t)~mask) | (rsel & mask));
+        uint16_t index = canvas->buf_stride * y + x / 8U;
+        uint8_t  digit = x % 8;
+        epd_gfx_planes_set_pixel(canvas->buf_wht + index, canvas->buf_red + index, digit, color);
     } else {
-        uint32_t index = canvas->buf_stride * y + (x >> 1);
-        uint8_t  shift = 4 - ((x & 1) << 2);
-        uint8_t  mask  = 15U << shift;
-        uint8_t  old   = canvas->buf_native[index];
-        uint8_t  sel   = color << shift;
-        canvas->buf_native[index] = (uint8_t)((old & (uint8_t)~mask) | (sel & mask));
+        uint32_t index = canvas->buf_stride * y + x / 2U;
+        uint8_t  digit = x % 2;
+        epd_gfx_native_set_pixel(canvas->buf_native + index, digit, color);
     }
     
     return EPD_OK;
@@ -306,77 +298,49 @@ static epd_err_t epd_gfx_canvas_draw_hline_impl(epd_gfx_canvas_t canvas,
     uint16_t x1 = epd_sat_add_uint16(x, w - 1);
     x1 = EPD_MIN(x1, canvas->width - 1);
     if (epd_gfx_canvas_in_planes(canvas)) {
-        uint8_t b0   = x >> 3;
-        uint8_t b1   = x1 >> 3;
-        uint8_t d0   = (uint8_t)x & 7U;
-        uint8_t d1   = (uint8_t)x1 & 7U;
-        uint8_t wsel = (uint8_t)-(color & 1U);
-        uint8_t rsel = (uint8_t)-((color >> 2) & 1U);
+        uint16_t b0 = x / 8U;
+        uint16_t b1 = x1 / 8U;
+        uint8_t  d0 = (uint8_t)x % 8U;
+        uint8_t  d1 = (uint8_t)x1 % 8U;
         if (b0 == b1) {
-            uint8_t  mask  = (uint8_t)((uint8_t)(0xFF >> d0) & (uint8_t)(0xFF << (7U - d1)));
             uint32_t index = canvas->buf_stride * y + b0;
-            uint8_t  wold  = canvas->buf_wht[index];
-            uint8_t  rold  = canvas->buf_red[index];
-            canvas->buf_wht[index] = (uint8_t)((wold & (uint8_t)~mask) | (wsel & mask));
-            canvas->buf_red[index] = (uint8_t)((rold & (uint8_t)~mask) | (rsel & mask));
+            epd_gfx_planes_set_range_pixels(canvas->buf_wht + index, canvas->buf_red + index, d0, d1, color);
             return EPD_OK;
         }
         if (d0) {
-            uint8_t  mask  = (uint8_t)(0xFF >> d0);
-            uint16_t index = canvas->buf_stride * y + b0;
-            uint8_t  wold  = canvas->buf_wht[index];
-            uint8_t  rold  = canvas->buf_red[index];
-            canvas->buf_wht[index] = (uint8_t)((wold & (uint8_t)~mask) | (wsel & mask));
-            canvas->buf_red[index] = (uint8_t)((rold & (uint8_t)~mask) | (rsel & mask));
+            uint32_t index = canvas->buf_stride * y + b0;
+            epd_gfx_planes_set_range_pixels(canvas->buf_wht + index, canvas->buf_red + index, d0, 7, color);
             ++b0;
         }
         if (d1 < 7) {
-            uint8_t  mask  = (uint8_t)(0xFF << (7U - d1));
-            uint16_t index = canvas->buf_stride * y + b1;
-            uint8_t  wold  = canvas->buf_wht[index];
-            uint8_t  rold  = canvas->buf_red[index];
-            canvas->buf_wht[index] = (uint8_t)((wold & (uint8_t)~mask) | (wsel & mask));
-            canvas->buf_red[index] = (uint8_t)((rold & (uint8_t)~mask) | (rsel & mask));
+            uint32_t index = canvas->buf_stride * y + b1;
+            epd_gfx_planes_set_range_pixels(canvas->buf_wht + index, canvas->buf_red + index, 0, d1, color);
             --b1;
         }
         if (b1 >= b0) {
             uint16_t len   = b1 - b0 + 1U;
-            uint16_t index = canvas->buf_stride * y + b0;
-            memset(canvas->buf_wht + index, wsel, len);
-            memset(canvas->buf_red + index, rsel, len);
+            uint32_t index = canvas->buf_stride * y + b0;
+            epd_gfx_planes_set_bytes(canvas->buf_wht + index, canvas->buf_red + index, len, color);
         }
     } else {
-        uint16_t b0 = x >> 1;
-        uint16_t b1 = x1 >> 1;
-        uint8_t  d0 = (uint8_t)x & 1U;
-        uint8_t  d1 = (uint8_t)x1 & 1U;
-        if (b0 == b1) {
-            uint16_t index = canvas->buf_stride * y + b0;
-            uint8_t  old   = canvas->buf_native[index];
-            uint8_t  byte  = (d0 != d1) ? (uint8_t)((color << 4) | (color & 0x0F))
-                : (d0 && d1) ? (uint8_t)((old & 0xF0) | (color & 0x0F))
-                : (uint8_t)((old & 0x0F) | ((color & 0x0F) << 4));
-
-            canvas->buf_native[index] = byte;
-            return EPD_OK;
-        }
+        uint16_t b0 = x / 2U;
+        uint16_t b1 = x1 / 2U;
+        uint8_t  d0 = (uint8_t)x % 2U;
+        uint8_t  d1 = (uint8_t)x1 % 2U;
         if (d0) {
-            uint16_t index = canvas->buf_stride * y + b0;
-            uint8_t  old   = canvas->buf_native[index];
-            canvas->buf_native[index] = (uint8_t)((old & 0xF0) | (color & 0x0F));
+            uint32_t index = canvas->buf_stride * y + b0;
+            epd_gfx_native_set_pixel(canvas->buf_native + index, 1, color);
             ++b0;
         }
         if (!d1) {
-            uint16_t index = canvas->buf_stride * y + b1;
-            uint8_t  old   = canvas->buf_native[index];
-            canvas->buf_native[index] = (uint8_t)((color << 4) | (old & 0x0F));
+            uint32_t index = canvas->buf_stride * y + b1;
+            epd_gfx_native_set_pixel(canvas->buf_native + index, 0, color);
             --b1;
         }
         if (b1 >= b0) {
             uint16_t len   = b1 - b0 + 1U;
-            uint16_t index = canvas->buf_stride * y + b0;
-            uint8_t  byte  = (uint8_t)((color << 4) | (color & 0x0F));
-            memset(canvas->buf_native + index, byte, len);
+            uint32_t index = canvas->buf_stride * y + b0;
+            epd_gfx_native_set_bytes(canvas->buf_native + index, len, color);
         }
     }
     return EPD_OK;
@@ -388,29 +352,17 @@ static epd_err_t epd_gfx_canvas_draw_vline_impl(epd_gfx_canvas_t canvas,
     uint16_t y1 = epd_sat_add_uint16(y, h - 1);
     y1 = EPD_MIN(y1, canvas->height - 1);
     if (epd_gfx_canvas_in_planes(canvas)) {
-        uint16_t byte  = x >> 3;
-        uint16_t index = canvas->buf_stride * y + byte;
-        uint8_t  digit = (uint8_t)x & 7U;
-        uint8_t  mask  = (uint8_t)(1U << (7 - digit));
-        uint8_t  wsel  = (uint8_t)-(color & 1U);
-        uint8_t  rsel  = (uint8_t)-((color >> 2) & 1U);
-        for (uint16_t h = y; h <= y1; ++h) {
-            uint8_t wold = canvas->buf_wht[index];
-            uint8_t rold = canvas->buf_red[index];
-            canvas->buf_wht[index] = (uint8_t)((wold & (uint8_t)~mask) | (wsel & mask));
-            canvas->buf_red[index] = (uint8_t)((rold & (uint8_t)~mask) | (rsel & mask));
+        uint8_t  digit = (uint8_t)x % 8U;
+        uint32_t index = canvas->buf_stride * y + x / 8U;
+        for (uint16_t yy = y; yy <= y1; ++yy) {
+            epd_gfx_planes_set_pixel(canvas->buf_wht + index, canvas->buf_red + index, digit, color);
             index += canvas->buf_stride;
         }
     } else {
-        uint16_t byte  = x >> 1;
-        uint16_t index = canvas->buf_stride * y + byte;
-        uint8_t  digit = (uint8_t)x & 1U;
-        uint8_t  shift = 4U - (digit << 2U);
-        uint8_t  mask  = 15U << shift;
-        uint8_t  sel   = color << shift;
-        for (uint16_t h = y; h <= y1; ++h) {
-            uint8_t old = canvas->buf_native[index];
-            canvas->buf_native[index] = (uint8_t)((old & (uint8_t)~mask) | (sel & mask));
+        uint8_t  digit = (uint8_t)x % 2U;
+        uint32_t index = canvas->buf_stride * y + x / 2U;
+        for (uint16_t yy = y; yy <= y1; ++yy) {
+            epd_gfx_native_set_pixel(canvas->buf_native + index, digit, color);
             index += canvas->buf_stride;
         }
     }
