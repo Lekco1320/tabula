@@ -1,6 +1,7 @@
-set(EPD_GFX_INCLUDE_DIR include)
+set(EPD_GFX_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(EPD_GFX_SRCS
-    canvas.c)
+    canvas.c
+    codec.c)
 
 if(COMMAND idf_component_register)
     idf_component_register(
