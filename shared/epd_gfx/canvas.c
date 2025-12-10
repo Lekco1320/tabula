@@ -557,3 +557,38 @@ epd_err_t epd_gfx_canvas_flush(const epd_gfx_canvas_t canvas, const epd_gfx_fram
 
     return sink->flush_impl(sink->context, &frame_view);
 }
+
+epd_err_t epd_gfx_canvas_load_native(epd_gfx_canvas_t canvas, const uint8_t* data,
+    uint32_t size)
+{
+    if (!canvas || !data || epd_gfx_canvas_get_format(canvas) != EPD_GFX_FORMAT_NATIVE) {
+        return EPD_ERR_INVALID_ARG;
+    }
+    
+    uint32_t stride   = epd_gfx_native_stride(canvas->width);
+    uint32_t expected = stride * canvas->height;
+    if (size != expected) {
+        return EPD_ERR_INVALID_SIZE;
+    }
+
+    memcpy(canvas->buf_native, data, expected);
+    return EPD_OK;
+}
+
+epd_err_t epd_gfx_canvas_load_planes(epd_gfx_canvas_t canvas, const uint8_t* pwht,
+    const uint8_t* pred, uint32_t size)
+{
+    if (!canvas || !pwht || !pred || epd_gfx_canvas_get_format(canvas) != EPD_GFX_FORMAT_PLANES) {
+        return EPD_ERR_INVALID_ARG;
+    }
+
+    uint32_t stride   = epd_gfx_planes_stride(canvas->width);
+    uint32_t expected = stride * canvas->height;
+    if (size != expected) {
+        return EPD_ERR_INVALID_SIZE;
+    }
+
+    memcpy(canvas->buf_wht, pwht, expected);
+    memcpy(canvas->buf_red, pred, expected);
+    return EPD_OK;
+}

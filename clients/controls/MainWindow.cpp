@@ -11,7 +11,7 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-#include "MainWindow.h"
+#include "MainWindow.hpp"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)

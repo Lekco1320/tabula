@@ -7,7 +7,7 @@
  * @license MIT
  */
 
-#include "MainWindow.h"
+#include "MainWindow.hpp"
 
 #include <QApplication>
 #include <QFontDatabase>
@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
     QApplication app(argc, argv);
 
     auto* style = new oclero::qlementine::QlementineStyle(&app);
-    style->setThemeJsonPath(":/themes.json");
+    style->setThemeJsonPath(":/common/themes.json");
     QApplication::setStyle(style);
 
     MainWindow w;

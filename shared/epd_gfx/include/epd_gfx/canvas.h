@@ -197,6 +197,29 @@ epd_err_t epd_gfx_canvas_fill_rect(epd_gfx_canvas_t canvas,
  */
 epd_err_t epd_gfx_canvas_flush(const epd_gfx_canvas_t canvas, const epd_gfx_frame_view_sink_t* sink);
 
+/**
+ * @brief Load native buffer data into a native-format canvas.
+ *
+ * @param canvas Canvas handle (must be native format).
+ * @param data Pointer to the native buffer.
+ * @param size The bytes count of buffer.
+ * @return `EPD_OK` on success, `EPD_ERR_INVALID_ARG` on null/format mismatch, or `EPD_ERR_INVALID_SIZE` on size mismatch.
+ */
+epd_err_t epd_gfx_canvas_load_native(epd_gfx_canvas_t canvas, const uint8_t* data,
+    uint32_t size);
+
+/**
+ * @brief Load plane buffer data into a planes-format canvas.
+ *
+ * @param canvas Canvas handle (must be planes format).
+ * @param pwht Pointer to the white plane buffer.
+ * @param pred Pointer to the red plane buffer.
+ * @param size The bytes count of buffer.
+ * @return `EPD_OK` on success, `EPD_ERR_INVALID_ARG` on null/format mismatch, or `EPD_ERR_INVALID_SIZE` on size mismatch.
+ */
+epd_err_t epd_gfx_canvas_load_planes(epd_gfx_canvas_t canvas, const uint8_t* pwht,
+    const uint8_t* pred, uint32_t size);
+
 #ifdef __cplusplus
 }
 #endif

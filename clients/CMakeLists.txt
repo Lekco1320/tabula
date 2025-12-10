@@ -16,9 +16,9 @@ message(STATUS "Qt version: Qt${QT_VERSION_MAJOR}")
 
 set(PROJECT_SOURCES
     main.cpp
-    controls/MainWindow.cpp
-    controls/MainWindow.h
-    resources.qrc)
+    common/resources.qrc
+    controls/MainWindow.hpp
+    controls/MainWindow.cpp)
 
 set(SHARED_LIBS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../shared)
 add_subdirectory(${SHARED_LIBS_ROOT} ${CMAKE_CURRENT_BINARY_DIR}/_shared)
@@ -36,7 +36,10 @@ include(FetchContent)
 FetchContent_Declare(Qlementine GIT_REPOSITORY "https://github.com/oclero/qlementine.git")
 FetchContent_MakeAvailable(Qlementine)
 
-target_include_directories(tabula-host PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/controls)
+target_include_directories(tabula-host PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/common
+    ${CMAKE_CURRENT_SOURCE_DIR}/controls)
+
 target_link_libraries(tabula-host PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     qlementine
