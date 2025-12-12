@@ -8,6 +8,7 @@
  */
 
 #include <string.h>
+#include <stdlib.h>
 #include <epd_core/math.h>
 #include <epd_core/common.h>
 
@@ -61,8 +62,8 @@ static void epd_gfx_canvas_map_rot90(const epd_gfx_canvas_t canvas, uint16_t* px
     --*px;
     --*py;
     uint16_t x = *px;
-    *px = canvas->width - 1U - *py;
-    *py = x;
+    *px = *py;
+    *py = canvas->height - 1U - x;
 }
 
 static void epd_gfx_canvas_map_rot180(const epd_gfx_canvas_t canvas, uint16_t* px, uint16_t* py)
@@ -78,8 +79,8 @@ static void epd_gfx_canvas_map_rot270(const epd_gfx_canvas_t canvas, uint16_t* p
     --*px;
     --*py;
     uint16_t x = *px;
-    *px = *py;
-    *py = canvas->height - 1U - x;
+    *px = canvas->width - 1U - *py;
+    *py = x;
 }
 
 static EPD_INLINE bool epd_gfx_check_bound(const epd_gfx_canvas_t canvas, uint16_t x, uint16_t y)
@@ -394,6 +395,7 @@ epd_err_t epd_gfx_canvas_draw_hline(epd_gfx_canvas_t canvas,
         return epd_gfx_canvas_draw_hline_impl(canvas, x, y, w, color);    
 
     case EPD_GFX_ROTATE_90:
+        y = epd_sat_sub_uint16(y, w - 1);
         return epd_gfx_canvas_draw_vline_impl(canvas, x, y, w, color);
 
     case EPD_GFX_ROTATE_180:
@@ -401,7 +403,6 @@ epd_err_t epd_gfx_canvas_draw_hline(epd_gfx_canvas_t canvas,
         return epd_gfx_canvas_draw_hline_impl(canvas, x, y, w, color);
 
     case EPD_GFX_ROTATE_270:
-        y = epd_sat_sub_uint16(y, w - 1);
         return epd_gfx_canvas_draw_vline_impl(canvas, x, y, w, color);
 
     default:
@@ -513,9 +514,9 @@ epd_err_t epd_gfx_canvas_fill_rect(epd_gfx_canvas_t canvas,
         break;
 
     case EPD_GFX_ROTATE_270:
-        x0    = epd_sat_sub_uint16(y, h - 1);
-        y0    = x;
-        y1    = epd_sat_add_uint16(x, w - 1);
+        x0    = epd_sat_sub_uint16(x, h - 1);
+        y0    = y;
+        y1    = epd_sat_add_uint16(y, w - 1);
         width = h;
         break;
 

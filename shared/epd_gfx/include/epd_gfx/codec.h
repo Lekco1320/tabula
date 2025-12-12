@@ -97,8 +97,8 @@ static EPD_INLINE epd_gfx_color_t epd_gfx_normalize_color(uint8_t color)
     uint8_t b0 = color & 1;
     uint8_t b1 = (color >> 1) & 1;
     uint8_t b2 = (color >> 2) & 1;
-    uint8_t t  = b0 ^ b1;
-    return (uint8_t)((b2 & ~(b1 | b0)) << 2) | (t << 1) | t;
+    uint8_t t  = b0 | b1;
+    return (epd_gfx_color_t)((uint8_t)((b2 & ~(b1 | b0)) << 2) | (t << 1) | t);
 }
 
 static EPD_INLINE void epd_gfx_planes_set_pixel_impl(uint8_t* pwht, uint8_t* pred,
@@ -130,7 +130,7 @@ static EPD_INLINE void epd_gfx_planes_set_range_pixels(uint8_t* pwht, uint8_t* p
 }
 
 static EPD_INLINE void epd_gfx_planes_set_bytes(uint8_t* pwht, uint8_t* pred,
-    uint16_t length, epd_gfx_color_t color)
+    uint32_t length, epd_gfx_color_t color)
 {
     uint8_t wbyte, rbyte;
     epd_gfx_color_to_byte(color, &wbyte, &rbyte);
@@ -148,7 +148,7 @@ static EPD_INLINE void epd_gfx_native_set_pixel(uint8_t* pnative, uint8_t idx,
     *pnative      = (uint8_t)((old & (uint8_t)~mask) | (byte & mask));
 }
 
-static EPD_INLINE void epd_gfx_native_set_bytes(uint8_t* pnative, uint16_t length,
+static EPD_INLINE void epd_gfx_native_set_bytes(uint8_t* pnative, uint32_t length,
     epd_gfx_color_t color)
 {
     uint8_t byte = epd_gfx_pack_colors(color, color);

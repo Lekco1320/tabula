@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/">
+    <qresource prefix="/common">
         <file>themes.json</file>
     </qresource>
 </RCC>

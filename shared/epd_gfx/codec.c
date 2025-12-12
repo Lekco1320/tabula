@@ -59,10 +59,10 @@ epd_err_t epd_gfx_native_to_planes_buffer(const uint8_t* pnative, uint32_t width
 
     uint32_t planes_stride = epd_gfx_planes_stride(width);
     for (uint32_t idx = 0; idx < planes_stride; ++idx) {
-        uint32_t nidx = idx * 4U;
-        uint8_t* pwht = out_wht + idx;
-        uint8_t* pred = out_red + idx;
-        uint8_t* pnat = pnative + nidx;
+        uint32_t       nidx = idx * 4U;
+        uint8_t*       pwht = out_wht + idx;
+        uint8_t*       pred = out_red + idx;
+        const uint8_t* pnat = pnative + nidx;
         for (uint8_t i = 0; i < 8 && idx * 8 + i < width; ++i) {
             uint8_t         nibble = (i + 1) % 2U;
             uint8_t         byte   = pnat[i / 2U];

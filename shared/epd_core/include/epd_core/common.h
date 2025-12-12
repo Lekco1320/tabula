@@ -22,6 +22,10 @@
     #define EPD_INLINE inline
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define EPD_CHECK_GOTO(EXP, LABEL) \
     ret = (EXP); \
     if (ret != EPD_OK) { \
@@ -51,5 +55,17 @@ typedef enum {
     EPD_ERR_NOT_FINISHED     = 0x10C,  /*!< Operation has not fully completed */
     EPD_ERR_NOT_ALLOWED      = 0x10D,  /*!< Operation is not allowed */
 } epd_err_t;
+
+/**
+ * @brief Convert error code to human-readable string.
+ *
+ * @param err Error code to describe.
+ * @return Pointer to a constant string describing `err`.
+ */
+const char* epd_err_to_str(epd_err_t err);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // !_EPD_CORE_COMMON_H_

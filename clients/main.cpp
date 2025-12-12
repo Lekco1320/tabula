@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     style->setThemeJsonPath(":/common/themes.json");
     QApplication::setStyle(style);
 
-    MainWindow w;
+    lekco::MainWindow w;
     w.show();
     return app.exec();
 }
