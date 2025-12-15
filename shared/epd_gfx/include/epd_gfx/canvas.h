@@ -198,6 +198,15 @@ epd_err_t epd_gfx_canvas_fill_rect(epd_gfx_canvas_t canvas,
 epd_err_t epd_gfx_canvas_flush(const epd_gfx_canvas_t canvas, const epd_gfx_frame_view_sink_t* sink);
 
 /**
+ * @brief Clone a canvas, including its buffer data and configuration.
+ *
+ * @param canvas Source canvas handle.
+ * @param out_canvas Pointer to receive the cloned canvas handle.
+ * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
+ */
+epd_err_t epd_gfx_canvas_clone(const epd_gfx_canvas_t canvas, epd_gfx_canvas_t* out_canvas);
+
+/**
  * @brief Load native buffer data into a native-format canvas.
  *
  * @param canvas Canvas handle (must be native format).

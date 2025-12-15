@@ -13,6 +13,11 @@ if(COMMAND idf_component_register)
             ${EPD_GFX_SRCS})
 else()
     add_library(epd_gfx STATIC ${EPD_GFX_SRCS})
+    set_target_properties(epd_gfx PROPERTIES
+        AUTOMOC OFF
+        AUTOUIC OFF
+        AUTORCC OFF
+    )
     target_include_directories(epd_gfx PUBLIC $<BUILD_INTERFACE:${EPD_GFX_INCLUDE_DIR}>)
     target_link_libraries(epd_gfx PUBLIC epd_core)
     target_compile_features(epd_gfx PUBLIC c_std_99)

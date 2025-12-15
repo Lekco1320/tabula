@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file MainWindow.cpp
  * @brief Main window implementation for the tabula desktop client.
  * 
@@ -20,12 +20,12 @@
 #include "MainWindow.hpp"
 #include "CanvasPreviewer.hpp"
 
-_LEKCO_BEGIN_NAMESPACE
+LEKCO_BEGIN_NAMESPACE
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-    setMinimumSize(QSize { 1020, 820 });
+    setMinimumSize(QSize { 1050, 820 });
 
     auto* central = new QWidget(this);
     auto* root    = new QHBoxLayout(central);
@@ -47,6 +47,7 @@ MainWindow::MainWindow(QWidget *parent)
     };
     m_previewer = new CanvasPreviewer(cfg, central);
     m_previewer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    m_previewer->setMode(CanvasPreviewer::Mode::Inspect);
     leftLayout->addWidget(m_previewer, 1);
 
     // Right: Control pane
@@ -65,7 +66,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_rotationCombo->addItem(QStringLiteral("270°"), QVariant::fromValue<int>(EPD_GFX_ROTATE_270));
     m_rotationCombo->setCurrentIndex(0);
     connect(m_rotationCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-        this, [this]() {
+        this, [this, cfg]() {
             auto rot = static_cast<epd_gfx_rotation_t>(m_rotationCombo->currentData().toInt());
             m_previewer->setRotation(rot);
         });
@@ -123,4 +124,4 @@ void MainWindow::drawDemo()
     m_previewer->refresh();
 }
 
-_LEKCO_END_NAMESPACE
+LEKCO_END_NAMESPACE

@@ -559,6 +559,55 @@ epd_err_t epd_gfx_canvas_flush(const epd_gfx_canvas_t canvas, const epd_gfx_fram
     return sink->flush_impl(sink->context, &frame_view);
 }
 
+epd_err_t epd_gfx_canvas_clone(const epd_gfx_canvas_t canvas, epd_gfx_canvas_t* out_canvas)
+{
+    if (!canvas || !out_canvas) {
+        return EPD_ERR_INVALID_ARG;
+    }
+
+    epd_gfx_canvas_t new_canvas = calloc(1, sizeof(struct epd_gfx_canvas_impl));
+    if (!new_canvas) {
+        return EPD_ERR_NO_MEM;
+    }
+
+    new_canvas->width      = canvas->width;
+    new_canvas->height     = canvas->height;
+    new_canvas->flags      = canvas->flags;
+    new_canvas->map_fn     = canvas->map_fn;
+    new_canvas->lwidth_fn  = canvas->lwidth_fn;
+    new_canvas->lheight_fn = canvas->lheight_fn;
+    new_canvas->buf_stride = canvas->buf_stride;
+    new_canvas->buf_size   = canvas->buf_size;
+
+    epd_err_t ret = EPD_OK;
+    if (epd_gfx_canvas_in_planes(canvas)) {
+        new_canvas->buf_wht = (uint8_t*)malloc(canvas->buf_size * sizeof(uint8_t));
+        new_canvas->buf_red = (uint8_t*)malloc(canvas->buf_size * sizeof(uint8_t));
+        if (!new_canvas->buf_wht || !new_canvas->buf_red) {
+            ret = EPD_ERR_NO_MEM;
+            goto fail;
+        }
+        memcpy(new_canvas->buf_wht, canvas->buf_wht, canvas->buf_size * sizeof(uint8_t));
+        memcpy(new_canvas->buf_red, canvas->buf_red, canvas->buf_size * sizeof(uint8_t));
+    } else {
+        new_canvas->buf_native = (uint8_t*)malloc(canvas->buf_size * sizeof(uint8_t));
+        if (!new_canvas->buf_native) {
+            ret = EPD_ERR_NO_MEM;
+            goto fail;
+        }
+        memcpy(new_canvas->buf_native, canvas->buf_native, canvas->buf_size * sizeof(uint8_t));
+    }
+    
+    *out_canvas = new_canvas;
+    return EPD_OK;
+
+fail:
+    if (new_canvas) {
+        (void)epd_gfx_canvas_destroy(new_canvas);
+    }
+    return ret;
+}
+
 epd_err_t epd_gfx_canvas_load_native(epd_gfx_canvas_t canvas, const uint8_t* data,
     uint32_t size)
 {

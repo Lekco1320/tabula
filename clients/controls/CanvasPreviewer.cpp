@@ -1,22 +1,110 @@
 /**
  * @file CanvasPreviewer.cpp
- * @brief Tri-color previewer for `epd_canvas`.
+ * @brief Tri-color previewer for `epd_canvas_t`.
  * 
  * @author Lukaß Zhang <lekco_1320@qq.com>
  * @date 2025-12-10
  * @license MIT
  */
 
+#include <cmath>
+#include <algorithm>
 #include <QPainter>
 #include <QVariantAnimation>
 #include <QEasingCurve>
-#include <fmt/core.h>
+#include <QMouseEvent>
+#include <QCursor>
+#include <QFontMetrics>
+#include <QTransform>
+#include <QEnterEvent>
 #include <epd_core/common.h>
 #include <epd_gfx/codec.h>
 
 #include "CanvasPreviewer.hpp"
 
-_LEKCO_BEGIN_NAMESPACE
+BEGIN_NAMESPACE()
+
+constexpr qreal kContentMargin = 4.0;
+constexpr int   kOverlayMargin = 8;
+constexpr int   kPreviewSize   = 90;
+constexpr qreal kPreviewZoom   = 2.0;
+constexpr int   kBorderWidth   = 2;
+constexpr int   kTextPadH      = 6;
+constexpr int   kTextPadV      = 2;
+
+inline QString colorShortName(const QColor& c)
+{
+    return (c == Qt::black) ? QStringLiteral("B") :
+           (c == Qt::white) ? QStringLiteral("W") :
+                              QStringLiteral("R");
+}
+
+inline QRectF contentRect(const QWidget* w)
+{
+    return w->rect().adjusted(kContentMargin, kContentMargin, -kContentMargin, -kContentMargin);
+}
+
+QRectF computeTargetRect(const QImage& img)
+{
+    const QSizeF size = img.size();
+    return QRectF(QPointF(-size.width() / 2.0, -size.height() / 2.0), size);
+}
+
+QRectF computeSourceRect(const QPointF& imagePos, const QSize& imageSize)
+{
+    const qreal srcW  = kPreviewSize / kPreviewZoom;
+    const qreal srcH  = kPreviewSize / kPreviewZoom;
+    const qreal halfW = srcW / 2.0;
+    const qreal halfH = srcH / 2.0;
+    const qreal srcX  = std::clamp(imagePos.x() - halfW, 0.0, imageSize.width() - srcW);
+    const qreal srcY  = std::clamp(imagePos.y() - halfH, 0.0, imageSize.height() - srcH);
+    return QRectF(srcX, srcY, srcW, srcH);
+}
+
+void drawCrosshair(QPainter& p, const QRectF& rect, const QPointF& point, const QPen& pen)
+{
+    p.save();
+    p.setPen(pen);
+    p.drawLine(QPointF(point.x(), rect.top()), QPointF(point.x(), rect.bottom()));
+    p.drawLine(QPointF(rect.left(), point.y()), QPointF(rect.right(), point.y()));
+    p.restore();
+}
+
+struct OverlayRects {
+    QRectF overlay;
+    QRectF preview;
+    QRectF text;
+    QRectF textBg;
+};
+
+OverlayRects makeOverlayRects(const QRectF& content, int textHeight)
+{
+    const int overlayWidth  = kPreviewSize;
+    const int overlayHeight = kPreviewSize + textHeight + kTextPadV * 2;
+
+    OverlayRects r;
+    r.overlay = QRectF(content.left() + kOverlayMargin,
+                       content.bottom() - overlayHeight - kOverlayMargin,
+                       overlayWidth,
+                       overlayHeight);
+
+    r.preview = QRectF(r.overlay.left(),
+                       r.overlay.top(),
+                       kPreviewSize,
+                       kPreviewSize);
+
+    r.text = QRectF(r.overlay.left() + kTextPadH,
+                    r.preview.bottom() + kTextPadV,
+                    overlayWidth - kTextPadH * 2,
+                    textHeight);
+
+    r.textBg = r.text.adjusted(-kTextPadH, -kTextPadV, kTextPadH, kTextPadV);
+    return r;
+}
+
+END_NAMESPACE
+
+LEKCO_BEGIN_NAMESPACE
 
 CanvasPreviewer::CanvasPreviewer(epd_gfx_canvas_config_t config, QWidget* parent)
     : QWidget(parent)
@@ -25,6 +113,9 @@ CanvasPreviewer::CanvasPreviewer(epd_gfx_canvas_config_t config, QWidget* parent
     , m_angleFrom(0.0)
     , m_angleTo(config.rotation * 90.0)
     , m_angleCurrent(config.rotation * 90.0)
+    , m_mode(Mode::Pointer)
+    , m_hasMouse(false)
+    , m_lastMousePos(QPointF())
 {
     epd_err_t status = epd_gfx_canvas_create(&config, &m_canvas);
     if (status != EPD_OK) {
@@ -36,6 +127,7 @@ CanvasPreviewer::CanvasPreviewer(epd_gfx_canvas_config_t config, QWidget* parent
 
     qreal diag = ceil(sqrt(m_config.width * m_config.width + m_config.height * m_config.height)) + 2 * 8;
     setMinimumSize(QSize(diag, diag));
+    setMouseTracking(true);
 }
 
 CanvasPreviewer::~CanvasPreviewer()
@@ -44,28 +136,6 @@ CanvasPreviewer::~CanvasPreviewer()
         epd_gfx_canvas_destroy(m_canvas);
         m_canvas = nullptr;
     }
-}
-
-void CanvasPreviewer::loadNativeBuffer(const uint8_t* data, uint32_t size)
-{
-    epd_err_t status = epd_gfx_canvas_load_native(m_canvas, data, size);
-    if (status != EPD_OK) {
-        throw std::runtime_error(fmt::format("CanvasPreviewer load planes buffer failed: {}",
-            epd_err_to_str(status)));
-    }
-    rebuildImage();
-    update();
-}
-
-void CanvasPreviewer::loadPlanesBuffer(const uint8_t* pwht, const uint8_t* pred, uint32_t size)
-{
-    epd_err_t status = epd_gfx_canvas_load_planes(m_canvas, pwht, pred, size);
-    if (status != EPD_OK) {
-        throw std::runtime_error(fmt::format("CanvasPreviewer load planes buffer failed: {}",
-            epd_err_to_str(status)));
-    }
-    rebuildImage();
-    update();
 }
 
 void CanvasPreviewer::setRotation(epd_gfx_rotation_t rotation)
@@ -77,11 +147,14 @@ void CanvasPreviewer::setRotation(epd_gfx_rotation_t rotation)
 
     epd_err_t status = epd_gfx_canvas_set_rotation(m_canvas, rotation);
     if (status != EPD_OK) {
-        throw std::runtime_error(fmt::format("CanvasPreviewer set rotation failed: {}",
-            epd_err_to_str(status)));
+        throw std::runtime_error(QStringLiteral("CanvasPreviewer set rotation failed: %1")
+            .arg(epd_err_to_str(status))
+            .toStdString());
     }
 
     m_config.rotation = rotation;
+    emit rotationChanged(rotation);
+
     startRotationAnimation(rotation);
 }
 
@@ -90,40 +163,243 @@ epd_gfx_canvas_t CanvasPreviewer::getCanvas() const
     return m_canvas;
 }
 
+void CanvasPreviewer::setMode(Mode mode)
+{
+    if (m_mode == mode) {
+        return;
+    }
+    
+    m_mode = mode;
+    if (m_mode == Mode::Pointer) {
+        unsetCursor();
+    }
+    update();
+}
+
+CanvasPreviewer::Mode CanvasPreviewer::getMode() const
+{
+    return m_mode;
+}
+
+void CanvasPreviewer::setPreviewCanvas(epd_gfx_canvas_t preview)
+{
+    if (!preview) {
+        throw std::runtime_error("Pointer to preview canvas is null");
+    }
+
+    rebuildImage(preview);
+    update();
+}
+
 void CanvasPreviewer::refresh()
 {
     if (!m_canvas) {
         return;
     }
 
-    rebuildImage();
+    rebuildImage(m_canvas);
     update();
 }
 
 void CanvasPreviewer::paintEvent(QPaintEvent* event)
 {
     Q_UNUSED(event);
+    const HoverInfo hover = (m_mode == Mode::Inspect) ? currentHoverInfo() : HoverInfo{};
+
     QPainter painter(this);
     painter.fillRect(rect(), Qt::white);
 
-    QRectF content = rect().adjusted(4, 4, -4, -4);
+    const QRectF content = contentRect(this);
     // If no image yet, draw a placeholder inside the border.
     if (m_baseImage.isNull()) {
         painter.fillRect(content, Qt::lightGray);
         return;
     }
 
+    drawCanvasImage(painter, content, hover);
+
+    if (hover.active) {
+        drawOverlay(painter, content, hover);
+    }
+}
+
+void CanvasPreviewer::enterEvent(QEnterEvent* event)
+{
+    Q_UNUSED(event);
+    m_hasMouse = true;
+    if (m_mode == Mode::Inspect) {
+        update();
+    }
+}
+
+void CanvasPreviewer::leaveEvent(QEvent* event)
+{
+    Q_UNUSED(event);
+    m_hasMouse = false;
+    unsetCursor();
+    if (m_mode == Mode::Inspect) {
+        update();
+    }
+}
+
+void CanvasPreviewer::mouseMoveEvent(QMouseEvent* event)
+{
+    m_lastMousePos = event->position();
+    QPointF imagePos;
+    QRectF  targetRect;
+    if (m_mode == Mode::Inspect) {
+        if (mapToImage(m_lastMousePos, imagePos, targetRect)) {
+            setCursor(Qt::CrossCursor);
+        } else {
+            unsetCursor();
+        }
+        update();
+    }
+}
+
+bool CanvasPreviewer::mapToImage(const QPointF& widgetPos, QPointF& imagePos, QRectF& targetRect) const
+{
+    if (m_baseImage.isNull()) {
+        return false;
+    }
+
+    const QRectF  content = contentRect(this);
+    const QPointF local   = widgetPos - content.center();
+
+    QTransform inv;
+    inv.rotate(-m_angleCurrent);
+    QPointF imgSpace = inv.map(local);
+
+    QSizeF nativeSize = m_baseImage.size();
+    targetRect = QRectF(QPointF(-nativeSize.width() / 2.0, -nativeSize.height() / 2.0), nativeSize);
+    if (!targetRect.contains(imgSpace)) {
+        return false;
+    }
+
+    imagePos = QPointF(imgSpace.x() + nativeSize.width() / 2.0,
+                       imgSpace.y() + nativeSize.height() / 2.0);
+    return true;
+}
+
+CanvasPreviewer::HoverInfo CanvasPreviewer::currentHoverInfo() const
+{
+    HoverInfo info;
+    if (!m_hasMouse || m_mode != Mode::Inspect) {
+        return info;
+    }
+
+    QPointF imagePos;
+    QRectF  targetRect;
+    if (!mapToImage(m_lastMousePos, imagePos, targetRect)) {
+        return info;
+    }
+
+    const int ix = std::clamp(static_cast<int>(std::floor(imagePos.x())), 0, m_baseImage.width() - 1);
+    const int iy = std::clamp(static_cast<int>(std::floor(imagePos.y())), 0, m_baseImage.height() - 1);
+
+    info.active     = true;
+    info.widgetPos  = m_lastMousePos;
+    info.imagePos   = imagePos;
+    info.targetRect = targetRect;
+    info.color      = m_baseImage.pixelColor(ix, iy);
+    return info;
+}
+
+QPoint CanvasPreviewer::mapToLogical(const QPoint& base) const
+{
+    switch (m_config.rotation)
+    {
+    case EPD_GFX_ROTATE_0:
+        return base;
+
+    case EPD_GFX_ROTATE_90:
+        return QPoint(m_config.height - 1 - base.y(), base.x());
+
+    case EPD_GFX_ROTATE_180:
+        return QPoint(m_config.width - 1 - base.x(), m_config.height - 1 - base.y());
+
+    case EPD_GFX_ROTATE_270:
+        return QPoint(base.y(), m_config.width - 1 - base.x());
+
+    default:
+        return base;
+    }
+}
+
+void CanvasPreviewer::drawCanvasImage(QPainter& painter, const QRectF& content, const HoverInfo& hover) const
+{
     painter.save();
     painter.translate(content.center());
     painter.rotate(m_angleCurrent);
 
-    QSizeF nativeSize = m_baseImage.size();
-    QRectF target(QPointF(-nativeSize.width() / 2.0, -nativeSize.height() / 2.0), nativeSize);
+    const QRectF target = computeTargetRect(m_baseImage);
     painter.drawImage(target, m_baseImage);
-    QPen pen(Qt::black);
-    pen.setWidth(2);
-    painter.setPen(pen);
+
+    QPen borderPen(Qt::black);
+    borderPen.setWidth(kBorderWidth);
+    painter.setPen(borderPen);
     painter.drawRect(target);
+
+    if (hover.active) {
+        const QSizeF nativeSize = m_baseImage.size();
+        const qreal  relX       = hover.imagePos.x() - nativeSize.width() / 2.0;
+        const qreal  relY       = hover.imagePos.y() - nativeSize.height() / 2.0;
+        QPen crossPen(QColor(0, 0, 0, 140));
+        crossPen.setWidth(1);
+        drawCrosshair(painter, target, QPointF(relX, relY), crossPen);
+    }
+
+    painter.restore();
+}
+
+void CanvasPreviewer::drawOverlay(QPainter& painter, const QRectF& content, const HoverInfo& hover) const
+{
+    painter.save();
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, false);
+
+    const QFontMetrics fm(painter.font());
+    const OverlayRects r = makeOverlayRects(content, fm.height());
+
+    painter.setPen(QColor("#202020"));
+    painter.setBrush(Qt::NoBrush);
+    painter.drawRect(r.overlay);
+
+    const QRectF srcRect = computeSourceRect(hover.imagePos, m_baseImage.size());
+    painter.save();
+    painter.translate(r.preview.center());
+    painter.rotate(m_angleCurrent);
+
+    const QSizeF targetSize = r.preview.size();
+    const QRectF target(QPointF(-targetSize.width() / 2.0, -targetSize.height() / 2.0), targetSize);
+    painter.drawImage(target, m_baseImage, srcRect);
+    painter.setPen(QColor("#202020"));
+    painter.drawRect(target);
+
+    QPen miniCrossPen(QColor("#808080"));
+    miniCrossPen.setWidth(1);
+    const qreal scaleX = targetSize.width() / srcRect.width();
+    const qreal scaleY = targetSize.height() / srcRect.height();
+    const qreal cx     = (hover.imagePos.x() - srcRect.left()) * scaleX - targetSize.width() / 2.0;
+    const qreal cy     = (hover.imagePos.y() - srcRect.top()) * scaleY - targetSize.height() / 2.0;
+    drawCrosshair(painter, target, QPointF(cx, cy), miniCrossPen);
+    painter.restore();
+
+    const int ix = std::clamp(static_cast<int>(std::floor(hover.imagePos.x())), 0, m_baseImage.width() - 1);
+    const int iy = std::clamp(static_cast<int>(std::floor(hover.imagePos.y())), 0, m_baseImage.height() - 1);
+    const QPoint logical = mapToLogical(QPoint(ix, iy));
+
+    const QColor bgColor = hover.color;
+    const QColor fgColor = (bgColor == Qt::white) ? Qt::black : Qt::white;
+    painter.setPen(QColor("#202020"));
+    painter.setBrush(bgColor);
+    painter.drawRect(r.textBg);
+    painter.setPen(fgColor);
+
+    const QString text = QStringLiteral("(%1, %2) %3")
+        .arg(logical.x() + 1)
+        .arg(logical.y() + 1)
+        .arg(colorShortName(hover.color));
+    painter.drawText(r.text, Qt::AlignHCenter | Qt::AlignVCenter, text);
 
     painter.restore();
 }
@@ -134,7 +410,8 @@ void CanvasPreviewer::startRotationAnimation(epd_gfx_rotation_t target)
     m_angleTo   = target * 90.0;
 
     auto* anim = new QVariantAnimation(this);
-    anim->setDuration(abs(m_angleTo - m_angleFrom) / 90 * 200);
+    int duration = static_cast<int>(std::abs(m_angleTo - m_angleFrom) / 90.0 * 200);
+    anim->setDuration(std::max(duration, 1));
     anim->setStartValue(0.0);
     anim->setEndValue(1.0);
     anim->setEasingCurve(QEasingCurve::InOutCubic);
@@ -147,17 +424,18 @@ void CanvasPreviewer::startRotationAnimation(epd_gfx_rotation_t target)
     anim->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
-void CanvasPreviewer::rebuildImage()
+void CanvasPreviewer::rebuildImage(epd_gfx_canvas_t canvas)
 {
     epd_gfx_frame_view_sink_t sink = {
         .context    = this,
         .flush_impl = &CanvasPreviewer::flushImpl,
     };
 
-    epd_err_t status = epd_gfx_canvas_flush(m_canvas, &sink);
+    epd_err_t status = epd_gfx_canvas_flush(canvas, &sink);
     if (status != EPD_OK) {
-        throw std::runtime_error(fmt::format("CanvasPreviewer rebuild image failed: {}",
-            epd_err_to_str(status)));
+        throw std::runtime_error(QStringLiteral("CanvasPreviewer rebuild image failed: %1")
+            .arg(epd_err_to_str(status))
+            .toStdString());
     }
 }
 
@@ -183,8 +461,7 @@ epd_err_t CanvasPreviewer::rebuildImageFromNative(const uint8_t* data, uint32_t 
         }
         for (uint16_t x = 0; x < m_config.width; ++x) {
             epd_gfx_color_t color = colors[x];
-            m_baseImage.setPixelColor(x, y, color == EPD_GFX_WHITE ? Qt::white :
-                                            color == EPD_GFX_BLACK ? Qt::black : Qt::red);
+            m_baseImage.setPixelColor(x, y, convertColor(color));
         }
     }
     return EPD_OK;
@@ -213,8 +490,7 @@ epd_err_t CanvasPreviewer::rebuildImageFromPlanes(const uint8_t* pwht, const uin
         }
         for (uint16_t x = 0; x < m_config.width; ++x) {
             epd_gfx_color_t color = colors[x];
-            m_baseImage.setPixelColor(x, y, color == EPD_GFX_WHITE ? Qt::white :
-                                            color == EPD_GFX_BLACK ? Qt::black : Qt::red);
+            m_baseImage.setPixelColor(x, y, convertColor(color));
         }
     }
     return EPD_OK;
@@ -240,4 +516,23 @@ epd_err_t CanvasPreviewer::flushImpl(void* ctx, const epd_gfx_frame_view_t* view
     }
 }
 
-_LEKCO_END_NAMESPACE
+QColor CanvasPreviewer::convertColor(epd_gfx_color_t color)
+{
+    static QColor white = QRgb{ 0xFFFFFF };
+    static QColor black = QRgb{ 0x000000 };
+    static QColor red   = QRgb{ 0xFF0000 };
+
+    switch (color)
+    {
+    case EPD_GFX_BLACK:
+        return black;
+
+    case EPD_GFX_RED:
+        return red;
+
+    default:
+        return white;
+    }
+}
+
+LEKCO_END_NAMESPACE

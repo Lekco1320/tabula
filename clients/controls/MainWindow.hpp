@@ -1,5 +1,5 @@
 /**
- * @file MainWindow.h
+ * @file MainWindow.hpp
  * @brief Main window for the tabula desktop client.
  * 
  * @author Lukaß Zhang <lekco_1320@qq.com>
@@ -19,7 +19,7 @@
 #include "common.h"
 #include "CanvasPreviewer.hpp"
 
-_LEKCO_BEGIN_NAMESPACE
+LEKCO_BEGIN_NAMESPACE
 
 class MainWindow
     : public QMainWindow
@@ -38,6 +38,6 @@ private:
     QPushButton*     m_drawButton = nullptr;
 };
 
-_LEKCO_END_NAMESPACE
+LEKCO_END_NAMESPACE
 
 #endif // !_MAINWINDOW_H_
