@@ -17,6 +17,7 @@
 #include <QToolButton>
 #include <QColor>
 #include <QVector>
+#include <epd_gfx/common.h>
 
 LEKCO_BEGIN_NAMESPACE
 
@@ -28,10 +29,10 @@ class ColorButton
 public:
     explicit ColorButton(QWidget* parent = nullptr);
 
-    QColor currentColor() const;
+    epd_gfx_color_t currentColor() const;
 
 signals:
-    void colorChanged(const QColor& color);
+    void colorChanged(epd_gfx_color_t color);
 
 private:
     void updateIcon();

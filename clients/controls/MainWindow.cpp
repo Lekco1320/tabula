@@ -20,9 +20,10 @@
 #include <QScreen>
 #include <QGuiApplication>
 
-#include "MainWindow.hpp"
+#include "LinePanel.hpp"
 #include "ToolBar.hpp"
 #include "CanvasPreviewer.hpp"
+#include "MainWindow.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 
@@ -80,6 +81,9 @@ MainWindow::MainWindow(QWidget *parent)
             m_previewer->setMode(CanvasPreviewer::Mode::Pointer);
         }
     });
+
+    auto* linePanel = new LinePanel(m_previewer, Qt::Orientation::Horizontal, rightPane);
+    rightLayout->addWidget(linePanel);
 
     // Rotation comboBox
     m_rotationCombo = new QComboBox(rightPane);

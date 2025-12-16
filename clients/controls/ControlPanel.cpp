@@ -22,12 +22,25 @@ ControlPanel::ControlPanel(CanvasPreviewer* previewer, QWidget* parent)
     , m_root(new QGridLayout(this))
     , m_enablePreview(false)
 {
-    m_root->setContentsMargins(6, 6, 6, 6);
-    m_root->setSpacing(4);
+    m_root->setContentsMargins(8, 8, 8, 8);
+    m_root->setHorizontalSpacing(8);
+    m_root->setVerticalSpacing(5);
 }
 
-void ControlPanel::refreshPreview()
+void ControlPanel::flushToCanvas()
 {
+    epd_gfx_canvas_t canvas = m_previewer->getCanvas();
+    flushTo(canvas);
+    m_previewer->refresh();
+}
+
+void ControlPanel::flushToPreview()
+{
+    if (!m_enablePreview) {
+        m_previewer->refresh();
+        return;
+    }
+
     epd_gfx_canvas_t canvas = m_previewer->getCanvas();
     epd_gfx_canvas_t cloned = nullptr;
 
@@ -38,17 +51,9 @@ void ControlPanel::refreshPreview()
             .toStdString());
     }
 
-    flushToCanvas(canvas);
-}
-
-QWidget* ControlPanel::makeRow(const QString& label, QWidget* editor) const
-{
-    auto* w      = new QWidget(const_cast<ControlPanel*>(this));
-    auto* layout = new QHBoxLayout(w);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->addWidget(new QLabel(label, w));
-    layout->addWidget(editor, 1);
-    return w;
+    flushTo(cloned);
+    m_previewer->setPreviewCanvas(cloned);
+    epd_gfx_canvas_destroy(cloned);
 }
 
 LEKCO_END_NAMESPACE

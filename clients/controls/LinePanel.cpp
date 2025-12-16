@@ -1,0 +1,81 @@
+/**
+ * @file LinePanel.cpp
+ * @brief Panel to configure and draw a line.
+ * 
+ * @author Lukaß Zhang <lekco_1320@qq.com>
+ * @date 2025-12-16
+ * @license MIT
+ */
+
+#include <QHBoxLayout>
+#include <QVBoxLayout>
+#include <QSpinBox>
+#include <QPushButton>
+#include <QLabel>
+#include <QGroupBox>
+#include <QCheckBox>
+
+#include "Utils.hpp"
+#include "LinePanel.hpp"
+#include "ColorButton.hpp"
+#include "CanvasPreviewer.hpp"
+
+LEKCO_BEGIN_NAMESPACE
+
+LinePanel::LinePanel(CanvasPreviewer* previewer, Qt::Orientation orientation, QWidget* parent)
+    : ControlPanel(previewer, parent)
+    , m_orientation(orientation)
+    , m_x(new QSpinBox(this))
+    , m_y(new QSpinBox(this))
+    , m_len(new QSpinBox(this))
+    , m_colorBtn(new ColorButton(this))
+    , m_draw(new QPushButton(QStringLiteral("Draw"), this))
+{
+    updateRange();
+    connect(m_previewer, &CanvasPreviewer::rotationChanged, this, &updateRange);
+
+    auto* checkBtn = new QCheckBox(QStringLiteral("Preview"), this);
+    connect(checkBtn, &QCheckBox::checkStateChanged, [this](int checked) {
+        m_enablePreview = (bool)checked;
+        flushToPreview();
+    });
+
+    m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("X:"), m_x), 0, 0);
+    m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("Y:"), m_y), 0, 1);
+    m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("L:"), m_len), 1, 0);
+    m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("Stroke:"), m_colorBtn, 0), 1, 1);
+    m_root->addWidget(checkBtn, 2, 0);
+    m_root->addWidget(m_draw, 2, 1);
+
+    connect(m_x, &QSpinBox::valueChanged, this, &flushToPreview);
+    connect(m_y, &QSpinBox::valueChanged, this, &flushToPreview);
+    connect(m_len, &QSpinBox::valueChanged, this, &flushToPreview);
+    connect(m_draw, &QPushButton::clicked, this, &flushToCanvas);
+    connect(m_colorBtn, &ColorButton::colorChanged, this, &flushToPreview);
+}
+
+void LinePanel::updateRange()
+{
+    epd_gfx_canvas_t canvas = m_previewer->getCanvas();
+    uint16_t width          = epd_gfx_canvas_get_logical_width(canvas);
+    uint16_t height         = epd_gfx_canvas_get_logical_height(canvas);
+
+    m_x->setRange(1, width);
+    m_y->setRange(1, height);
+    m_len->setRange(0, 5000);
+    m_len->setValue(100);
+    flushToPreview();
+}
+
+void LinePanel::flushTo(epd_gfx_canvas_t canvas)
+{
+    if (m_orientation == Qt::Orientation::Horizontal) {
+        epd_gfx_canvas_draw_hline(canvas, m_x->value(), m_y->value(), m_len->value(),
+            m_colorBtn->currentColor());
+    } else {
+        epd_gfx_canvas_draw_vline(canvas, m_x->value(), m_y->value(), m_len->value(),
+            m_colorBtn->currentColor());
+    }
+}
+
+LEKCO_END_NAMESPACE

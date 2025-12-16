@@ -10,6 +10,7 @@
 #include <QPixmap>
 #include <QIcon>
 
+#include "Utils.hpp"
 #include "ColorButton.hpp"
 
 LEKCO_BEGIN_NAMESPACE
@@ -22,7 +23,9 @@ ColorButton::ColorButton(QWidget* parent)
 {
     setAutoRaise(false);
     setCheckable(false);
-    setFixedSize(24, 24);
+    setMinimumSize(24, 24);
+    setMaximumSize(24, 24);
+    setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     setStyleSheet(
         "QToolButton { border: 1px solid #a0a0a0; border-radius: 3px; padding: 0; }"
         "QToolButton:pressed { border: 1px solid #707070; }");
@@ -31,15 +34,15 @@ ColorButton::ColorButton(QWidget* parent)
     connect(this, &QToolButton::clicked, this, &ColorButton::nextColor);
 }
 
-QColor ColorButton::currentColor() const
+epd_gfx_color_t ColorButton::currentColor() const
 {
-    return s_colors[m_index];
+    return QColorToEpdColor(s_colors[m_index]);
 }
 
 void ColorButton::updateIcon()
 {
     QPixmap pm(20, 20);
-    pm.fill(currentColor());
+    pm.fill(s_colors[m_index]);
     setIcon(QIcon(pm));
     setIconSize(pm.size());
 }

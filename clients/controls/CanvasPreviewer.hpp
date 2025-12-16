@@ -79,7 +79,6 @@ private:
 
     // Static helpers
     static epd_err_t flushImpl(void* ctx, const epd_gfx_frame_view_t* view);
-    static QColor    convertColor(epd_gfx_color_t color);
 
     // State
     epd_gfx_canvas_config_t m_config;

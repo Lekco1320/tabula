@@ -15,9 +15,9 @@
 #include <QGroupBox>
 #include <QSize>
 #include <QColor>
+#include <epd_gfx/canvas.h>
 
 #include "common.h"
-#include "epd_gfx/canvas.h"
 
 class QGridLayout;
 class QCheckBox;
@@ -36,9 +36,9 @@ public:
     explicit ControlPanel(CanvasPreviewer* previewer, QWidget* parent = nullptr);
 
 protected:
-    virtual void flushToCanvas(epd_gfx_canvas_t canvas) = 0;
-    virtual void refreshPreview();
-    QWidget* makeRow(const QString& label, QWidget* editor) const;
+    virtual void flushTo(epd_gfx_canvas_t canvas) = 0;
+    virtual void flushToCanvas();
+    virtual void flushToPreview();
 
 protected:
     CanvasPreviewer* m_previewer;

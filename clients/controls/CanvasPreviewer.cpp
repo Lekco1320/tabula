@@ -20,6 +20,7 @@
 #include <epd_core/common.h>
 #include <epd_gfx/codec.h>
 
+#include "Utils.hpp"
 #include "CanvasPreviewer.hpp"
 
 BEGIN_NAMESPACE()
@@ -122,6 +123,7 @@ CanvasPreviewer::CanvasPreviewer(epd_gfx_canvas_config_t config, QWidget* parent
         throw std::runtime_error("CanvasPreviewer initialization failed");
     }
 
+    epd_gfx_canvas_fill(m_canvas, EPD_GFX_WHITE);
     m_baseImage = QImage(m_config.width, m_config.height, QImage::Format_RGB888);
     m_baseImage.fill(Qt::white);
 
@@ -461,7 +463,7 @@ epd_err_t CanvasPreviewer::rebuildImageFromNative(const uint8_t* data, uint32_t 
         }
         for (uint16_t x = 0; x < m_config.width; ++x) {
             epd_gfx_color_t color = colors[x];
-            m_baseImage.setPixelColor(x, y, convertColor(color));
+            m_baseImage.setPixelColor(x, y, EpdColorToQColor(color));
         }
     }
     return EPD_OK;
@@ -490,7 +492,7 @@ epd_err_t CanvasPreviewer::rebuildImageFromPlanes(const uint8_t* pwht, const uin
         }
         for (uint16_t x = 0; x < m_config.width; ++x) {
             epd_gfx_color_t color = colors[x];
-            m_baseImage.setPixelColor(x, y, convertColor(color));
+            m_baseImage.setPixelColor(x, y, EpdColorToQColor(color));
         }
     }
     return EPD_OK;
@@ -513,25 +515,6 @@ epd_err_t CanvasPreviewer::flushImpl(void* ctx, const epd_gfx_frame_view_t* view
 
     default:
         return EPD_ERR_INVALID_ARG;
-    }
-}
-
-QColor CanvasPreviewer::convertColor(epd_gfx_color_t color)
-{
-    static QColor white = QRgb{ 0xFFFFFF };
-    static QColor black = QRgb{ 0x000000 };
-    static QColor red   = QRgb{ 0xFF0000 };
-
-    switch (color)
-    {
-    case EPD_GFX_BLACK:
-        return black;
-
-    case EPD_GFX_RED:
-        return red;
-
-    default:
-        return white;
     }
 }
 
