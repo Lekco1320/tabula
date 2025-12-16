@@ -1,5 +1,13 @@
 <RCC>
     <qresource prefix="/">
         <file>common/themes.json</file>
+        <file>common/icons/Pointer.svg</file>
+        <file>common/icons/Inspect.svg</file>
+        <file>common/icons/DrawHLine.svg</file>
+        <file>common/icons/DrawVLine.svg</file>
+        <file>common/icons/DrawRect.svg</file>
+        <file>common/icons/FillRect.svg</file>
+        <file>common/icons/DrawPixel.svg</file>
+        <file>common/icons/FillPanel.svg</file>
     </qresource>
 </RCC>

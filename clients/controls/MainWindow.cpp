@@ -14,10 +14,14 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QSizePolicy>
+#include <QFontDatabase>
 #include <QVariant>
 #include <QFrame>
+#include <QScreen>
+#include <QGuiApplication>
 
 #include "MainWindow.hpp"
+#include "ToolBar.hpp"
 #include "CanvasPreviewer.hpp"
 
 LEKCO_BEGIN_NAMESPACE
@@ -47,16 +51,35 @@ MainWindow::MainWindow(QWidget *parent)
     };
     m_previewer = new CanvasPreviewer(cfg, central);
     m_previewer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    m_previewer->setMode(CanvasPreviewer::Mode::Inspect);
     leftLayout->addWidget(m_previewer, 1);
 
+    const auto dpi = QGuiApplication::primaryScreen()->logicalDotsPerInch();
+    m_captionFont = QFontDatabase::systemFont(QFontDatabase::GeneralFont);
+    m_captionFont.setWeight(QFont::Weight::Bold);
+    m_captionFont.setPointSizeF(16 * 72.0 / dpi);
+
     // Right: Control pane
-    auto* rightPane   = new QWidget(central);
+    auto* rightPane = new QWidget(central);
+    rightPane->setFixedWidth(250);
     rightPane->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
     auto* rightLayout = new QVBoxLayout(rightPane);
-    rightPane->setFixedWidth(250);
     rightLayout->setContentsMargins(15, 15, 15, 15);
     rightLayout->setSpacing(12);
+
+    // Toolbar
+    auto* toolLabel = new QLabel(QStringLiteral("Tools"), rightPane);
+    toolLabel->setFont(m_captionFont);
+    rightLayout->addWidget(toolLabel);
+    m_toolBar = new ToolBar(rightPane);
+    rightLayout->addSpacing(-8);
+    rightLayout->addWidget(m_toolBar);
+    connect(m_toolBar, &ToolBar::toolChanged, [this](ToolBar::Tool tool) {
+        if (tool == ToolBar::Tool::Inspect) {
+            m_previewer->setMode(CanvasPreviewer::Mode::Inspect);
+        } else {
+            m_previewer->setMode(CanvasPreviewer::Mode::Pointer);
+        }
+    });
 
     // Rotation comboBox
     m_rotationCombo = new QComboBox(rightPane);

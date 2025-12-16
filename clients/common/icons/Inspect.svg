@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <!-- White outline (thicker) -->
+  <g stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="8.0"></circle>
+    <path d="M12 4.0V9.3M12 14.7V20.0"></path>
+    <path d="M4.0 12H9.3M14.7 12H20.0"></path>
+    <rect x="10.5" y="10.5" width="3.0" height="3.0" rx="0.45"></rect>
+  </g>
+
+  <!-- Main icon -->
+  <g stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="8.0"></circle>
+    <path d="M12 4.0V9.3M12 14.7V20.0"></path>
+    <path d="M4.0 12H9.3M14.7 12H20.0"></path>
+    <rect x="10.5" y="10.5" width="3.0" height="3.0" rx="0.45"></rect>
+    <circle cx="12" cy="12" r="0.85" fill="currentColor" stroke="none"></circle>
+  </g>
+</svg>

@@ -21,6 +21,8 @@
 
 LEKCO_BEGIN_NAMESPACE
 
+class ToolBar;
+
 class MainWindow
     : public QMainWindow
 {
@@ -33,9 +35,11 @@ public:
 private:
     void drawDemo();
 
-    CanvasPreviewer* m_previewer = nullptr;
+    QFont            m_captionFont;
+    ToolBar*         m_toolBar       = nullptr;
+    CanvasPreviewer* m_previewer     = nullptr;
     QComboBox*       m_rotationCombo = nullptr;
-    QPushButton*     m_drawButton = nullptr;
+    QPushButton*     m_drawButton    = nullptr;
 };
 
 LEKCO_END_NAMESPACE

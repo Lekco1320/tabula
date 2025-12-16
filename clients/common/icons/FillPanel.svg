@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+     viewBox="0 0 24 24" fill="none">
+  <!-- paint bucket (tilted) : white outline -->
+  <g transform="rotate(-25 12 12)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8.2 7.0h9.6v9.0c0 2.0-1.6 3.6-3.6 3.6h-2.4c-2.0 0-3.6-1.6-3.6-3.6V7.0Z"
+          stroke="#FFFFFF" stroke-width="4"/>
+    <path d="M7.6 7.0h10.8" stroke="#FFFFFF" stroke-width="4"/>
+    <path d="M9.2 5.4h7.9" stroke="#FFFFFF" stroke-width="4"/>
+  </g>
+
+  <!-- paint bucket (tilted) : main -->
+  <g transform="rotate(-25 12 12)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8.2 7.0h9.6v9.0c0 2.0-1.6 3.6-3.6 3.6h-2.4c-2.0 0-3.6-1.6-3.6-3.6V7.0Z"
+          stroke="currentColor" stroke-width="2"/>
+    <path d="M7.6 7.0h10.8" stroke="currentColor" stroke-width="2"/>
+    <path d="M9.2 5.4h7.9" stroke="currentColor" stroke-width="2"/>
+  </g>
+
+  <!-- droplet (left-bottom) : white outline -->
+  <path d="M8.6 18.4c0 1.1-.9 2.0-2.0 2.0s-2.0-.9-2.0-2.0c0-1.5 2.0-3.5 2.0-3.5s2.0 2.0 2.0 3.5Z"
+        stroke="#FFFFFF" stroke-width="4" stroke-linejoin="round"/>
+
+  <!-- droplet (left-bottom) : main -->
+  <path d="M8.6 18.4c0 1.1-.9 2.0-2.0 2.0s-2.0-.9-2.0-2.0c0-1.5 2.0-3.5 2.0-3.5s2.0 2.0 2.0 3.5Z"
+        fill="currentColor"/>
+</svg>
