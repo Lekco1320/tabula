@@ -22,8 +22,9 @@
 
 LEKCO_BEGIN_NAMESPACE
 
-LinePanel::LinePanel(CanvasPreviewer* previewer, Qt::Orientation orientation, QWidget* parent)
-    : ControlPanel(previewer, parent)
+LinePanel::LinePanel(const QString& title, Qt::Orientation orientation,
+    CanvasPreviewer* previewer, QWidget* parent)
+    : ControlPanel(title, previewer, parent)
     , m_orientation(orientation)
     , m_x(new QSpinBox(this))
     , m_y(new QSpinBox(this))

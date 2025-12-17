@@ -12,6 +12,7 @@
 #ifndef _CONTROLPANEL_HPP_
 #define _CONTROLPANEL_HPP_
 
+#include <QString>
 #include <QGroupBox>
 #include <QSize>
 #include <QColor>
@@ -33,7 +34,8 @@ class ControlPanel
     Q_OBJECT
 
 public:
-    explicit ControlPanel(CanvasPreviewer* previewer, QWidget* parent = nullptr);
+    explicit ControlPanel(const QString& title, CanvasPreviewer* previewer, QWidget* parent = nullptr);
+    virtual void refreshPreview();
 
 protected:
     virtual void flushTo(epd_gfx_canvas_t canvas) = 0;

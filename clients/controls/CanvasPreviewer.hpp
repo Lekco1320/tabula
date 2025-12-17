@@ -35,7 +35,7 @@ class CanvasPreviewer
     Q_OBJECT
 
 public:
-    enum class Mode { Pointer, Inspect };
+    enum class Cursor { Pointer, Inspect };
 
     explicit CanvasPreviewer(epd_gfx_canvas_config_t config, QWidget* parent);
     ~CanvasPreviewer();
@@ -44,8 +44,7 @@ public:
     epd_gfx_canvas_t getCanvas() const;
     void refresh();
     void setRotation(epd_gfx_rotation_t rotation);
-    void setMode(Mode mode);
-    Mode getMode() const;
+    void setCursor(Cursor mode);
     void setPreviewCanvas(epd_gfx_canvas_t preview);
 
 signals:
@@ -89,7 +88,7 @@ private:
     qreal  m_angleCurrent;
     QImage m_baseImage;   // rotation-0 image
 
-    Mode    m_mode;
+    Cursor  m_cursor;
     bool    m_hasMouse;
     QPointF m_lastMousePos;
 };

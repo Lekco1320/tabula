@@ -22,6 +22,8 @@
 LEKCO_BEGIN_NAMESPACE
 
 class ToolBar;
+class CursorBar;
+class AdaptiveStackedWidget;
 
 class MainWindow
     : public QMainWindow
@@ -29,17 +31,18 @@ class MainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QWidget* parent = nullptr);
     ~MainWindow();
 
 private:
     void drawDemo();
 
-    QFont            m_captionFont;
-    ToolBar*         m_toolBar       = nullptr;
-    CanvasPreviewer* m_previewer     = nullptr;
-    QComboBox*       m_rotationCombo = nullptr;
-    QPushButton*     m_drawButton    = nullptr;
+    CursorBar*             m_cursorBar     = nullptr;
+    ToolBar*               m_toolBar       = nullptr;
+    CanvasPreviewer*       m_previewer     = nullptr;
+    AdaptiveStackedWidget* m_stackedWidget = nullptr;
+    QComboBox*             m_rotationCombo = nullptr;
+    QPushButton*           m_drawButton    = nullptr;
 };
 
 LEKCO_END_NAMESPACE

@@ -16,15 +16,20 @@
 
 LEKCO_BEGIN_NAMESPACE
 
-ControlPanel::ControlPanel(CanvasPreviewer* previewer, QWidget* parent)
-    : QGroupBox(parent)
+ControlPanel::ControlPanel(const QString& title, CanvasPreviewer* previewer, QWidget* parent)
+    : QGroupBox(title, parent)
     , m_previewer(previewer)
     , m_root(new QGridLayout(this))
     , m_enablePreview(false)
 {
     m_root->setContentsMargins(8, 8, 8, 8);
-    m_root->setHorizontalSpacing(8);
+    m_root->setHorizontalSpacing(10);
     m_root->setVerticalSpacing(5);
+}
+
+void ControlPanel::refreshPreview()
+{
+    flushToPreview();
 }
 
 void ControlPanel::flushToCanvas()

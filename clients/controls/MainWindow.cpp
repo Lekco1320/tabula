@@ -14,15 +14,15 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QSizePolicy>
-#include <QFontDatabase>
 #include <QVariant>
 #include <QFrame>
 #include <QScreen>
-#include <QGuiApplication>
 
 #include "LinePanel.hpp"
 #include "ToolBar.hpp"
+#include "CursorBar.hpp"
 #include "CanvasPreviewer.hpp"
+#include "AdaptiveStackedWidget.hpp"
 #include "MainWindow.hpp"
 
 LEKCO_BEGIN_NAMESPACE
@@ -54,36 +54,47 @@ MainWindow::MainWindow(QWidget *parent)
     m_previewer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     leftLayout->addWidget(m_previewer, 1);
 
-    const auto dpi = QGuiApplication::primaryScreen()->logicalDotsPerInch();
-    m_captionFont = QFontDatabase::systemFont(QFontDatabase::GeneralFont);
-    m_captionFont.setWeight(QFont::Weight::Bold);
-    m_captionFont.setPointSizeF(16 * 72.0 / dpi);
-
     // Right: Control pane
     auto* rightPane = new QWidget(central);
     rightPane->setFixedWidth(250);
     rightPane->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
     auto* rightLayout = new QVBoxLayout(rightPane);
-    rightLayout->setContentsMargins(15, 15, 15, 15);
+    rightLayout->setContentsMargins(10, 10, 12, 10);
     rightLayout->setSpacing(12);
 
-    // Toolbar
-    auto* toolLabel = new QLabel(QStringLiteral("Tools"), rightPane);
-    toolLabel->setFont(m_captionFont);
-    rightLayout->addWidget(toolLabel);
-    m_toolBar = new ToolBar(rightPane);
-    rightLayout->addSpacing(-8);
-    rightLayout->addWidget(m_toolBar);
-    connect(m_toolBar, &ToolBar::toolChanged, [this](ToolBar::Tool tool) {
-        if (tool == ToolBar::Tool::Inspect) {
-            m_previewer->setMode(CanvasPreviewer::Mode::Inspect);
-        } else {
-            m_previewer->setMode(CanvasPreviewer::Mode::Pointer);
-        }
+    // Cursor Bar
+    m_cursorBar = new CursorBar(rightPane);
+    rightLayout->addWidget(m_cursorBar);
+    connect(m_cursorBar, &CursorBar::cursorChanged, this, [this](CursorBar::Cursor cursor) {
+        m_previewer->setCursor(cursor);
     });
 
-    auto* linePanel = new LinePanel(m_previewer, Qt::Orientation::Horizontal, rightPane);
-    rightLayout->addWidget(linePanel);
+    // Toolbar
+    m_toolBar = new ToolBar(rightPane);
+    rightLayout->addWidget(m_toolBar);
+
+    m_stackedWidget = new AdaptiveStackedWidget(rightPane);
+    m_stackedWidget->setContentsMargins(0, 0, 0, 0);
+    auto* hLinePanel = new LinePanel(QStringLiteral("Draw Horizontal Line"), Qt::Orientation::Horizontal, m_previewer, rightPane);
+    auto* vLinePanel = new LinePanel(QStringLiteral("Draw Vertical Line"), Qt::Orientation::Vertical, m_previewer, rightPane);
+    m_stackedWidget->addWidget(hLinePanel);
+    m_stackedWidget->addWidget(vLinePanel);
+
+    rightLayout->addWidget(m_stackedWidget);
+    m_stackedWidget->setCollapsed(true);
+    connect(m_toolBar, &ToolBar::toolChanged, this, [this](ToolBar::Tool tool) {
+        int id = static_cast<int>(tool);
+        if (id > -1 && id < 2) {
+            m_stackedWidget->setCurrentIndex(id);
+            m_stackedWidget->setCollapsed(false);
+            auto* widget = static_cast<ControlPanel*>(m_stackedWidget->currentWidget());
+            if (widget) {
+                widget->refreshPreview();
+            }
+        } else if (id == -1) {
+            m_stackedWidget->setCollapsed(true);
+        }
+    });
 
     // Rotation comboBox
     m_rotationCombo = new QComboBox(rightPane);

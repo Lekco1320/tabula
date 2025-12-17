@@ -9,10 +9,13 @@
 
 #pragma once
 
+#ifndef _TOOLBAR_HPP_
+#define _TOOLBAR_HPP_
+
 #include <QGroupBox>
 
 #include "common.h"
-#include "FlowLayout.hpp"
+#include "IconButtonBar.hpp"
 
 class QIcon;
 class QButtonGroup;
@@ -20,29 +23,31 @@ class QToolButton;
 
 LEKCO_BEGIN_NAMESPACE
 
+class FlowLayout;
+
 class ToolBar
-    : public QGroupBox
+    : public IconButtonBar
 {
     Q_OBJECT
 
 public:
     enum class Tool {
-        Pointer, Inspect, DrawHLine, DrawVLine,
-        DrawRect, FillRect, DrawPixel, FillPanel,
+        DrawHLine, DrawVLine, DrawRect,
+        FillRect, DrawPixel, FillPanel, None
     };
 
     explicit ToolBar(QWidget* parent = nullptr);
-
+    
     Tool currentTool() const;
 
 signals:
     void toolChanged(Tool tool);
 
 private:
-    QToolButton* addButton(Tool tool, const QIcon& icon, const QString& tooltip);
-    QButtonGroup* m_group;
-    FlowLayout*   m_layout;
-    Tool          m_current;
+    FlowLayout* m_layout;
+    Tool        m_current;
 };
 
 LEKCO_END_NAMESPACE
+
+#endif // !_TOOLBAR_HPP_

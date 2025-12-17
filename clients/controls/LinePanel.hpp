@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <QString>
 #include <QWidget>
 #include <QColor>
 
@@ -28,7 +29,8 @@ class LinePanel
     Q_OBJECT
 
 public:
-    explicit LinePanel(CanvasPreviewer* previewer, Qt::Orientation orientation, QWidget* parent = nullptr);
+    explicit LinePanel(const QString& title, Qt::Orientation orientation,
+        CanvasPreviewer* previewer, QWidget* parent = nullptr);
 
 private:
     void updateRange();

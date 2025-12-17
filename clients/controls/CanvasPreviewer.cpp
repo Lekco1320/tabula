@@ -114,7 +114,7 @@ CanvasPreviewer::CanvasPreviewer(epd_gfx_canvas_config_t config, QWidget* parent
     , m_angleFrom(0.0)
     , m_angleTo(config.rotation * 90.0)
     , m_angleCurrent(config.rotation * 90.0)
-    , m_mode(Mode::Pointer)
+    , m_cursor(Cursor::Pointer)
     , m_hasMouse(false)
     , m_lastMousePos(QPointF())
 {
@@ -165,22 +165,17 @@ epd_gfx_canvas_t CanvasPreviewer::getCanvas() const
     return m_canvas;
 }
 
-void CanvasPreviewer::setMode(Mode mode)
+void CanvasPreviewer::setCursor(Cursor mode)
 {
-    if (m_mode == mode) {
+    if (m_cursor == mode) {
         return;
     }
     
-    m_mode = mode;
-    if (m_mode == Mode::Pointer) {
+    m_cursor = mode;
+    if (m_cursor == Cursor::Pointer) {
         unsetCursor();
     }
     update();
-}
-
-CanvasPreviewer::Mode CanvasPreviewer::getMode() const
-{
-    return m_mode;
 }
 
 void CanvasPreviewer::setPreviewCanvas(epd_gfx_canvas_t preview)
@@ -206,7 +201,7 @@ void CanvasPreviewer::refresh()
 void CanvasPreviewer::paintEvent(QPaintEvent* event)
 {
     Q_UNUSED(event);
-    const HoverInfo hover = (m_mode == Mode::Inspect) ? currentHoverInfo() : HoverInfo{};
+    const HoverInfo hover = (m_cursor == Cursor::Inspect) ? currentHoverInfo() : HoverInfo{};
 
     QPainter painter(this);
     painter.fillRect(rect(), Qt::white);
@@ -229,7 +224,7 @@ void CanvasPreviewer::enterEvent(QEnterEvent* event)
 {
     Q_UNUSED(event);
     m_hasMouse = true;
-    if (m_mode == Mode::Inspect) {
+    if (m_cursor == Cursor::Inspect) {
         update();
     }
 }
@@ -239,7 +234,7 @@ void CanvasPreviewer::leaveEvent(QEvent* event)
     Q_UNUSED(event);
     m_hasMouse = false;
     unsetCursor();
-    if (m_mode == Mode::Inspect) {
+    if (m_cursor == Cursor::Inspect) {
         update();
     }
 }
@@ -249,9 +244,9 @@ void CanvasPreviewer::mouseMoveEvent(QMouseEvent* event)
     m_lastMousePos = event->position();
     QPointF imagePos;
     QRectF  targetRect;
-    if (m_mode == Mode::Inspect) {
+    if (m_cursor == Cursor::Inspect) {
         if (mapToImage(m_lastMousePos, imagePos, targetRect)) {
-            setCursor(Qt::CrossCursor);
+            static_cast<QWidget*>(this)->setCursor(Qt::CrossCursor);
         } else {
             unsetCursor();
         }
@@ -286,7 +281,7 @@ bool CanvasPreviewer::mapToImage(const QPointF& widgetPos, QPointF& imagePos, QR
 CanvasPreviewer::HoverInfo CanvasPreviewer::currentHoverInfo() const
 {
     HoverInfo info;
-    if (!m_hasMouse || m_mode != Mode::Inspect) {
+    if (!m_hasMouse || m_cursor != Cursor::Inspect) {
         return info;
     }
 
