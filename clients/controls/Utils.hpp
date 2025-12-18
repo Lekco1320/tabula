@@ -19,7 +19,7 @@
 #include <type_traits>
 #include <epd_gfx/common.h>
 
-#include "common.h"
+#include "common/common.h"
 
 LEKCO_BEGIN_NAMESPACE
 

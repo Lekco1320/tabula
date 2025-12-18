@@ -7,7 +7,7 @@
  * @license MIT
  */
 
-#include "AdaptiveStackedWidget.hpp"
+#include "controls/widgets/AdaptiveStackedWidget.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 

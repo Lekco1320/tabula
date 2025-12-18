@@ -15,7 +15,7 @@
 #include <QString>
 #include <QGroupBox>
 
-#include "common.h"
+#include "common/common.h"
 
 class QButtonGroup;
 class QToolButton;

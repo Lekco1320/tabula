@@ -11,8 +11,8 @@
 #include <QToolButton>
 #include <QButtonGroup>
 
-#include "ToolBar.hpp"
-#include "FlowLayout.hpp"
+#include "controls/bars/ToolBar.hpp"
+#include "controls/widgets/FlowLayout.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 

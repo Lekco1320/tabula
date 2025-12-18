@@ -16,8 +16,8 @@
 #include <QComboBox>
 #include <QPushButton>
 
-#include "common.h"
-#include "CanvasPreviewer.hpp"
+#include "common/common.h"
+#include "controls/widgets/CanvasPreviewer.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 

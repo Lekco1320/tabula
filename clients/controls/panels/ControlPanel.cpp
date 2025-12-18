@@ -11,8 +11,8 @@
 #include <QCheckBox>
 #include <QLabel>
 
-#include "ControlPanel.hpp"
-#include "CanvasPreviewer.hpp"
+#include "controls/panels/ControlPanel.hpp"
+#include "controls/widgets/CanvasPreviewer.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 

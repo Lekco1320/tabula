@@ -12,8 +12,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Qt6 REQUIRED COMPONENTS Widgets Svg)
 
 file(GLOB TABULA_CONTROL_SRCS CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/controls/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/controls/*.hpp")
+    "${CMAKE_CURRENT_SOURCE_DIR}/controls/**/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/controls/**/*.hpp")
 
 set(TABULA_PROJECT_SRCS
     main.cpp
@@ -35,8 +35,7 @@ FetchContent_Declare(Qlementine
 FetchContent_MakeAvailable(Qlementine)
 
 target_include_directories(tabula-host PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/common
-    ${CMAKE_CURRENT_SOURCE_DIR}/controls)
+    ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(tabula-host PRIVATE
     Qt6::Widgets

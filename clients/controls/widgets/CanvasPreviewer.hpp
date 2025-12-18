@@ -18,9 +18,9 @@
 #include <QColor>
 #include <QRectF>
 #include <QPoint>
+#include <epd_gfx/canvas.h>
 
-#include "common.h"
-#include "epd_gfx/canvas.h"
+#include "common/common.h"
 
 class QMouseEvent;
 class QEvent;

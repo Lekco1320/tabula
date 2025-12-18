@@ -11,7 +11,7 @@
 #include <QButtonGroup>
 #include <QSizePolicy>
 
-#include "IconButtonBar.hpp"
+#include "controls/bars/IconButtonBar.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 

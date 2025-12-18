@@ -15,10 +15,10 @@
 #include <QGroupBox>
 #include <QCheckBox>
 
-#include "Utils.hpp"
-#include "LinePanel.hpp"
-#include "ColorButton.hpp"
-#include "CanvasPreviewer.hpp"
+#include "controls/Utils.hpp"
+#include "controls/panels/LinePanel.hpp"
+#include "controls/widgets/ColorButton.hpp"
+#include "controls/widgets/CanvasPreviewer.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 

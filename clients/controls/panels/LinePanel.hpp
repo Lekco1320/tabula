@@ -13,8 +13,8 @@
 #include <QWidget>
 #include <QColor>
 
-#include "common.h"
-#include "ControlPanel.hpp"
+#include "common/common.h"
+#include "controls/panels/ControlPanel.hpp"
 
 class QSpinBox;
 class QPushButton;

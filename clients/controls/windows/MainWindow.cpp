@@ -18,12 +18,12 @@
 #include <QFrame>
 #include <QScreen>
 
-#include "LinePanel.hpp"
-#include "ToolBar.hpp"
-#include "CursorBar.hpp"
-#include "CanvasPreviewer.hpp"
-#include "AdaptiveStackedWidget.hpp"
-#include "MainWindow.hpp"
+#include "controls/panels/LinePanel.hpp"
+#include "controls/bars/ToolBar.hpp"
+#include "controls/bars/CursorBar.hpp"
+#include "controls/widgets/CanvasPreviewer.hpp"
+#include "controls/widgets/AdaptiveStackedWidget.hpp"
+#include "controls/windows/MainWindow.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 

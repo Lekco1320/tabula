@@ -18,7 +18,7 @@
 #include <QColor>
 #include <epd_gfx/canvas.h>
 
-#include "common.h"
+#include "common/common.h"
 
 class QGridLayout;
 class QCheckBox;

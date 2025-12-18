@@ -11,8 +11,8 @@
 #include <QToolButton>
 #include <QButtonGroup>
 
-#include "CursorBar.hpp"
-#include "FlowLayout.hpp"
+#include "controls/bars/CursorBar.hpp"
+#include "controls/widgets/FlowLayout.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 

@@ -7,9 +7,9 @@
  * @license MIT
  */
 
-#include "FlowLayout.hpp"
-
 #include <QtWidgets>
+
+#include "controls/widgets/FlowLayout.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 

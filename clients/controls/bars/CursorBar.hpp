@@ -12,9 +12,9 @@
 #ifndef _CURSORBAR_HPP_
 #define _CURSORBAR_HPP_
 
-#include "common.h"
-#include "IconButtonBar.hpp"
-#include "CanvasPreviewer.hpp"
+#include "common/common.h"
+#include "controls/bars/IconButtonBar.hpp"
+#include "controls/widgets/CanvasPreviewer.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 

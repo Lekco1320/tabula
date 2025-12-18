@@ -14,8 +14,8 @@
 
 #include <QGroupBox>
 
-#include "common.h"
-#include "IconButtonBar.hpp"
+#include "common/common.h"
+#include "controls/bars/IconButtonBar.hpp"
 
 class QIcon;
 class QButtonGroup;

@@ -20,8 +20,8 @@
 #include <epd_core/common.h>
 #include <epd_gfx/codec.h>
 
-#include "Utils.hpp"
-#include "CanvasPreviewer.hpp"
+#include "controls/Utils.hpp"
+#include "controls/widgets/CanvasPreviewer.hpp"
 
 BEGIN_NAMESPACE()
 

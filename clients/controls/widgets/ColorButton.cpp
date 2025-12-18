@@ -10,8 +10,8 @@
 #include <QPixmap>
 #include <QIcon>
 
-#include "Utils.hpp"
-#include "ColorButton.hpp"
+#include "controls/Utils.hpp"
+#include "controls/widgets/ColorButton.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 

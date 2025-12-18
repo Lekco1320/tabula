@@ -12,12 +12,12 @@
 #ifndef _COLORBUTTON_HPP_
 #define _COLORBUTTON_HPP_
 
-#include "common.h"
-
 #include <QToolButton>
 #include <QColor>
 #include <QVector>
 #include <epd_gfx/common.h>
+
+#include "common/common.h"
 
 LEKCO_BEGIN_NAMESPACE
 

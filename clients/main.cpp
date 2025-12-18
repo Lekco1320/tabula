@@ -7,7 +7,7 @@
  * @license MIT
  */
 
-#include "MainWindow.hpp"
+#include "controls/windows/MainWindow.hpp"
 
 #include <QApplication>
 #include <QFontDatabase>
