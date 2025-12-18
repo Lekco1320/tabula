@@ -18,10 +18,13 @@
 #include <QHBoxLayout>
 #include <type_traits>
 #include <epd_gfx/common.h>
+#include <epd_gfx/canvas.h>
 
 #include "common/common.h"
 
 LEKCO_BEGIN_NAMESPACE
+
+using DrawFunc = std::function<void(epd_gfx_canvas_t)>;
 
 static inline QColor EpdColorToQColor(epd_gfx_color_t color)
 {

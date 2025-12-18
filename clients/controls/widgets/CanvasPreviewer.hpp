@@ -21,6 +21,7 @@
 #include <epd_gfx/canvas.h>
 
 #include "common/common.h"
+#include "controls/Utils.hpp"
 
 class QMouseEvent;
 class QEvent;
@@ -45,7 +46,8 @@ public:
     void refresh();
     void setRotation(epd_gfx_rotation_t rotation);
     void setCursor(Cursor mode);
-    void setPreviewCanvas(epd_gfx_canvas_t preview);
+    void drawCanvas(DrawFunc drawFunc);
+    void drawPreview(DrawFunc drawFunc);
 
 signals:
     void rotationChanged(epd_gfx_rotation_t rotation);

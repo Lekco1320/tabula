@@ -22,9 +22,8 @@
 
 LEKCO_BEGIN_NAMESPACE
 
-LinePanel::LinePanel(const QString& title, Qt::Orientation orientation,
-    CanvasPreviewer* previewer, QWidget* parent)
-    : ControlPanel(title, previewer, parent)
+LinePanel::LinePanel(const QString& title, Qt::Orientation orientation, QWidget* parent)
+    : ControlPanel(title, parent)
     , m_orientation(orientation)
     , m_x(new QSpinBox(this))
     , m_y(new QSpinBox(this))
@@ -32,13 +31,10 @@ LinePanel::LinePanel(const QString& title, Qt::Orientation orientation,
     , m_colorBtn(new ColorButton(this))
     , m_draw(new QPushButton(QStringLiteral("Draw"), this))
 {
-    updateRange();
-    connect(m_previewer, &CanvasPreviewer::rotationChanged, this, &updateRange);
-
     auto* checkBtn = new QCheckBox(QStringLiteral("Preview"), this);
     connect(checkBtn, &QCheckBox::checkStateChanged, [this](int checked) {
         m_enablePreview = (bool)checked;
-        flushToPreview();
+        updatePreview();
     });
 
     m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("X:"), m_x), 0, 0);
@@ -48,34 +44,52 @@ LinePanel::LinePanel(const QString& title, Qt::Orientation orientation,
     m_root->addWidget(checkBtn, 2, 0);
     m_root->addWidget(m_draw, 2, 1);
 
-    connect(m_x, &QSpinBox::valueChanged, this, &flushToPreview);
-    connect(m_y, &QSpinBox::valueChanged, this, &flushToPreview);
-    connect(m_len, &QSpinBox::valueChanged, this, &flushToPreview);
-    connect(m_draw, &QPushButton::clicked, this, &flushToCanvas);
-    connect(m_colorBtn, &ColorButton::colorChanged, this, &flushToPreview);
+    connect(m_x, &QSpinBox::valueChanged, this, &LinePanel::updatePreview);
+    connect(m_y, &QSpinBox::valueChanged, this, &LinePanel::updatePreview);
+    connect(m_len, &QSpinBox::valueChanged, this, &LinePanel::updatePreview);
+    connect(m_draw, &QPushButton::clicked, this, &LinePanel::updateDraw);
+    connect(m_colorBtn, &ColorButton::colorChanged, this, &LinePanel::updatePreview);
 }
 
-void LinePanel::updateRange()
+void LinePanel::updateRange(const epd_gfx_canvas_t canvas)
 {
-    epd_gfx_canvas_t canvas = m_previewer->getCanvas();
-    uint16_t width          = epd_gfx_canvas_get_logical_width(canvas);
-    uint16_t height         = epd_gfx_canvas_get_logical_height(canvas);
+    uint16_t width  = epd_gfx_canvas_get_logical_width(canvas);
+    uint16_t height = epd_gfx_canvas_get_logical_height(canvas);
 
     m_x->setRange(1, width);
     m_y->setRange(1, height);
     m_len->setRange(0, 5000);
     m_len->setValue(100);
-    flushToPreview();
 }
 
-void LinePanel::flushTo(epd_gfx_canvas_t canvas)
+void LinePanel::updateDraw()
+{
+    auto func = drawFunc();
+    emit drawRequested(func);
+}
+
+void LinePanel::updatePreview()
+{
+    auto func = drawFunc();
+    if (m_enablePreview) {
+        emit previewRequested(func);
+    } else {
+        emit refreshRequested();
+    }
+}
+
+DrawFunc LinePanel::drawFunc() const
 {
     if (m_orientation == Qt::Orientation::Horizontal) {
-        epd_gfx_canvas_draw_hline(canvas, m_x->value(), m_y->value(), m_len->value(),
-            m_colorBtn->currentColor());
+        return [this](epd_gfx_canvas_t canvas) {
+            epd_gfx_canvas_draw_hline(canvas, m_x->value(), m_y->value(), m_len->value(),
+                m_colorBtn->currentColor());
+        };
     } else {
-        epd_gfx_canvas_draw_vline(canvas, m_x->value(), m_y->value(), m_len->value(),
-            m_colorBtn->currentColor());
+        return [this](epd_gfx_canvas_t canvas) {
+            epd_gfx_canvas_draw_vline(canvas, m_x->value(), m_y->value(), m_len->value(),
+                m_colorBtn->currentColor());
+        };
     }
 }
 

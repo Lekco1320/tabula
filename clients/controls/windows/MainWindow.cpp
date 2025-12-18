@@ -18,11 +18,9 @@
 #include <QFrame>
 #include <QScreen>
 
-#include "controls/panels/LinePanel.hpp"
-#include "controls/bars/ToolBar.hpp"
+#include "controls/panels/ToolPanel.hpp"
 #include "controls/bars/CursorBar.hpp"
 #include "controls/widgets/CanvasPreviewer.hpp"
-#include "controls/widgets/AdaptiveStackedWidget.hpp"
 #include "controls/windows/MainWindow.hpp"
 
 LEKCO_BEGIN_NAMESPACE
@@ -70,30 +68,21 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     // Toolbar
-    m_toolBar = new ToolBar(rightPane);
-    rightLayout->addWidget(m_toolBar);
-
-    m_stackedWidget = new AdaptiveStackedWidget(rightPane);
-    m_stackedWidget->setContentsMargins(0, 0, 0, 0);
-    auto* hLinePanel = new LinePanel(QStringLiteral("Draw Horizontal Line"), Qt::Orientation::Horizontal, m_previewer, rightPane);
-    auto* vLinePanel = new LinePanel(QStringLiteral("Draw Vertical Line"), Qt::Orientation::Vertical, m_previewer, rightPane);
-    m_stackedWidget->addWidget(hLinePanel);
-    m_stackedWidget->addWidget(vLinePanel);
-
-    rightLayout->addWidget(m_stackedWidget);
-    m_stackedWidget->setCollapsed(true);
-    connect(m_toolBar, &ToolBar::toolChanged, this, [this](ToolBar::Tool tool) {
-        int id = static_cast<int>(tool);
-        if (id > -1 && id < 2) {
-            m_stackedWidget->setCurrentIndex(id);
-            m_stackedWidget->setCollapsed(false);
-            auto* widget = static_cast<ControlPanel*>(m_stackedWidget->currentWidget());
-            if (widget) {
-                widget->refreshPreview();
-            }
-        } else if (id == -1) {
-            m_stackedWidget->setCollapsed(true);
-        }
+    m_toolPanel = new ToolPanel(m_previewer, rightPane);
+    m_toolPanel->setContentsMargins(0, 0, 0, 0);
+    m_toolPanel->updateCanvas(m_previewer->getCanvas());
+    rightLayout->addWidget(m_toolPanel);
+    connect(m_toolPanel, &ToolPanel::refreshRequested, this, [this]() {
+        m_previewer->refresh();
+    });
+    connect(m_toolPanel, &ToolPanel::drawRequested, this, [this](DrawFunc func) {
+        m_previewer->drawCanvas(func);
+    });
+    connect(m_toolPanel, &ToolPanel::previewRequested, this, [this](DrawFunc func) {
+        m_previewer->drawPreview(func);
+    });
+    connect(m_previewer, &CanvasPreviewer::rotationChanged, this, [this]() {
+        m_toolPanel->updateCanvas(m_previewer->getCanvas());
     });
 
     // Rotation comboBox

@@ -9,6 +9,9 @@
 
 #pragma once
 
+#ifndef _LINEPANEL_HPP_
+#define _LINEPANEL_HPP_
+
 #include <QString>
 #include <QWidget>
 #include <QColor>
@@ -30,11 +33,14 @@ class LinePanel
 
 public:
     explicit LinePanel(const QString& title, Qt::Orientation orientation,
-        CanvasPreviewer* previewer, QWidget* parent = nullptr);
+        QWidget* parent = nullptr);
+
+    void updateDraw() override;
+    void updatePreview() override;
+    void updateRange(const epd_gfx_canvas_t canvas) override;
 
 private:
-    void updateRange();
-    void flushTo(epd_gfx_canvas_t canvas) override;
+    DrawFunc drawFunc() const override;
 
     Qt::Orientation m_orientation;
     QSpinBox*       m_x;
@@ -45,3 +51,5 @@ private:
 };
 
 LEKCO_END_NAMESPACE
+
+#endif // !_LINEPANEL_HPP_

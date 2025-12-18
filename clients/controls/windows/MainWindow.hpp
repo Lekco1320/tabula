@@ -21,7 +21,7 @@
 
 LEKCO_BEGIN_NAMESPACE
 
-class ToolBar;
+class ToolPanel;
 class CursorBar;
 class AdaptiveStackedWidget;
 
@@ -38,7 +38,7 @@ private:
     void drawDemo();
 
     CursorBar*             m_cursorBar     = nullptr;
-    ToolBar*               m_toolBar       = nullptr;
+    ToolPanel*             m_toolPanel     = nullptr;
     CanvasPreviewer*       m_previewer     = nullptr;
     AdaptiveStackedWidget* m_stackedWidget = nullptr;
     QComboBox*             m_rotationCombo = nullptr;

@@ -170,7 +170,7 @@ void CanvasPreviewer::setCursor(Cursor mode)
     if (m_cursor == mode) {
         return;
     }
-    
+
     m_cursor = mode;
     if (m_cursor == Cursor::Pointer) {
         unsetCursor();
@@ -178,13 +178,24 @@ void CanvasPreviewer::setCursor(Cursor mode)
     update();
 }
 
-void CanvasPreviewer::setPreviewCanvas(epd_gfx_canvas_t preview)
+void CanvasPreviewer::drawCanvas(DrawFunc drawFunc)
 {
-    if (!preview) {
+    drawFunc(m_canvas);
+    rebuildImage(m_canvas);
+    update();
+}
+
+void CanvasPreviewer::drawPreview(DrawFunc drawFunc)
+{
+    epd_gfx_canvas_t cloned = nullptr;
+    epd_err_t status = epd_gfx_canvas_clone(m_canvas, &cloned);
+    if (status != EPD_OK) {
         throw std::runtime_error("Pointer to preview canvas is null");
     }
 
-    rebuildImage(preview);
+    drawFunc(cloned);
+    rebuildImage(cloned);
+    epd_gfx_canvas_destroy(cloned);
     update();
 }
 
