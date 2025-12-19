@@ -46,8 +46,8 @@ public:
     void refresh();
     void setRotation(epd_gfx_rotation_t rotation);
     void setCursor(Cursor mode);
-    void drawCanvas(DrawFunc drawFunc);
-    void drawPreview(DrawFunc drawFunc);
+    void drawCanvas(const DrawFunc& drawFunc);
+    void drawPreview(const DrawFunc& drawFunc);
 
 signals:
     void rotationChanged(epd_gfx_rotation_t rotation);

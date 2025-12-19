@@ -62,15 +62,9 @@ void ToolPanel::addControlPanel(ControlPanel* panel)
 {
     m_controlPanels.append(panel);
     m_stackedWidget->addWidget(panel);
-    connect(panel, &ControlPanel::refreshRequested, this, [this]() {
-        emit refreshRequested();
-    });
-    connect(panel, &ControlPanel::drawRequested, this, [this](DrawFunc func) {
-        emit drawRequested(func);
-    });
-    connect(panel, &ControlPanel::previewRequested, this, [this](DrawFunc func) {
-        emit previewRequested(func);
-    });
+    connect(panel, &ControlPanel::refreshRequested, this, &ToolPanel::refreshRequested);
+    connect(panel, &ControlPanel::drawRequested, this, &ToolPanel::drawRequested);
+    connect(panel, &ControlPanel::previewRequested, this, &ToolPanel::previewRequested);
 }
 
 LEKCO_END_NAMESPACE

@@ -9,5 +9,9 @@
         <file>common/icons/FillRect.svg</file>
         <file>common/icons/DrawPixel.svg</file>
         <file>common/icons/FillPanel.svg</file>
+        <file>common/icons/Rotation0.svg</file>
+        <file>common/icons/Rotation90.svg</file>
+        <file>common/icons/Rotation180.svg</file>
+        <file>common/icons/Rotation270.svg</file>
     </qresource>
 </RCC>

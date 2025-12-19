@@ -1,8 +1,8 @@
 {
   "meta": {
-    "author": "Olivier Cléro",
+    "author": "Lukaß Zhang",
     "name": "Light",
-    "version": "1.5.0"
+    "version": "1.0.0"
   },
 
   "useSystemFonts": true,
@@ -22,9 +22,9 @@
 
   "focusColor": "#40a9ff66",
 
-  "neutralColor": "#d1d1d1",
-  "neutralColorHovered": "#d3d3d3",
-  "neutralColorPressed": "#d5d5d5",
+  "neutralColor": "#d7d7d7",
+  "neutralColorHovered": "#dadada",
+  "neutralColorPressed": "#e0e0e0",
   "neutralColorDisabled": "#eeeeee",
 
   "primaryColor": "#1890ff",

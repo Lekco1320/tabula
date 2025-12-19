@@ -56,6 +56,18 @@ static inline epd_gfx_color_t QColorToEpdColor(QColor color)
     }
 }
 
+template <typename... Widgets>
+std::enable_if_t<(std::is_base_of_v<QWidget, std::remove_pointer_t<Widgets>> && ...), QWidget*>
+MakeRow(QWidget* parent, int spacing, Widgets*... widgets)
+{
+    auto* row    = new QWidget(parent);
+    auto* layout = new QHBoxLayout(row);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(spacing);
+    (layout->addWidget(widgets), ...);
+    return row;
+}
+
 template <typename Widget>
 std::enable_if_t<std::is_base_of_v<QWidget, Widget>, QWidget*>
 MakeLabeledWidget(QWidget* parent, const QString& label, Widget* widget, int stretch = 1)

@@ -20,6 +20,7 @@
 
 #include "controls/panels/ToolPanel.hpp"
 #include "controls/bars/CursorBar.hpp"
+#include "controls/bars/RotationBar.hpp"
 #include "controls/widgets/CanvasPreviewer.hpp"
 #include "controls/windows/MainWindow.hpp"
 
@@ -63,55 +64,31 @@ MainWindow::MainWindow(QWidget *parent)
     // Cursor Bar
     m_cursorBar = new CursorBar(rightPane);
     rightLayout->addWidget(m_cursorBar);
-    connect(m_cursorBar, &CursorBar::cursorChanged, this, [this](CursorBar::Cursor cursor) {
-        m_previewer->setCursor(cursor);
+    connect(m_cursorBar, &CursorBar::cursorChanged, m_previewer, &CanvasPreviewer::setCursor);
+
+    // Rotation comboBox
+    m_rotationBar = new RotationBar(rightPane);
+    rightLayout->addWidget(m_rotationBar);
+    connect(m_rotationBar, &RotationBar::rotationChanged, this, [this](epd_gfx_rotation_t rotation) {
+        m_previewer->setRotation(rotation);
     });
 
     // Toolbar
     m_toolPanel = new ToolPanel(m_previewer, rightPane);
-    m_toolPanel->setContentsMargins(0, 0, 0, 0);
     m_toolPanel->updateCanvas(m_previewer->getCanvas());
     rightLayout->addWidget(m_toolPanel);
-    connect(m_toolPanel, &ToolPanel::refreshRequested, this, [this]() {
-        m_previewer->refresh();
-    });
-    connect(m_toolPanel, &ToolPanel::drawRequested, this, [this](DrawFunc func) {
-        m_previewer->drawCanvas(func);
-    });
-    connect(m_toolPanel, &ToolPanel::previewRequested, this, [this](DrawFunc func) {
-        m_previewer->drawPreview(func);
-    });
+    connect(m_toolPanel, &ToolPanel::refreshRequested, m_previewer, &CanvasPreviewer::refresh);
+    connect(m_toolPanel, &ToolPanel::drawRequested, m_previewer, &CanvasPreviewer::drawCanvas);
+    connect(m_toolPanel, &ToolPanel::previewRequested, m_previewer, &CanvasPreviewer::drawPreview);
     connect(m_previewer, &CanvasPreviewer::rotationChanged, this, [this]() {
         m_toolPanel->updateCanvas(m_previewer->getCanvas());
     });
-
-    // Rotation comboBox
-    m_rotationCombo = new QComboBox(rightPane);
-    m_rotationCombo->addItem(QStringLiteral("0°"), QVariant::fromValue<int>(EPD_GFX_ROTATE_0));
-    m_rotationCombo->addItem(QStringLiteral("90°"), QVariant::fromValue<int>(EPD_GFX_ROTATE_90));
-    m_rotationCombo->addItem(QStringLiteral("180°"), QVariant::fromValue<int>(EPD_GFX_ROTATE_180));
-    m_rotationCombo->addItem(QStringLiteral("270°"), QVariant::fromValue<int>(EPD_GFX_ROTATE_270));
-    m_rotationCombo->setCurrentIndex(0);
-    connect(m_rotationCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-        this, [this, cfg]() {
-            auto rot = static_cast<epd_gfx_rotation_t>(m_rotationCombo->currentData().toInt());
-            m_previewer->setRotation(rot);
-        });
 
     // Draw button
     m_drawButton = new QPushButton(QStringLiteral("Draw!"), rightPane);
     connect(m_drawButton, &QPushButton::clicked, this, [this]() { drawDemo(); });
 
-    // Rotation setting pane
-    auto* rotationPane = new QWidget(rightPane);
-    auto* rotationLayout = new QHBoxLayout(rotationPane);
-    rotationLayout->setContentsMargins(0, 0, 0, 0);
-    rotationLayout->setSpacing(10);
-    rotationLayout->addWidget(new QLabel(QStringLiteral("Rotation: "), rightPane));
-    rotationLayout->addWidget(m_rotationCombo, 1);
-
     // Add widgets to right pane
-    rightLayout->addWidget(rotationPane);
     rightLayout->addWidget(m_drawButton);
     rightLayout->addStretch(1);
 
@@ -134,10 +111,6 @@ MainWindow::MainWindow(QWidget *parent)
     root->setStretch(2, 0);
 
     setCentralWidget(central);
-}
-
-MainWindow::~MainWindow()
-{
 }
 
 void MainWindow::drawDemo()

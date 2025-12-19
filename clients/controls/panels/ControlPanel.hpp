@@ -37,14 +37,14 @@ class ControlPanel
 
 public:
     explicit ControlPanel(const QString& title, QWidget* parent = nullptr);
-    virtual void updateDraw() = 0;
-    virtual void updatePreview() = 0;
+    virtual void updateDraw() const = 0;
+    virtual void updatePreview() const = 0;
     virtual void updateRange(epd_gfx_canvas_t canvas) = 0;
 
 signals:
-    void refreshRequested();
-    void drawRequested(const DrawFunc& drawFunc);
-    void previewRequested(const DrawFunc& drawFunc);
+    void refreshRequested() const;
+    void drawRequested(const DrawFunc& drawFunc) const;
+    void previewRequested(const DrawFunc& drawFunc) const;
 
 protected:
     virtual DrawFunc drawFunc() const = 0;

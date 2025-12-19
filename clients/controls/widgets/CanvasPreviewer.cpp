@@ -178,14 +178,14 @@ void CanvasPreviewer::setCursor(Cursor mode)
     update();
 }
 
-void CanvasPreviewer::drawCanvas(DrawFunc drawFunc)
+void CanvasPreviewer::drawCanvas(const DrawFunc& drawFunc)
 {
     drawFunc(m_canvas);
     rebuildImage(m_canvas);
     update();
 }
 
-void CanvasPreviewer::drawPreview(DrawFunc drawFunc)
+void CanvasPreviewer::drawPreview(const DrawFunc& drawFunc)
 {
     epd_gfx_canvas_t cloned = nullptr;
     epd_err_t status = epd_gfx_canvas_clone(m_canvas, &cloned);

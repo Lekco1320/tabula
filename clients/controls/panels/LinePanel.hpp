@@ -35,8 +35,8 @@ public:
     explicit LinePanel(const QString& title, Qt::Orientation orientation,
         QWidget* parent = nullptr);
 
-    void updateDraw() override;
-    void updatePreview() override;
+    void updateDraw() const override;
+    void updatePreview() const override;
     void updateRange(const epd_gfx_canvas_t canvas) override;
 
 private:
