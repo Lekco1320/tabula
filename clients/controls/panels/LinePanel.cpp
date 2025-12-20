@@ -1,7 +1,7 @@
 /**
  * @file LinePanel.cpp
  * @brief Panel to configure and draw a line.
- * 
+ *
  * @author Lukaß Zhang <lekco_1320@qq.com>
  * @date 2025-12-16
  * @license MIT
@@ -18,7 +18,6 @@
 #include "controls/Utils.hpp"
 #include "controls/panels/LinePanel.hpp"
 #include "controls/widgets/ColorButton.hpp"
-#include "controls/widgets/CanvasPreviewer.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 
@@ -29,11 +28,11 @@ LinePanel::LinePanel(const QString& title, Qt::Orientation orientation, QWidget*
     , m_y(new QSpinBox(this))
     , m_len(new QSpinBox(this))
     , m_colorBtn(new ColorButton(this))
+    , m_previewBtn(new QCheckBox(QStringLiteral("Preview"), this))
     , m_draw(new QPushButton(QStringLiteral("Draw"), this))
 {
-    auto* checkBtn = new QCheckBox(QStringLiteral("Preview"), this);
-    checkBtn->setStyleSheet("QCheckBox { spacing: 4px; }");
-    connect(checkBtn, &QCheckBox::checkStateChanged, [this](int checked) {
+    m_previewBtn->setStyleSheet("QCheckBox { spacing: 4px; }");
+    connect(m_previewBtn, &QCheckBox::checkStateChanged, [this](int checked) {
         m_enablePreview = (bool)checked;
         updatePreview();
     });
@@ -41,7 +40,7 @@ LinePanel::LinePanel(const QString& title, Qt::Orientation orientation, QWidget*
     m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("X:"), m_x), 0, 0);
     m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("Y:"), m_y), 0, 1);
     m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("L:"), m_len), 1, 0);
-    m_root->addWidget(MakeRow(this, 0, checkBtn, m_colorBtn), 1, 1);
+    m_root->addWidget(MakeRow(this, 0, m_previewBtn, m_colorBtn), 1, 1);
     m_root->addWidget(m_draw, 2, 1);
 
     connect(m_x, &QSpinBox::valueChanged, this, &LinePanel::updatePreview);
@@ -58,24 +57,8 @@ void LinePanel::updateRange(const epd_gfx_canvas_t canvas)
 
     m_x->setRange(1, width);
     m_y->setRange(1, height);
-    m_len->setRange(0, 5000);
+    m_len->setRange(0, 1000);
     m_len->setValue(100);
-}
-
-void LinePanel::updateDraw() const
-{
-    auto func = drawFunc();
-    emit drawRequested(func);
-}
-
-void LinePanel::updatePreview() const
-{
-    auto func = drawFunc();
-    if (m_enablePreview) {
-        emit previewRequested(func);
-    } else {
-        emit refreshRequested();
-    }
 }
 
 DrawFunc LinePanel::drawFunc() const

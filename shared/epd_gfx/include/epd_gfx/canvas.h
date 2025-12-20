@@ -106,6 +106,17 @@ uint16_t epd_gfx_canvas_get_logical_width(const epd_gfx_canvas_t canvas);
 uint16_t epd_gfx_canvas_get_logical_height(const epd_gfx_canvas_t canvas);
 
 /**
+ * @brief Get a pixel at logical coordinates.
+ *
+ * @param canvas Canvas handle.
+ * @param x Logical X coordinate.
+ * @param y Logical Y coordinate.
+ * @return Color of the pixel.
+ */
+epd_gfx_color_t epd_gfx_canvas_get_pixel(const epd_gfx_canvas_t canvas,
+    uint16_t x, uint16_t y);
+
+/**
  * @brief Clear the canvas to white.
  *
  * @param canvas Canvas handle.
@@ -126,8 +137,8 @@ epd_err_t epd_gfx_canvas_fill(epd_gfx_canvas_t canvas, epd_gfx_color_t color);
  * @brief Draw a pixel at logical coordinates.
  *
  * @param canvas Canvas handle.
- * @param x Logical X coordinate (1-based before mapping).
- * @param y Logical Y coordinate (1-based before mapping).
+ * @param x Logical X coordinate.
+ * @param y Logical Y coordinate.
  * @param color Pixel color.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */

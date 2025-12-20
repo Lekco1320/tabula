@@ -138,6 +138,15 @@ static EPD_INLINE void epd_gfx_planes_set_bytes(uint8_t* pwht, uint8_t* pred,
     memset(pred, rbyte, length);
 }
 
+static EPD_INLINE epd_gfx_color_t epd_gfx_planes_get_pixel(uint8_t pwht, uint8_t pred,
+    uint8_t idx)
+{
+    uint8_t digit = 7U - (idx & 7U);
+    uint8_t wbit  = epd_gfx_bit_at(pwht, digit);
+    uint8_t rbit  = epd_gfx_bit_at(pred, digit);
+    return epd_gfx_bit_to_color(wbit, rbit);
+}
+
 static EPD_INLINE void epd_gfx_native_set_pixel(uint8_t* pnative, uint8_t idx,
     epd_gfx_color_t color)
 {
@@ -153,6 +162,12 @@ static EPD_INLINE void epd_gfx_native_set_bytes(uint8_t* pnative, uint32_t lengt
 {
     uint8_t byte = epd_gfx_pack_colors(color, color);
     memset(pnative, byte, length);
+}
+
+static EPD_INLINE epd_gfx_color_t epd_gfx_native_get_pixel(uint8_t pnative, uint8_t idx)
+{
+    uint8_t digit = 1U - (idx & 1U);
+    return epd_gfx_normalize_color(epd_gfx_nibble_at(pnative, digit));
 }
 
 /**

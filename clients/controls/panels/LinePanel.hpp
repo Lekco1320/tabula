@@ -35,8 +35,6 @@ public:
     explicit LinePanel(const QString& title, Qt::Orientation orientation,
         QWidget* parent = nullptr);
 
-    void updateDraw() const override;
-    void updatePreview() const override;
     void updateRange(const epd_gfx_canvas_t canvas) override;
 
 private:
@@ -47,6 +45,7 @@ private:
     QSpinBox*       m_y;
     QSpinBox*       m_len;
     ColorButton*    m_colorBtn;
+    QCheckBox*      m_previewBtn;
     QPushButton*    m_draw;
 };
 

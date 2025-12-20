@@ -245,6 +245,29 @@ uint16_t epd_gfx_canvas_get_logical_height(const epd_gfx_canvas_t canvas)
     return (!canvas ? 0 : canvas->lheight_fn(canvas));
 }
 
+epd_gfx_color_t epd_gfx_canvas_get_pixel(const epd_gfx_canvas_t canvas,
+    uint16_t x, uint16_t y)
+{
+    if (!canvas) {
+        return EPD_GFX_WHITE;
+    }
+
+    canvas->map_fn(canvas, &x, &y);
+    if (!epd_gfx_check_bound_mapped(canvas, x, y)) {
+        return EPD_GFX_WHITE;
+    }
+
+    if (epd_gfx_canvas_in_planes(canvas)) {
+        uint32_t index = (uint32_t)canvas->buf_stride * y + x / 8U;
+        uint8_t  digit = x % 8U;
+        return epd_gfx_planes_get_pixel(canvas->buf_wht[index], canvas->buf_red[index], digit);
+    } else {
+        uint32_t index = (uint32_t)canvas->buf_stride * y + x / 2U;
+        uint8_t  digit = x % 2U;
+        return epd_gfx_native_get_pixel(canvas->buf_native[index], digit);
+    }
+}
+
 epd_err_t epd_gfx_canvas_clear(epd_gfx_canvas_t canvas)
 {
     return epd_gfx_canvas_fill(canvas, EPD_GFX_WHITE);
@@ -395,12 +418,14 @@ epd_err_t epd_gfx_canvas_draw_hline(epd_gfx_canvas_t canvas,
         return epd_gfx_canvas_draw_hline_impl(canvas, x, y, w, color);    
 
     case EPD_GFX_ROTATE_90:
-        y = epd_sat_sub_uint16(y, w - 1);
-        return epd_gfx_canvas_draw_vline_impl(canvas, x, y, w, color);
+        uint16_t y0 = epd_sat_sub_uint16(y, w - 1);
+        uint16_t hh = y - y0 + 1;
+        return epd_gfx_canvas_draw_vline_impl(canvas, x, y0, hh, color);
 
     case EPD_GFX_ROTATE_180:
-        x = epd_sat_sub_uint16(x, w - 1);
-        return epd_gfx_canvas_draw_hline_impl(canvas, x, y, w, color);
+        uint16_t x0 = epd_sat_sub_uint16(x, w - 1);
+        uint16_t ww = x - x0 + 1;
+        return epd_gfx_canvas_draw_hline_impl(canvas, x0, y, ww, color);
 
     case EPD_GFX_ROTATE_270:
         return epd_gfx_canvas_draw_vline_impl(canvas, x, y, w, color);
@@ -438,12 +463,14 @@ epd_err_t epd_gfx_canvas_draw_vline(epd_gfx_canvas_t canvas,
         return epd_gfx_canvas_draw_hline_impl(canvas, x, y, h, color);
 
     case EPD_GFX_ROTATE_180:
-        y = epd_sat_sub_uint16(y, h - 1);
-        return epd_gfx_canvas_draw_vline_impl(canvas, x, y, h, color);
+        uint16_t y0 = epd_sat_sub_uint16(y, h - 1);
+        uint16_t hh = y - y0 + 1;
+        return epd_gfx_canvas_draw_vline_impl(canvas, x, y0, hh, color);
 
     case EPD_GFX_ROTATE_270:
-        x = epd_sat_sub_uint16(x, h - 1);
-        return epd_gfx_canvas_draw_hline_impl(canvas, x, y, h, color);
+        uint16_t x0 = epd_sat_sub_uint16(x, h - 1);
+        uint16_t ww = x - x0 + 1;
+        return epd_gfx_canvas_draw_hline_impl(canvas, x0, y, ww, color);
 
     default:
         return EPD_ERR_INVALID_ARG;

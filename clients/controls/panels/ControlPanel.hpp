@@ -37,8 +37,8 @@ class ControlPanel
 
 public:
     explicit ControlPanel(const QString& title, QWidget* parent = nullptr);
-    virtual void updateDraw() const = 0;
-    virtual void updatePreview() const = 0;
+    virtual void updateDraw() const;
+    virtual void updatePreview() const;
     virtual void updateRange(epd_gfx_canvas_t canvas) = 0;
 
 signals:
