@@ -70,11 +70,11 @@ DrawFunc RectPanel::drawFunc() const
     const auto color = m_colorBtn->currentColor();
     if (m_isDraw) {
         return [x, y, width, height, color](epd_gfx_canvas_t c) {
-            epd_gfx_canvas_draw_rect(c, x, y, width, height, color);
+            return epd_gfx_canvas_draw_rect(c, x, y, width, height, color);
         };
     }
     return [x, y, width, height, color](epd_gfx_canvas_t c) {
-        epd_gfx_canvas_fill_rect(c, x, y, width, height, color);
+        return epd_gfx_canvas_fill_rect(c, x, y, width, height, color);
     };
 }
 

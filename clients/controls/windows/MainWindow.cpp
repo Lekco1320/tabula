@@ -17,6 +17,7 @@
 #include <QVariant>
 #include <QFrame>
 #include <QScreen>
+#include <QMessageBox>
 
 #include "controls/panels/ToolPanel.hpp"
 #include "controls/bars/CursorBar.hpp"
@@ -82,6 +83,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_toolPanel, &ToolPanel::previewRequested, m_previewer, &CanvasPreviewer::drawPreview);
     connect(m_previewer, &CanvasPreviewer::rotationChanged, this, [this]() {
         m_toolPanel->updateCanvas(m_previewer->getCanvas());
+    });
+    connect(m_previewer, &CanvasPreviewer::errorOccurred, this, [this](const QString& message) {
+        QMessageBox::critical(this, tr("Error"), message);
     });
 
     // Draw button

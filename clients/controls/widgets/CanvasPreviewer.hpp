@@ -51,6 +51,7 @@ public:
 
 signals:
     void rotationChanged(epd_gfx_rotation_t rotation);
+    void errorOccurred(const QString& message);
 
 protected:
     void paintEvent(QPaintEvent* event) override;

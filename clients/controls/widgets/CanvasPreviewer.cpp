@@ -17,6 +17,7 @@
 #include <QFontMetrics>
 #include <QTransform>
 #include <QEnterEvent>
+#include <QMessageBox>
 #include <epd_core/common.h>
 #include <epd_gfx/codec.h>
 
@@ -118,11 +119,7 @@ CanvasPreviewer::CanvasPreviewer(epd_gfx_canvas_config_t config, QWidget* parent
     , m_hasMouse(false)
     , m_lastMousePos(QPointF())
 {
-    epd_err_t status = epd_gfx_canvas_create(&config, &m_canvas);
-    if (status != EPD_OK) {
-        throw std::runtime_error("CanvasPreviewer initialization failed");
-    }
-
+    epd_gfx_canvas_create(&config, &m_canvas);
     epd_gfx_canvas_fill(m_canvas, EPD_GFX_WHITE);
     m_baseImage = QImage(m_config.width, m_config.height, QImage::Format_RGB888);
     m_baseImage.fill(Qt::white);
@@ -149,14 +146,13 @@ void CanvasPreviewer::setRotation(epd_gfx_rotation_t rotation)
 
     epd_err_t status = epd_gfx_canvas_set_rotation(m_canvas, rotation);
     if (status != EPD_OK) {
-        throw std::runtime_error(QStringLiteral("CanvasPreviewer set rotation failed: %1")
-            .arg(epd_err_to_str(status))
-            .toStdString());
+        emit errorOccurred(QStringLiteral("CanvasPreviewer set rotation failed: %1")
+            .arg(epd_err_to_str(status)));
+        return;
     }
 
     m_config.rotation = rotation;
     emit rotationChanged(rotation);
-
     startRotationAnimation(rotation);
 }
 
@@ -180,7 +176,12 @@ void CanvasPreviewer::setCursor(Cursor mode)
 
 void CanvasPreviewer::drawCanvas(const DrawFunc& drawFunc)
 {
-    drawFunc(m_canvas);
+    epd_err_t status = drawFunc(m_canvas);
+    if (status != EPD_OK) {
+        emit errorOccurred(epd_err_to_str(status));
+        return;
+    }
+
     rebuildImage(m_canvas);
     update();
 }
@@ -190,10 +191,16 @@ void CanvasPreviewer::drawPreview(const DrawFunc& drawFunc)
     epd_gfx_canvas_t cloned = nullptr;
     epd_err_t status = epd_gfx_canvas_clone(m_canvas, &cloned);
     if (status != EPD_OK) {
-        throw std::runtime_error("Pointer to preview canvas is null");
+        emit errorOccurred(QStringLiteral("Pointer to preview canvas is null"));
     }
 
-    drawFunc(cloned);
+    status = drawFunc(cloned);
+    if (status != EPD_OK) {
+        epd_gfx_canvas_destroy(cloned);
+        emit errorOccurred(epd_err_to_str(status));
+        return;
+    }
+
     rebuildImage(cloned);
     epd_gfx_canvas_destroy(cloned);
     update();
@@ -441,9 +448,8 @@ void CanvasPreviewer::rebuildImage(epd_gfx_canvas_t canvas)
 
     epd_err_t status = epd_gfx_canvas_flush(canvas, &sink);
     if (status != EPD_OK) {
-        throw std::runtime_error(QStringLiteral("CanvasPreviewer rebuild image failed: %1")
-            .arg(epd_err_to_str(status))
-            .toStdString());
+        emit errorOccurred(QStringLiteral("CanvasPreviewer rebuild image failed: %1")
+            .arg(epd_err_to_str(status)));
     }
 }
 

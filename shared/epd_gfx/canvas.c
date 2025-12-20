@@ -488,12 +488,31 @@ epd_err_t epd_gfx_canvas_draw_rect(epd_gfx_canvas_t canvas,
     }
 
     epd_err_t ret = EPD_OK;
-    uint16_t  x1  = epd_sat_add_uint16(x, w - 1);
-    uint16_t  y1  = epd_sat_add_uint16(y, h - 1);
+
+    // Draw Top Edge
     EPD_CHECK_RET(epd_gfx_canvas_draw_hline(canvas, x, y, w, color));
-    EPD_CHECK_RET(epd_gfx_canvas_draw_vline(canvas, x, y, h, color));
-    EPD_CHECK_RET(epd_gfx_canvas_draw_hline(canvas, x, y1, w, color));
-    EPD_CHECK_RET(epd_gfx_canvas_draw_vline(canvas, x1, y, h, color));
+
+    // Draw Bottom Edge
+    uint16_t lw = epd_gfx_canvas_get_logical_width(canvas);
+    uint16_t lh = epd_gfx_canvas_get_logical_height(canvas);
+    uint16_t x1 = epd_sat_add_uint16(x, w - 1);
+    uint16_t y1 = epd_sat_add_uint16(y, h - 1);
+    if (h > 1 && y1 <= lh) {
+        EPD_CHECK_RET(epd_gfx_canvas_draw_hline(canvas, x, y1, w, color));
+    }
+
+    // Draw Side Edges (excluding corners)
+    if (h > 2) {
+        uint16_t y_inner = epd_sat_add_uint16(y, 1);
+        uint16_t h_inner = h - 2;
+        if (y_inner <= lh) {
+            EPD_CHECK_RET(epd_gfx_canvas_draw_vline(canvas, x, y_inner, h_inner, color));
+            if (w > 1 && x1 <= lw) {
+                EPD_CHECK_RET(epd_gfx_canvas_draw_vline(canvas, x1, y_inner, h_inner, color));
+            }
+        }
+    }
+
     return EPD_OK;
 }
 
@@ -507,57 +526,60 @@ epd_err_t epd_gfx_canvas_fill_rect(epd_gfx_canvas_t canvas,
         return EPD_OK;
     }
 
-    canvas->map_fn(canvas, &x, &y);
-    if (!epd_gfx_check_bound_mapped(canvas, x, y)) {
-        return EPD_ERR_INVALID_ARG;
-    }
+    uint16_t px = x;
+    uint16_t py = y;
+    canvas->map_fn(canvas, &px, &py);
     
-    uint16_t x0;
-    uint16_t y0;
-    uint16_t y1;
-    uint16_t width;
+    uint16_t x0, y0, x1, y1;
     epd_gfx_rotation_t rotation = epd_gfx_canvas_get_rotation(canvas);
     switch (rotation)
     {
     case EPD_GFX_ROTATE_0:
-        x0    = x;
-        y0    = y;
-        y1    = epd_sat_add_uint16(y, h - 1);
-        width = w;
+        x0 = px;
+        y0 = py;
+        x1 = epd_sat_add_uint16(px, w - 1);
+        y1 = epd_sat_add_uint16(py, h - 1);
         break;
     
     case EPD_GFX_ROTATE_90:
-        x0    = x;
-        y0    = epd_sat_sub_uint16(y, w - 1);
-        y1    = y;
-        width = h;
+        x0 = px;
+        y0 = epd_sat_sub_uint16(py, w - 1);
+        x1 = epd_sat_add_uint16(px, h - 1);
+        y1 = py;
         break;
 
     case EPD_GFX_ROTATE_180:
-        x0    = epd_sat_sub_uint16(x, w - 1);
-        y0    = epd_sat_sub_uint16(y, h - 1);
-        y1    = y;
-        width = w;
+        x0 = epd_sat_sub_uint16(px, w - 1);
+        y0 = epd_sat_sub_uint16(py, h - 1);
+        x1 = px;
+        y1 = py;
         break;
 
     case EPD_GFX_ROTATE_270:
-        x0    = epd_sat_sub_uint16(x, h - 1);
-        y0    = y;
-        y1    = epd_sat_add_uint16(y, w - 1);
-        width = h;
+        x0 = epd_sat_sub_uint16(px, h - 1);
+        y0 = py;
+        x1 = px;
+        y1 = epd_sat_add_uint16(py, w - 1);
         break;
 
     default:
         return EPD_ERR_INVALID_ARG;
     }
 
-    y1 = EPD_MIN(y1, canvas->height - 1);
-    x0 = EPD_MIN(x0, canvas->width  - 1);
-    y0 = EPD_MIN(y0, canvas->height - 1);
+    if (x0 >= canvas->width || y0 >= canvas->height) {
+        return EPD_OK;
+    }
 
+    x1 = EPD_MIN(x1, canvas->width - 1);
+    y1 = EPD_MIN(y1, canvas->height - 1);
+    if (x0 > x1 || y0 > y1) {
+        return EPD_OK;
+    }
+
+    uint16_t width = x1 - x0 + 1;
     epd_err_t ret = EPD_OK;
-    for (uint16_t y = y0; y <= y1; ++y) {
-        EPD_CHECK_RET(epd_gfx_canvas_draw_hline_impl(canvas, x0, y, width, color));
+    for (uint16_t yy = y0; yy <= y1; ++yy) {
+        EPD_CHECK_RET(epd_gfx_canvas_draw_hline_impl(canvas, x0, yy, width, color));
     }
     return EPD_OK;
 }

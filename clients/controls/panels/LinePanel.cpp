@@ -69,11 +69,11 @@ DrawFunc LinePanel::drawFunc() const
     const auto color = m_colorBtn->currentColor();
     if (m_orientation == Qt::Horizontal) {
         return [x, y, len, color](epd_gfx_canvas_t c) {
-            epd_gfx_canvas_draw_hline(c, x, y, len, color);
+            return epd_gfx_canvas_draw_hline(c, x, y, len, color);
         };
     }
     return [x, y, len, color](epd_gfx_canvas_t c) {
-        epd_gfx_canvas_draw_vline(c, x, y, len, color);
+        return epd_gfx_canvas_draw_vline(c, x, y, len, color);
     };
 }
 

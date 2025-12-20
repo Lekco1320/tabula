@@ -24,7 +24,7 @@
 
 LEKCO_BEGIN_NAMESPACE
 
-using DrawFunc = std::function<void(epd_gfx_canvas_t)>;
+using DrawFunc = std::function<epd_err_t(epd_gfx_canvas_t)>;
 
 static inline QColor EpdColorToQColor(epd_gfx_color_t color)
 {
