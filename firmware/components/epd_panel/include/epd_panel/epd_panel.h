@@ -123,11 +123,9 @@ epd_err_t epd_panel_show_planes(epd_panel_t panel, const uint8_t* pwht,
  * @brief Build a frame sink bound to the panel for `epd_gfx_canvas_flush`.
  *
  * @param panel The handle of the e-paper panel.
- * @param sink Output sink to fill; must not be null.
- * @note Ownership of the allocated sink is transferred to the caller.
- * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
+ * @return View sink for panel.
  */
-epd_err_t epd_panel_make_sink(epd_panel_t panel, epd_gfx_frame_view_sink_t** sink);
+epd_gfx_frame_view_sink_t epd_panel_make_sink(epd_panel_t panel);
 
 #ifdef __cplusplus
 }

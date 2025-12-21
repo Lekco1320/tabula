@@ -15,6 +15,7 @@
 #include "esp_log.h"
 #include "led_strip.h"
 
+#include <epd_gfx/canvas.h>
 #include <epd_panel/epd_panel.h>
 
 // GPIO assignment
@@ -129,28 +130,60 @@ void app_main(void)
     }
 
     ret = epd_panel_init(panel);
-    if (ret != ESP_OK) {
+    if (ret != EPD_OK) {
         ESP_LOGE("epd_test", "EPD panel initialization failed! err=%s", esp_err_to_name(ret));
         return;
     } else {
         ESP_LOGI("epd_test", "EPD panel initialized");
     }
 
-    ret = epd_panel_fill(panel, EPD_GFX_WHITE);
-    if (ret != ESP_OK) {
-        ESP_LOGE("epd_test", "EPD panel clear failed! err=%s", esp_err_to_name(ret));
+    epd_gfx_canvas_config_t canvas_config = {
+        .width    = 640,
+        .height   = 384,
+        .format   = EPD_GFX_FORMAT_NATIVE,
+        .rotation = EPD_GFX_ROTATE_0,
+    };
+    epd_gfx_canvas_t canvas = NULL;
+    ret = epd_gfx_canvas_create(&canvas_config, &canvas);
+    if (ret != EPD_OK) {
+        ESP_LOGE("epd_test", "EPD canvas create failed! err=%s", esp_err_to_name(ret));
         return;
     } else {
-        ESP_LOGI("epd_test", "EPD panel cleared!");
+        ESP_LOGI("epd_test", "EPD canvas created!");
+    }
+
+    epd_gfx_frame_view_sink_t sink = epd_panel_make_sink(panel);
+    if (ret != EPD_OK) {
+        ESP_LOGE("epd_test", "EPD panel sink create failed! err=%s", esp_err_to_name(ret));
+        return;
+    } else {
+        ESP_LOGI("epd_test", "EPD panel sink created!");
+    }
+
+    epd_gfx_canvas_fill(canvas, EPD_GFX_WHITE);
+    epd_gfx_canvas_fill_rect(canvas, 150, 150, 200, 200, EPD_GFX_RED);
+    epd_gfx_canvas_draw_rect(canvas, 150, 150, 200, 200, EPD_GFX_BLACK);
+    epd_gfx_canvas_draw_hline(canvas, 50, 50, 400, EPD_GFX_BLACK);
+    epd_gfx_canvas_draw_vline(canvas, 600, 10, 350, EPD_GFX_RED);
+    epd_gfx_canvas_fill_rect(canvas, 600, 350, 50, 50, EPD_GFX_BLACK);
+    epd_gfx_canvas_draw_pixel(canvas, 250, 250, EPD_GFX_WHITE);
+
+    ret = epd_gfx_canvas_flush(canvas, &sink);
+    if (ret != EPD_OK) {
+        ESP_LOGE("epd_test", "EPD canvas flush failed! err=%s", esp_err_to_name(ret));
+        return;
+    } else {
+        ESP_LOGI("epd_test", "EPD canvas flush flushed!");
     }
 
     ret = epd_panel_sleep(panel);
-    if (ret != ESP_OK) {
+    if (ret != EPD_OK) {
         ESP_LOGE("epd_test", "EPD panel sleeping failed! err=%s", esp_err_to_name(ret));
         return;
     } else {
         ESP_LOGI("epd_test", "EPD panel slept!");
     }
 
+    (void)epd_gfx_canvas_destroy(canvas);
     (void)epd_panel_destroy(panel);
 }

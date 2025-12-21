@@ -462,16 +462,11 @@ static epd_err_t epd_panel_flush_impl(void* context, const epd_gfx_frame_view_t*
     }
 }
 
-epd_err_t epd_panel_make_sink(epd_panel_t panel, epd_gfx_frame_view_sink_t** sink)
+epd_gfx_frame_view_sink_t epd_panel_make_sink(epd_panel_t panel)
 {
-    if (!panel || !sink) {
-        return EPD_ERR_INVALID_ARG;
-    }
-
-    epd_gfx_frame_view_sink_t* new_sink = (epd_gfx_frame_view_sink_t*)calloc(1, sizeof(epd_gfx_frame_view_sink_t));
-    new_sink->context    = panel;
-    new_sink->flush_impl = epd_panel_flush_impl;
-
-    *sink = new_sink;
-    return EPD_OK;
+    epd_gfx_frame_view_sink_t new_sink = {
+        .context    = panel,
+        .flush_impl = epd_panel_flush_impl,
+    };
+    return new_sink;
 }
