@@ -15,7 +15,7 @@
 #include <QWidget>
 #include <QVector>
 
-#include "common/common.h"
+#include "common/Common.h"
 #include "controls/panels/ControlPanel.hpp"
 
 LEKCO_BEGIN_NAMESPACE

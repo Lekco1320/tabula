@@ -12,49 +12,26 @@
 #ifndef _UTILS_HPP_
 #define _UTILS_HPP_
 
+#include <functional>
+#include <type_traits>
 #include <QLabel>
 #include <QColor>
 #include <QWidget>
 #include <QHBoxLayout>
-#include <type_traits>
 #include <epd_gfx/common.h>
 #include <epd_gfx/canvas.h>
 
-#include "common/common.h"
+#include "common/Common.h"
 
 LEKCO_BEGIN_NAMESPACE
 
 using DrawFunc = std::function<epd_err_t(epd_gfx_canvas_t)>;
 
-static inline QColor EpdColorToQColor(epd_gfx_color_t color)
-{
-    static QColor white = QRgb{ 0xFFFFFF };
-    static QColor black = QRgb{ 0x000000 };
-    static QColor red   = QRgb{ 0xFF0000 };
+QColor EpdColorToQColor(epd_gfx_color_t color);
 
-    switch (color)
-    {
-    case EPD_GFX_BLACK:
-        return black;
+epd_gfx_color_t QColorToEpdColor(QColor color);
 
-    case EPD_GFX_RED:
-        return red;
-
-    default:
-        return white;
-    }
-}
-
-static inline epd_gfx_color_t QColorToEpdColor(QColor color)
-{
-    if (color == Qt::red) {
-        return EPD_GFX_RED;
-    } else if (color == Qt::black) {
-        return EPD_GFX_BLACK;
-    } else {
-        return EPD_GFX_WHITE;
-    }
-}
+void SetWindowCenterScreen(QWidget* window);
 
 template <typename... Widgets>
 std::enable_if_t<(std::is_base_of_v<QWidget, std::remove_pointer_t<Widgets>> && ...), QWidget*>

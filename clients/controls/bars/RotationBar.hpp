@@ -14,7 +14,7 @@
 
 #include <epd_gfx/common.h>
 
-#include "common/common.h"
+#include "common/Common.h"
 #include "controls/bars/IconButtonBar.hpp"
 
 LEKCO_BEGIN_NAMESPACE

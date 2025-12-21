@@ -19,7 +19,7 @@
 #include <QColor>
 #include <epd_gfx/canvas.h>
 
-#include "common/common.h"
+#include "common/Common.h"
 #include "controls/Utils.hpp"
 
 class QGridLayout;
@@ -39,7 +39,7 @@ public:
     explicit ControlPanel(const QString& title, QWidget* parent = nullptr);
     virtual void updateDraw() const;
     virtual void updatePreview() const;
-    virtual void updateRange(epd_gfx_canvas_t canvas) = 0;
+    virtual void updateRange(epd_gfx_canvas_t canvas);
 
 signals:
     void refreshRequested() const;

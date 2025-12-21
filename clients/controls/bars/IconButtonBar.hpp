@@ -15,7 +15,7 @@
 #include <QString>
 #include <QGroupBox>
 
-#include "common/common.h"
+#include "common/Common.h"
 
 class QButtonGroup;
 class QToolButton;
@@ -30,6 +30,8 @@ class IconButtonBar
 
 public:
     explicit IconButtonBar(const QString& title, bool canCancel, QWidget* parent = nullptr);
+
+    void setCurrentTool(int id);
 
 signals:
     void selectionChanged(int id);

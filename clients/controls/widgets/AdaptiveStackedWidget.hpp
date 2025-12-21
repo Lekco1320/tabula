@@ -14,7 +14,7 @@
 
 #include <QStackedWidget>
 
-#include "common/common.h"
+#include "common/Common.h"
 
 LEKCO_BEGIN_NAMESPACE
 

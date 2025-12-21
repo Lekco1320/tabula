@@ -27,10 +27,11 @@
 
 LEKCO_BEGIN_NAMESPACE
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(const epd_gfx_canvas_config_t& config, QWidget *parent)
     : QMainWindow(parent)
+    , m_canvasConfig(config)
 {
-    setMinimumSize(QSize { 1050, 820 });
+    setMinimumSize(QSize { 1050, 750 });
 
     auto* central = new QWidget(this);
     auto* root    = new QHBoxLayout(central);
@@ -44,13 +45,7 @@ MainWindow::MainWindow(QWidget *parent)
     leftLayout->setContentsMargins(0, 0, 0, 0);
     leftLayout->setSpacing(0);
 
-    epd_gfx_canvas_config_t cfg {
-        .width    = 640,
-        .height   = 384,
-        .format   = EPD_GFX_FORMAT_NATIVE,
-        .rotation = EPD_GFX_ROTATE_0,
-    };
-    m_previewer = new CanvasPreviewer(cfg, central);
+    m_previewer = new CanvasPreviewer(m_canvasConfig, central);
     m_previewer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     leftLayout->addWidget(m_previewer, 1);
 
@@ -69,6 +64,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Rotation comboBox
     m_rotationBar = new RotationBar(rightPane);
+    m_rotationBar->setCurrentTool(m_canvasConfig.rotation);
     rightLayout->addWidget(m_rotationBar);
     connect(m_rotationBar, &RotationBar::rotationChanged, this, [this](epd_gfx_rotation_t rotation) {
         m_previewer->setRotation(rotation);
@@ -78,6 +74,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_toolPanel = new ToolPanel(m_previewer, rightPane);
     m_toolPanel->updateCanvas(m_previewer->getCanvas());
     rightLayout->addWidget(m_toolPanel);
+    rightLayout->addStretch(1);
     connect(m_toolPanel, &ToolPanel::refreshRequested, m_previewer, &CanvasPreviewer::refresh);
     connect(m_toolPanel, &ToolPanel::drawRequested, m_previewer, &CanvasPreviewer::drawCanvas);
     connect(m_toolPanel, &ToolPanel::previewRequested, m_previewer, &CanvasPreviewer::drawPreview);
@@ -88,14 +85,6 @@ MainWindow::MainWindow(QWidget *parent)
         QMessageBox::critical(this, tr("Error"), message);
     });
 
-    // Draw button
-    m_drawButton = new QPushButton(QStringLiteral("Draw!"), rightPane);
-    connect(m_drawButton, &QPushButton::clicked, this, [this]() { drawDemo(); });
-
-    // Add widgets to right pane
-    rightLayout->addWidget(m_drawButton);
-    rightLayout->addStretch(1);
-
     // Middile divider
     auto* divider = new QFrame(central);
     divider->setFrameShape(QFrame::VLine);
@@ -103,7 +92,7 @@ MainWindow::MainWindow(QWidget *parent)
     divider->setLineWidth(1);
     divider->setMidLineWidth(0);
     divider->setFixedWidth(1);
-    divider->setStyleSheet("color: #b0b0b0;");
+    divider->setStyleSheet(QStringLiteral("color: #b0b0b0;"));
     divider->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
     // Add all widgets to root layout
@@ -115,17 +104,6 @@ MainWindow::MainWindow(QWidget *parent)
     root->setStretch(2, 0);
 
     setCentralWidget(central);
-}
-
-void MainWindow::drawDemo()
-{
-    auto canvas = m_previewer->getCanvas();
-    epd_gfx_canvas_fill(canvas, EPD_GFX_WHITE);
-    epd_gfx_canvas_draw_hline(canvas, 200, 150, 200, EPD_GFX_BLACK);
-    epd_gfx_canvas_draw_vline(canvas, 100, 50, 200, EPD_GFX_RED);
-    epd_gfx_canvas_draw_rect(canvas, 295, 50, 100, 150, EPD_GFX_BLACK);
-    epd_gfx_canvas_fill_rect(canvas, 296, 51, 98, 148, EPD_GFX_RED);
-    m_previewer->refresh();
 }
 
 LEKCO_END_NAMESPACE

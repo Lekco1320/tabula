@@ -41,4 +41,8 @@ void ControlPanel::updatePreview() const
     }
 }
 
+void ControlPanel::updateRange(epd_gfx_canvas_t canvas)
+{
+}
+
 LEKCO_END_NAMESPACE

@@ -74,4 +74,11 @@ QToolButton* IconButtonBar::appendButton(int id, const QIcon& icon, const QStrin
     return btn;
 }
 
+void IconButtonBar::setCurrentTool(int id)
+{
+    if (auto* btn = m_btnGroup->button(id)) {
+        btn->setChecked(true);
+    }
+}
+
 LEKCO_END_NAMESPACE

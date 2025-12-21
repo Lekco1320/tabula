@@ -1,16 +1,16 @@
 /**
- * @file RectPanel.hpp
- * @brief Panel to draw or fill a rectangle.
+ * @file LinePanel.hpp
+ * @brief Panel to configure and draw a pixel.
  * 
  * @author Lukaß Zhang <lekco_1320@qq.com>
- * @date 2025-12-19
+ * @date 2025-12-21
  * @license MIT
  */
 
 #pragma once
 
-#ifndef _RECTPANEL_HPP_
-#define _RECTPANEL_HPP_
+#ifndef _PIXELPANEL_HPP_
+#define _PIXELPANEL_HPP_
 
 #include "controls/panels/ControlPanel.hpp"
 
@@ -24,24 +24,21 @@ LEKCO_BEGIN_NAMESPACE
 
 class ColorButton;
 
-class RectPanel
+class PixelPanel
     : public ControlPanel
 {
     Q_OBJECT
 
 public:
-    explicit RectPanel(const QString& title, bool isDraw, QWidget* parent = nullptr);
+    explicit PixelPanel(const QString& title, QWidget* parent = nullptr);
 
     void updateRange(const epd_gfx_canvas_t canvas) override;
 
 private:
     DrawFunc drawFunc() const override;
 
-    bool         m_isDraw;
     QSpinBox*    m_x;
     QSpinBox*    m_y;
-    QSpinBox*    m_width;
-    QSpinBox*    m_height;
     QCheckBox*   m_previewBtn;
     ColorButton* m_colorBtn;
     QPushButton* m_draw;
@@ -49,4 +46,4 @@ private:
 
 LEKCO_END_NAMESPACE
 
-#endif // !_RECTPANEL_HPP_
+#endif // !_PIXELPANEL_HPP_

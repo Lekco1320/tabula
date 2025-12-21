@@ -12,7 +12,7 @@
 #ifndef _CURSORBAR_HPP_
 #define _CURSORBAR_HPP_
 
-#include "common/common.h"
+#include "common/Common.h"
 #include "controls/bars/IconButtonBar.hpp"
 #include "controls/widgets/CanvasPreviewer.hpp"
 

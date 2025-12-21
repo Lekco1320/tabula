@@ -26,9 +26,9 @@ ColorButton::ColorButton(QWidget* parent)
     setMinimumSize(24, 24);
     setMaximumSize(24, 24);
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    setStyleSheet(
+    setStyleSheet(QStringLiteral(
         "QToolButton { border: 1px solid #a0a0a0; border-radius: 3px; padding: 0; }"
-        "QToolButton:pressed { border: 1px solid #707070; }");
+        "QToolButton:pressed { border: 1px solid #707070; }"));
 
     updateIcon();
     connect(this, &QToolButton::clicked, this, &ColorButton::nextColor);

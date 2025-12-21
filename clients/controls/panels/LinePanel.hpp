@@ -16,7 +16,7 @@
 #include <QWidget>
 #include <QColor>
 
-#include "common/common.h"
+#include "common/Common.h"
 #include "controls/panels/ControlPanel.hpp"
 
 class QSpinBox;
@@ -44,8 +44,8 @@ private:
     QSpinBox*       m_x;
     QSpinBox*       m_y;
     QSpinBox*       m_len;
-    ColorButton*    m_colorBtn;
     QCheckBox*      m_previewBtn;
+    ColorButton*    m_colorBtn;
     QPushButton*    m_draw;
 };
 

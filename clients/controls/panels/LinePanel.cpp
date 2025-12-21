@@ -27,11 +27,11 @@ LinePanel::LinePanel(const QString& title, Qt::Orientation orientation, QWidget*
     , m_x(new QSpinBox(this))
     , m_y(new QSpinBox(this))
     , m_len(new QSpinBox(this))
-    , m_colorBtn(new ColorButton(this))
     , m_previewBtn(new QCheckBox(QStringLiteral("Preview"), this))
+    , m_colorBtn(new ColorButton(this))
     , m_draw(new QPushButton(QStringLiteral("Draw"), this))
 {
-    m_previewBtn->setStyleSheet("QCheckBox { spacing: 4px; }");
+    m_previewBtn->setStyleSheet(QStringLiteral("QCheckBox { spacing: 4px; }"));
     connect(m_previewBtn, &QCheckBox::checkStateChanged, [this](int checked) {
         m_enablePreview = (bool)checked;
         updatePreview();

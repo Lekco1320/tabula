@@ -13,10 +13,9 @@
 #define _MAINWINDOW_H_
 
 #include <QMainWindow>
-#include <QComboBox>
-#include <QPushButton>
+#include <epd_gfx/canvas.h>
 
-#include "common/common.h"
+#include "common/Common.h"
 #include "controls/widgets/CanvasPreviewer.hpp"
 
 LEKCO_BEGIN_NAMESPACE
@@ -32,17 +31,16 @@ class MainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget* parent = nullptr);
+    explicit MainWindow(const epd_gfx_canvas_config_t& config, QWidget* parent = nullptr);
 
 private:
-    void drawDemo();
+    epd_gfx_canvas_config_t m_canvasConfig;
 
     CursorBar*             m_cursorBar     = nullptr;
     ToolPanel*             m_toolPanel     = nullptr;
     CanvasPreviewer*       m_previewer     = nullptr;
     AdaptiveStackedWidget* m_stackedWidget = nullptr;
     RotationBar*           m_rotationBar   = nullptr;
-    QPushButton*           m_drawButton    = nullptr;
 };
 
 LEKCO_END_NAMESPACE

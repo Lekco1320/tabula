@@ -17,7 +17,7 @@
 #include <QVector>
 #include <epd_gfx/common.h>
 
-#include "common/common.h"
+#include "common/Common.h"
 
 LEKCO_BEGIN_NAMESPACE
 

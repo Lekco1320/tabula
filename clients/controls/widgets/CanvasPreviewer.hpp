@@ -20,7 +20,7 @@
 #include <QPoint>
 #include <epd_gfx/canvas.h>
 
-#include "common/common.h"
+#include "common/Common.h"
 #include "controls/Utils.hpp"
 
 class QMouseEvent;

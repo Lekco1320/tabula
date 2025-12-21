@@ -13,6 +13,8 @@
 #include "controls/panels/ToolPanel.hpp"
 #include "controls/panels/LinePanel.hpp"
 #include "controls/panels/RectPanel.hpp"
+#include "controls/panels/FillPanel.hpp"
+#include "controls/panels/PixelPanel.hpp"
 #include "controls/widgets/CanvasPreviewer.hpp"
 #include "controls/widgets/AdaptiveStackedWidget.hpp"
 
@@ -29,10 +31,14 @@ ToolPanel::ToolPanel(CanvasPreviewer* previewer, QWidget* parent)
     auto* vLinePanel = new LinePanel(QStringLiteral("Draw Vertical Line"), Qt::Orientation::Vertical, this);
     auto* dRectPanel = new RectPanel(QStringLiteral("Draw Rectange"), true, this);
     auto* fRectPanel = new RectPanel(QStringLiteral("Fill Rectange"), false, this);
+    auto* pixelPanel = new PixelPanel(QStringLiteral("Draw Pixel"), this);
+    auto* fillPanel  = new FillPanel(QStringLiteral("Fill Panel"), this);
     addControlPanel(hLinePanel);
     addControlPanel(vLinePanel);
     addControlPanel(dRectPanel);
     addControlPanel(fRectPanel);
+    addControlPanel(pixelPanel);
+    addControlPanel(fillPanel);
     m_stackedWidget->setCollapsed(true);
 
     auto* layout = new QVBoxLayout(this);
@@ -43,7 +49,7 @@ ToolPanel::ToolPanel(CanvasPreviewer* previewer, QWidget* parent)
 
     connect(m_toolBar, &ToolBar::toolChanged, this, [this](ToolBar::Tool tool) {
         int id = static_cast<int>(tool);
-        if (id > -1 && id < 4) {
+        if (id > -1 && id < 6) {
             m_stackedWidget->setCurrentIndex(id);
             m_stackedWidget->setCollapsed(false);
             m_controlPanels[id]->updatePreview();

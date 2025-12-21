@@ -20,6 +20,7 @@ FetchContent_MakeAvailable(Qlementine)
 add_subdirectory(${SHARED_LIBS_ROOT} ${CMAKE_CURRENT_BINARY_DIR}/_shared)
 
 file(GLOB TABULA_CONTROL_SRCS CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/controls/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/controls/**/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/controls/**/*.hpp")
 
