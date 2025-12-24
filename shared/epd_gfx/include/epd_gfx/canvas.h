@@ -17,6 +17,7 @@
 
 #include "epd_gfx/common.h"
 #include "epd_gfx/frame_view.h"
+#include "epd_gfx/glyph.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -223,7 +224,7 @@ epd_err_t epd_gfx_canvas_clone(const epd_gfx_canvas_t canvas, epd_gfx_canvas_t* 
  * @param canvas Canvas handle (must be native format).
  * @param data Pointer to the native buffer.
  * @param size The bytes count of buffer.
- * @return `EPD_OK` on success, `EPD_ERR_INVALID_ARG` on null/format mismatch, or `EPD_ERR_INVALID_SIZE` on size mismatch.
+ * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
 epd_err_t epd_gfx_canvas_load_native(epd_gfx_canvas_t canvas, const uint8_t* data,
     uint32_t size);
@@ -235,10 +236,24 @@ epd_err_t epd_gfx_canvas_load_native(epd_gfx_canvas_t canvas, const uint8_t* dat
  * @param pwht Pointer to the white plane buffer.
  * @param pred Pointer to the red plane buffer.
  * @param size The bytes count of buffer.
- * @return `EPD_OK` on success, `EPD_ERR_INVALID_ARG` on null/format mismatch, or `EPD_ERR_INVALID_SIZE` on size mismatch.
+ * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
 epd_err_t epd_gfx_canvas_load_planes(epd_gfx_canvas_t canvas, const uint8_t* pwht,
     const uint8_t* pred, uint32_t size);
+
+/**
+ * @brief Draw a glyph at logical coordinates.
+ *
+ * @param canvas Canvas handle.
+ * @param glyph Glyph handle to draw.
+ * @param x Logical X coordinate.
+ * @param y Logical Y coordinate.
+ * @param color Glyph foreground color.
+ * @param background Glyph background color.
+ * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
+ */
+epd_err_t epd_gfx_canvas_draw_glyph(epd_gfx_canvas_t canvas, epd_gfx_glyph_t glyph,
+    uint16_t x, uint16_t y, epd_gfx_color_t color, epd_gfx_bg_color_t background);
 
 #ifdef __cplusplus
 }

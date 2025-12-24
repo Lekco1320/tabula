@@ -19,6 +19,13 @@ typedef enum {
 } epd_gfx_color_t;
 
 typedef enum {
+    EPD_GFX_BG_BLACK       = EPD_GFX_BLACK,
+    EPD_GFX_BG_WHITE       = EPD_GFX_WHITE,
+    EPD_GFX_BG_RED         = EPD_GFX_RED,
+    EPD_GFX_BG_TRANSPARENT = 0xFF,
+} epd_gfx_bg_color_t;
+
+typedef enum {
     EPD_GFX_FORMAT_NATIVE  = 0,   // panel-native 2px/byte
     EPD_GFX_FORMAT_PLANES  = 1,   // 2 × 1bpp (black + red)
     EPD_GFX_FORMAT_UNKNOWN,
