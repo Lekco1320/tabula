@@ -291,9 +291,6 @@ epd_err_t epd_gfx_canvas_draw_pixel(epd_gfx_canvas_t canvas,
     return EPD_OK;
 }
 
-typedef epd_err_t (*epd_gfx_canvas_draw_line_impl)(epd_gfx_canvas_t, uint16_t,
-    uint16_t, uint16_t, epd_gfx_color_t);
-
 static epd_err_t epd_gfx_canvas_draw_hline_impl(epd_gfx_canvas_t canvas,
     uint16_t x, uint16_t y, uint16_t w, epd_gfx_color_t color)
 {
@@ -667,5 +664,54 @@ epd_err_t epd_gfx_canvas_load_planes(epd_gfx_canvas_t canvas, const uint8_t* pwh
 
     memcpy(canvas->buf_wht, pwht, expected);
     memcpy(canvas->buf_red, pred, expected);
+    return EPD_OK;
+}
+
+epd_err_t epd_gfx_canvas_draw_glyph(epd_gfx_canvas_t canvas, epd_gfx_glyph_t glyph,
+    uint16_t x, uint16_t y, epd_gfx_color_t color, epd_gfx_bg_color_t background)
+{
+    if (!canvas || !glyph) {
+        return EPD_ERR_INVALID_ARG;
+    }
+    if (!glyph->data || glyph->width == 0 || glyph->height == 0) {
+        return EPD_OK;
+    }
+
+    epd_err_t ret = EPD_OK;
+    if (background != EPD_GFX_BG_TRANSPARENT) {
+        EPD_CHECK_RET(epd_gfx_canvas_fill_rect(canvas, x, y, glyph->advance, glyph->line_height,
+            (epd_gfx_color_t)background));
+    }
+
+    int16_t  x0   = (int16_t)x + glyph->xoffset;
+    int16_t  y0   = (int16_t)y + glyph->ascent + glyph->yoffset;
+    uint16_t wb   = (glyph->width + 7U) / 8U;
+    uint16_t lw   = epd_gfx_canvas_get_logical_width(canvas);
+    uint16_t lh   = epd_gfx_canvas_get_logical_height(canvas);
+    uint8_t* data = glyph->data;
+    for (uint16_t h = 0; h < glyph->height; ++h) {
+        for (uint16_t w = 0; w < wb; ++w) {
+            uint8_t byte = *data++;
+            if (!byte) {
+                continue;
+            }
+
+            uint16_t base = w * 8U;
+            for (uint8_t i = 0; i < 8 && (base + i) < glyph->width; ++i) {
+                if (byte & (uint8_t)(0x80U >> i)) {
+                    int16_t px = x0 + base + i;
+                    int16_t py = y0 + h;
+                    if (px < 0 || py < 0) {
+                        continue;
+                    }
+                    if ((uint16_t)px >= lw || (uint16_t)py >= lh) {
+                        continue;
+                    }
+                    (void)epd_gfx_canvas_draw_pixel(canvas, (uint16_t)px, (uint16_t)py, color);
+                }
+            }
+        }
+    }
+
     return EPD_OK;
 }

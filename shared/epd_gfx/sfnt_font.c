@@ -125,11 +125,13 @@ epd_err_t epd_gfx_sfnt_font_render_glyph(const epd_gfx_sfnt_font_t font, const e
     stbtt_GetCodepointHMetrics(&font->info, config->codepoint, &adv_units, &lsb_units);
 
     // Set metrics
-    glyph->width   = (uint16_t)w;
-    glyph->height  = (uint16_t)h;
-    glyph->xoffset = (int16_t)xoff;
-    glyph->yoffset = (int16_t)yoff;
-    glyph->advance = (int16_t)lroundf((float)adv_units * font->scale);
+    glyph->width       = (uint16_t)w;
+    glyph->height      = (uint16_t)h;
+    glyph->xoffset     = (int16_t)xoff;
+    glyph->yoffset     = (int16_t)yoff;
+    glyph->advance     = (int16_t)lroundf((float)adv_units * font->scale);
+    glyph->ascent      = font->ascent;
+    glyph->line_height = font->line_height;
 
     // Handle empty or null bitmap
     if (w <= 0 || h <= 0 || bmp == NULL) {
