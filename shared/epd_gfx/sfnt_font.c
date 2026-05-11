@@ -10,18 +10,14 @@
 #define STB_TRUETYPE_IMPLEMENTATION 1
 
 #include <math.h>
-#include <string.h>
 #include <stdlib.h>
-#include <xxhash.h>
 #include <epd_core/math.h>
 #include <stb_truetype.h>
 
-#include "epd_gfx/font_impl.h"
+#include "epd_gfx/glyph_impl.h"
 #include "epd_gfx/sfnt_font.h"
 
 struct epd_gfx_sfnt_font_impl {
-    uint64_t       hash;
-    const uint8_t* data;
     stbtt_fontinfo info;
 
     float          scale;
@@ -42,10 +38,7 @@ epd_err_t epd_gfx_sfnt_font_create(const epd_gfx_sfnt_font_config_t* config, epd
         return EPD_ERR_NO_MEM;
     }
 
-    const char* sutf8 = config->name;
-    font->hash = config->name ? XXH3_64bits(sutf8, strlen(sutf8)) : 0UL;
-    font->data = config->data;
-    if (!stbtt_InitFont(&font->info, (const unsigned char*)font->data, 0)) {
+    if (!stbtt_InitFont(&font->info, (const unsigned char*)config->data, 0)) {
         ret = EPD_FAIL;
         goto fail;
     }
@@ -74,28 +67,6 @@ epd_err_t epd_gfx_sfnt_font_destroy(epd_gfx_sfnt_font_t font)
         free(font);
     }
 
-    return EPD_OK;
-}
-
-epd_err_t epd_gfx_sfnt_font_generate_font(const epd_gfx_sfnt_font_t font, epd_gfx_font_t* out_font)
-{
-    if (!font || !out_font) {
-        return EPD_ERR_INVALID_ARG;
-    }
-
-    epd_gfx_font_t gfx_font = (epd_gfx_font_t)calloc(1, sizeof(struct epd_gfx_font_impl));
-    if (!gfx_font) {
-        return EPD_ERR_NO_MEM;
-    }
-
-    gfx_font->hash        = font->hash;
-    gfx_font->data        = NULL;
-    gfx_font->scale       = font->scale;
-    gfx_font->ascent      = font->ascent;
-    gfx_font->descent     = font->descent;
-    gfx_font->line_height = font->line_height;
-
-    *out_font = gfx_font;
     return EPD_OK;
 }
 
@@ -146,8 +117,8 @@ epd_err_t epd_gfx_sfnt_font_render_glyph(const epd_gfx_sfnt_font_t font, const e
     }
 
     epd_err_t      status = EPD_OK;
-    const uint16_t stride = (uint16_t)((glyph->width + 7U) / 8U);
-    const uint32_t size   = (uint32_t)stride * glyph->height;
+    const uint16_t stride = (uint16_t)epd_gfx_glyph_stride(glyph->width);
+    const uint32_t size   = epd_gfx_glyph_data_bytes(glyph->width, glyph->height);
     uint8_t*       out    = (uint8_t*)calloc(1, size);
     if (!out) {
         status = EPD_ERR_NO_MEM;

@@ -29,9 +29,20 @@ typedef struct {
     int16_t  xoffset;
     int16_t  yoffset;
     int16_t  advance;
-    uint32_t size;
     uint8_t* data;
 } epd_gfx_glyph_config_t;
+
+typedef enum {
+    EPD_GFX_GLYPH_FALLBACK_NONE    = 0,
+    EPD_GFX_GLYPH_FALLBACK_SMALLER = 1,
+    EPD_GFX_GLYPH_FALLBACK_LARGER  = 2,
+} epd_gfx_glyph_fallback_t;
+
+typedef struct {
+    uint32_t                 codepoint;  /*!< Unicode codepoint to query. */
+    uint16_t                 size;       /*!< Font pixel size to query; must be non-zero. */
+    epd_gfx_glyph_fallback_t fallback;   /*!< Fallback strategy when the exact size or glyph is unavailable. */
+} epd_gfx_glyph_seek_config_t;
 
 /**
  * @brief Create a glyph with the given configuration.

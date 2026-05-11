@@ -15,11 +15,18 @@
 #include <stdbool.h>
 
 #ifdef _MSC_VER
-    #define EPD_INLINE __forceinline
+#  define EPD_INLINE __forceinline
 #elif defined(__GNUC__) && !defined(_DEBUG)
-    #define EPD_INLINE __attribute__((always_inline)) inline
+#  define EPD_INLINE __attribute__((always_inline)) inline
 #else
-    #define EPD_INLINE inline
+#  define EPD_INLINE inline
+#endif
+
+#ifdef _MSC_VER
+#  pragma pack(push, 1)
+#  define EPD_PACKED
+#else
+#  define EPD_PACKED __attribute__((packed))
 #endif
 
 #ifdef __cplusplus
@@ -54,6 +61,7 @@ typedef enum {
     EPD_ERR_INVALID_MAC      = 0x10B,  /*!< MAC address was invalid */
     EPD_ERR_NOT_FINISHED     = 0x10C,  /*!< Operation has not fully completed */
     EPD_ERR_NOT_ALLOWED      = 0x10D,  /*!< Operation is not allowed */
+    EPD_FALLBACK             = 0x10E,  /*!< Operation succeeded with fallback */
 } epd_err_t;
 
 /**

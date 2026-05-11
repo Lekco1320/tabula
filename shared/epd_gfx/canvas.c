@@ -685,7 +685,7 @@ epd_err_t epd_gfx_canvas_draw_glyph(epd_gfx_canvas_t canvas, epd_gfx_glyph_t gly
 
     int16_t  x0   = (int16_t)x + glyph->xoffset;
     int16_t  y0   = (int16_t)y + glyph->ascent + glyph->yoffset;
-    uint16_t wb   = (glyph->width + 7U) / 8U;
+    uint16_t wb   = (uint16_t)epd_gfx_glyph_stride(glyph->width);
     uint16_t lw   = epd_gfx_canvas_get_logical_width(canvas);
     uint16_t lh   = epd_gfx_canvas_get_logical_height(canvas);
     uint8_t* data = glyph->data;

@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include <epd_core/common.h>
 
-#include <epd_gfx/font.h>
+#include <epd_gfx/glyph.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,13 +23,7 @@ extern "C" {
 
 typedef struct epd_gfx_sfnt_font_impl* epd_gfx_sfnt_font_t;
 
-typedef enum {
-    EPD_UNIT_PIXEL,
-    EPD_UNIT_POINT,
-} epd_gfx_font_size_unit_t;
-
 typedef struct {
-    const char*    name;
     const uint8_t* data;
     uint16_t       px_size;
 } epd_gfx_sfnt_font_config_t;
@@ -62,15 +56,6 @@ epd_err_t epd_gfx_sfnt_font_create(const epd_gfx_sfnt_font_config_t* config, epd
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
 epd_err_t epd_gfx_sfnt_font_destroy(epd_gfx_sfnt_font_t font);
-
-/**
- * @brief Generate a custom font from an SFNT font.
- *
- * @param font SFNT font handle.
- * @param out_font Pointer to receive the generated font handle.
- * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
- */
-epd_err_t epd_gfx_sfnt_font_generate_font(const epd_gfx_sfnt_font_t font, epd_gfx_font_t* out_font);
 
 /**
  * @brief Render a glyph from a font using threshold/bias settings.

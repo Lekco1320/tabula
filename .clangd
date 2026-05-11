@@ -1,0 +1,17 @@
+If:
+  PathMatch: clients/.*
+CompileFlags:
+  CompilationDatabase: clients/build
+
+---
+If:
+  PathMatch: shared/.*
+CompileFlags:
+  CompilationDatabase: clients/build
+
+---
+If:
+  PathMatch: firmware/.*
+CompileFlags:
+  CompilationDatabase: firmware/build
+  Remove: [-f*, -m*]

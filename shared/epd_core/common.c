@@ -58,6 +58,9 @@ const char* epd_err_to_str(epd_err_t err)
     case EPD_ERR_NOT_ALLOWED:
         return "Not allowed";
 
+    case EPD_FALLBACK:
+        return "Fallback used";
+
     default:
         return "Unknown error";
     }

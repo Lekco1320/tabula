@@ -5,6 +5,7 @@ set(EPD_GFX_SRCS
     codec.c
     glyph.c
     font.c
+    font_asset.c
     sfnt_font.c)
 
 function(epd_gfx_fetch_deps)

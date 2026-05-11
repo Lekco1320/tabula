@@ -19,7 +19,6 @@ extern "C" {
 #endif
 
 struct epd_gfx_glyph_impl {
-    uint32_t codepoint;
     uint16_t width;
     uint16_t height;
     int16_t  xoffset;
@@ -30,6 +29,16 @@ struct epd_gfx_glyph_impl {
     int16_t  ascent;
     int16_t  line_height;
 };
+
+static inline uint32_t epd_gfx_glyph_stride(uint16_t width)
+{
+    return (width + 7U) / 8U;
+}
+
+static inline uint32_t epd_gfx_glyph_data_bytes(uint16_t width, uint16_t height)
+{
+    return epd_gfx_glyph_stride(width) * height;
+}
 
 #ifdef __cplusplus
 }

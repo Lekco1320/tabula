@@ -26,24 +26,6 @@ extern "C" {
 typedef struct epd_gfx_font_impl* epd_gfx_font_t;
 
 /**
- * @brief Convert point size to pixels.
- *
- * @param point Font size in points.
- * @param dpi Target DPI.
- * @return Pixel size.
- */
-uint16_t epd_gfx_font_point_to_pixel(float point, uint16_t dpi);
-
-/**
- * @brief Convert pixel size to points.
- *
- * @param pixel Font size in pixels.
- * @param dpi DPI used for conversion.
- * @return Point size, or 0 if dpi is 0.
- */
-float epd_gfx_font_pixel_to_point(uint16_t pixel, uint16_t dpi);
-
-/**
  * @brief Load a font from a custom font stream.
  *
  * @param stream Stream providing the font file data.
@@ -61,50 +43,24 @@ epd_err_t epd_gfx_font_load(const epd_stream_t* stream, epd_gfx_font_t* out_font
 epd_err_t epd_gfx_font_destroy(epd_gfx_font_t font);
 
 /**
- * @brief Save a font into a custom font stream.
- *
- * @param font Font handle to serialize.
- * @param stream Stream to receive the font file data.
- * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
- */
-epd_err_t epd_gfx_font_save(const epd_gfx_font_t font, epd_stream_t* stream);
-
-/**
  * @brief Get a glyph by codepoint from a font.
  *
  * @param font Font handle.
- * @param codepoint Unicode codepoint to query.
+ * @param config Glyph seek configuration.
  * @param out_glyph Pointer to receive the glyph handle.
- * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
+ * @return `EPD_OK` on success, `EPD_FALLBACK` when fallback was used, otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_gfx_font_get_glyph(const epd_gfx_font_t font, uint32_t codepoint, epd_gfx_glyph_t* out_glyph);
+epd_err_t epd_gfx_font_get_glyph(const epd_gfx_font_t font, epd_gfx_glyph_seek_config_t config,
+    epd_gfx_glyph_t* out_glyph);
 
 /**
- * @brief Add a glyph into a font.
- *
- * @param font Font handle to update.
- * @param glyph Glyph handle to add.
- * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
- */
-epd_err_t epd_gfx_font_add_glyph(epd_gfx_font_t font, const epd_gfx_glyph_t glyph);
-
-/**
- * @brief Remove a glyph by codepoint and size.
- *
- * @param font Font handle to update.
- * @param codepoint Unicode codepoint to remove.
- * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
- */
-epd_err_t epd_gfx_font_remove_glyph(epd_gfx_font_t font, uint32_t codepoint);
-
-/**
- * @brief Check whether a font contains a glyph for the given codepoint.
+ * @brief Check whether a font contains a glyph matching a seek configuration.
  *
  * @param font Font handle.
- * @param codepoint Unicode codepoint to query.
+ * @param config Glyph seek configuration; fallback is applied like `epd_gfx_font_get_glyph`.
  * @return true if the glyph exists, otherwise false.
  */
-bool epd_gfx_font_contains_glyph(const epd_gfx_font_t font, uint32_t codepoint);
+bool epd_gfx_font_contains_glyph(const epd_gfx_font_t font, epd_gfx_glyph_seek_config_t config);
 
 #ifdef __cplusplus
 }
