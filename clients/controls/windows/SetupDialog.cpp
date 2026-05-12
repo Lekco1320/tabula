@@ -21,7 +21,7 @@ LEKCO_BEGIN_NAMESPACE
 SetupDialog::SetupDialog(QWidget *parent)
     : QDialog(parent)
 {
-    setWindowTitle(tr("Screen Setup"));
+    setWindowTitle(QStringLiteral("Screen Setup"));
     setModal(true);
 
     m_widthSpinBox = new QSpinBox(this);
@@ -33,8 +33,8 @@ SetupDialog::SetupDialog(QWidget *parent)
     m_heightSpinBox->setValue(384);
 
     m_formatComboBox = new QComboBox(this);
-    m_formatComboBox->addItem(tr("Native"), QVariant::fromValue(EPD_GFX_FORMAT_NATIVE));
-    m_formatComboBox->addItem(tr("Planes"), QVariant::fromValue(EPD_GFX_FORMAT_PLANES));
+    m_formatComboBox->addItem(QStringLiteral("Native"), QVariant::fromValue(EPD_GFX_FORMAT_NATIVE));
+    m_formatComboBox->addItem(QStringLiteral("Planes"), QVariant::fromValue(EPD_GFX_FORMAT_PLANES));
 
     m_rotationComboBox = new QComboBox(this);
     m_rotationComboBox->addItem(QStringLiteral("0°"), QVariant::fromValue(EPD_GFX_ROTATE_0));
@@ -43,10 +43,10 @@ SetupDialog::SetupDialog(QWidget *parent)
     m_rotationComboBox->addItem(QStringLiteral("270°"), QVariant::fromValue(EPD_GFX_ROTATE_270));
 
     auto* formLayout = new QFormLayout;
-    formLayout->addRow(tr("Width:"), m_widthSpinBox);
-    formLayout->addRow(tr("Height:"), m_heightSpinBox);
-    formLayout->addRow(tr("Format:"), m_formatComboBox);
-    formLayout->addRow(tr("Rotation:"), m_rotationComboBox);
+    formLayout->addRow(QStringLiteral("Width:"), m_widthSpinBox);
+    formLayout->addRow(QStringLiteral("Height:"), m_heightSpinBox);
+    formLayout->addRow(QStringLiteral("Format:"), m_formatComboBox);
+    formLayout->addRow(QStringLiteral("Rotation:"), m_rotationComboBox);
 
     auto* buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);

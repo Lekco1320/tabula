@@ -13,17 +13,17 @@
 #define _MAINWINDOW_H_
 
 #include <QMainWindow>
-#include <epd_gfx/canvas.h>
 
 #include "common/Common.h"
-#include "controls/widgets/CanvasPreviewer.hpp"
+#include "project/Project.hpp"
+
+class QPushButton;
+class QTreeWidget;
+class QTreeWidgetItem;
 
 LEKCO_BEGIN_NAMESPACE
 
-class ToolPanel;
-class CursorBar;
-class RotationBar;
-class AdaptiveStackedWidget;
+class PreviewWindow;
 
 class MainWindow
     : public QMainWindow
@@ -31,16 +31,27 @@ class MainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(const epd_gfx_canvas_config_t& config, QWidget* parent = nullptr);
+    explicit MainWindow(const Project& project, QWidget* parent = nullptr);
 
 private:
-    epd_gfx_canvas_config_t m_canvasConfig;
+    void refreshResourceTree();
+    void addResources(ProjectResourceType type, QTreeWidgetItem* parentItem);
+    void updateResourceButtons();
+    void addSelectedResource();
+    void editSelectedResource();
+    void deleteSelectedResource();
+    void openPreviewWindow();
+    ProjectResourceType selectedResourceType() const;
+    QString selectedResourceFileName() const;
+    bool selectedItemIsResource() const;
 
-    CursorBar*             m_cursorBar     = nullptr;
-    ToolPanel*             m_toolPanel     = nullptr;
-    CanvasPreviewer*       m_previewer     = nullptr;
-    AdaptiveStackedWidget* m_stackedWidget = nullptr;
-    RotationBar*           m_rotationBar   = nullptr;
+    Project        m_project;
+    QTreeWidget*   m_resourceTree  = nullptr;
+    QPushButton*   m_addButton     = nullptr;
+    QPushButton*   m_editButton    = nullptr;
+    QPushButton*   m_deleteButton  = nullptr;
+    QPushButton*   m_previewButton = nullptr;
+    PreviewWindow* m_previewWindow = nullptr;
 };
 
 LEKCO_END_NAMESPACE

@@ -27,7 +27,9 @@ target_sources(tabula-host PRIVATE
     main.cpp
     resources.qrc
     controls/Utils.cpp
-    controls/Utils.hpp)
+    controls/Utils.hpp
+    project/Project.cpp
+    project/Project.hpp)
 
 target_sources(tabula-host PRIVATE
     controls/bars/CursorBar.cpp
@@ -66,6 +68,12 @@ target_sources(tabula-host PRIVATE
 target_sources(tabula-host PRIVATE
     controls/windows/MainWindow.cpp
     controls/windows/MainWindow.hpp
+    controls/windows/PreviewWindow.cpp
+    controls/windows/PreviewWindow.hpp
+    controls/windows/ProjectDialog.cpp
+    controls/windows/ProjectDialog.hpp
+    controls/windows/ResourceEditDialog.cpp
+    controls/windows/ResourceEditDialog.hpp
     controls/windows/SetupDialog.cpp
     controls/windows/SetupDialog.hpp)
 
