@@ -441,10 +441,9 @@ void CanvasPreviewer::startRotationAnimation(epd_gfx_rotation_t target)
 
 void CanvasPreviewer::rebuildImage(epd_gfx_canvas_t canvas)
 {
-    epd_gfx_frame_view_sink_t sink = {
-        .context    = this,
-        .flush_impl = &CanvasPreviewer::flushImpl,
-    };
+    epd_gfx_frame_view_sink_t sink {};
+    sink.context    = this;
+    sink.flush_impl = &CanvasPreviewer::flushImpl;
 
     epd_err_t status = epd_gfx_canvas_flush(canvas, &sink);
     if (status != EPD_OK) {

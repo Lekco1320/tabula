@@ -30,12 +30,11 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    epd_gfx_canvas_config_t config {
-        .width    = static_cast<uint16_t>(dialog.panelWidth()),
-        .height   = static_cast<uint16_t>(dialog.panelHeight()),
-        .format   = dialog.format(),
-        .rotation = dialog.rotation(),
-    };
+    epd_gfx_canvas_config_t config {};
+    config.width    = static_cast<uint16_t>(dialog.panelWidth());
+    config.height   = static_cast<uint16_t>(dialog.panelHeight());
+    config.format   = dialog.format();
+    config.rotation = dialog.rotation();
 
     lekco::MainWindow w(config);
     SetWindowCenterScreen(&w);

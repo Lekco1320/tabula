@@ -22,13 +22,6 @@
 #  define EPD_INLINE inline
 #endif
 
-#ifdef _MSC_VER
-#  pragma pack(push, 1)
-#  define EPD_PACKED
-#else
-#  define EPD_PACKED __attribute__((packed))
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif

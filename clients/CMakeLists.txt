@@ -14,25 +14,60 @@ include(FetchContent)
 set(QLEMENTINE_INSTALL OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(Qlementine
     GIT_REPOSITORY "https://github.com/oclero/qlementine.git"
-    GIT_TAG v1.4.1)
+    GIT_TAG v1.4.2)
 FetchContent_MakeAvailable(Qlementine)
 
 add_subdirectory(${SHARED_LIBS_ROOT} ${CMAKE_CURRENT_BINARY_DIR}/_shared)
 
-file(GLOB TABULA_CONTROL_SRCS CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/controls/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/controls/**/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/controls/**/*.hpp")
-
-set(TABULA_PROJECT_SRCS
-    main.cpp
-    resources.qrc
-    ${TABULA_CONTROL_SRCS})
-
 qt_add_executable(tabula-host
     WIN32
-    MANUAL_FINALIZATION
-    ${TABULA_PROJECT_SRCS})
+    MANUAL_FINALIZATION)
+
+target_sources(tabula-host PRIVATE
+    main.cpp
+    resources.qrc
+    controls/Utils.cpp
+    controls/Utils.hpp)
+
+target_sources(tabula-host PRIVATE
+    controls/bars/CursorBar.cpp
+    controls/bars/CursorBar.hpp
+    controls/bars/IconButtonBar.cpp
+    controls/bars/IconButtonBar.hpp
+    controls/bars/RotationBar.cpp
+    controls/bars/RotationBar.hpp
+    controls/bars/ToolBar.cpp
+    controls/bars/ToolBar.hpp)
+
+target_sources(tabula-host PRIVATE
+    controls/panels/ControlPanel.cpp
+    controls/panels/ControlPanel.hpp
+    controls/panels/FillPanel.cpp
+    controls/panels/FillPanel.hpp
+    controls/panels/LinePanel.cpp
+    controls/panels/LinePanel.hpp
+    controls/panels/PixelPanel.cpp
+    controls/panels/PixelPanel.hpp
+    controls/panels/RectPanel.cpp
+    controls/panels/RectPanel.hpp
+    controls/panels/ToolPanel.cpp
+    controls/panels/ToolPanel.hpp)
+
+target_sources(tabula-host PRIVATE
+    controls/widgets/AdaptiveStackedWidget.cpp
+    controls/widgets/AdaptiveStackedWidget.hpp
+    controls/widgets/CanvasPreviewer.cpp
+    controls/widgets/CanvasPreviewer.hpp
+    controls/widgets/ColorButton.cpp
+    controls/widgets/ColorButton.hpp
+    controls/widgets/FlowLayout.cpp
+    controls/widgets/FlowLayout.hpp)
+
+target_sources(tabula-host PRIVATE
+    controls/windows/MainWindow.cpp
+    controls/windows/MainWindow.hpp
+    controls/windows/SetupDialog.cpp
+    controls/windows/SetupDialog.hpp)
 
 set_target_properties(tabula-host PROPERTIES
     AUTOMOC ON
