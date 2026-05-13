@@ -1,7 +1,7 @@
 /**
  * @file MainWindow.hpp
  * @brief Main window for the tabula desktop client.
- * 
+ *
  * @author Lukaß Zhang <lekco_1320@qq.com>
  * @date 2025-12-9
  * @license MIT
@@ -13,17 +13,20 @@
 #define _MAINWINDOW_H_
 
 #include <QMainWindow>
+#include <QString>
 
 #include "common/Common.h"
 #include "project/Project.hpp"
 
 class QPushButton;
+class QStackedWidget;
 class QTreeWidget;
 class QTreeWidgetItem;
 
 LEKCO_BEGIN_NAMESPACE
 
-class PreviewWindow;
+class CanvasWorkspace;
+class FontWorkspace;
 
 class MainWindow
     : public QMainWindow
@@ -36,22 +39,22 @@ public:
 private:
     void refreshResourceTree();
     void addResources(ProjectResourceType type, QTreeWidgetItem* parentItem);
+    void selectResource(ProjectResourceType type, const QString& fileName);
+    void updateWorkspace();
     void updateResourceButtons();
     void addSelectedResource();
-    void editSelectedResource();
     void deleteSelectedResource();
-    void openPreviewWindow();
     ProjectResourceType selectedResourceType() const;
     QString selectedResourceFileName() const;
     bool selectedItemIsResource() const;
 
-    Project        m_project;
-    QTreeWidget*   m_resourceTree  = nullptr;
-    QPushButton*   m_addButton     = nullptr;
-    QPushButton*   m_editButton    = nullptr;
-    QPushButton*   m_deleteButton  = nullptr;
-    QPushButton*   m_previewButton = nullptr;
-    PreviewWindow* m_previewWindow = nullptr;
+    Project          m_project;
+    QTreeWidget*     m_resourceTree     = nullptr;
+    QPushButton*     m_addButton        = nullptr;
+    QPushButton*     m_deleteButton     = nullptr;
+    QStackedWidget*  m_workspaceStack   = nullptr;
+    CanvasWorkspace* m_canvasWorkspace  = nullptr;
+    FontWorkspace*   m_fontWorkspace    = nullptr;
 };
 
 LEKCO_END_NAMESPACE

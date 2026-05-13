@@ -128,8 +128,8 @@ static epd_err_t epd_gfx_font_asset_put_glyph(epd_gfx_font_asset_size_node_t siz
 
 static epd_gfx_font_asset_stats_t epd_gfx_font_asset_size_stats(const epd_gfx_font_asset_size_t* size)
 {
-    epd_gfx_font_asset_stats_t stats = { 0 };
-    epd_gfx_font_asset_glyph_node_t cur = size->glyph_list;
+    epd_gfx_font_asset_stats_t      stats = { 0 };
+    epd_gfx_font_asset_glyph_node_t cur   = size->glyph_list;
     while (cur) {
         stats.glyph_count += 1U;
         stats.data_count  += epd_gfx_glyph_data_bytes(cur->value.width, cur->value.height);
@@ -141,14 +141,14 @@ static epd_gfx_font_asset_stats_t epd_gfx_font_asset_size_stats(const epd_gfx_fo
 
 static epd_gfx_font_asset_stats_t epd_gfx_font_asset_stats(const epd_gfx_font_asset_t asset)
 {
-    epd_gfx_font_asset_stats_t stats = { 0 };
-    epd_gfx_font_asset_size_node_t cur = asset->size_list;
+    epd_gfx_font_asset_stats_t     stats = { 0 };
+    epd_gfx_font_asset_size_node_t cur   = asset->size_list;
     while (cur) {
         epd_gfx_font_asset_stats_t size_stats = epd_gfx_font_asset_size_stats(&cur->value);
         stats.size_count  += 1U;
         stats.glyph_count += size_stats.glyph_count;
         stats.data_count  += size_stats.data_count;
-        cur               = cur->next;
+        cur                = cur->next;
     }
 
     return stats;
@@ -409,6 +409,65 @@ epd_err_t epd_gfx_font_asset_destroy(epd_gfx_font_asset_t asset)
     return EPD_OK;
 }
 
+epd_err_t epd_gfx_font_asset_get_sizes(const epd_gfx_font_asset_t asset, uint16_t* sizes,
+    uint32_t* count)
+{
+    if (!asset || !count) {
+        return EPD_ERR_INVALID_ARG;
+    }
+
+    if (sizes == NULL) {
+        uint32_t                       size_count = 0U;
+        epd_gfx_font_asset_size_node_t size_node  = asset->size_list;
+        while (size_node) {
+            ++size_count;
+            size_node = size_node->next;
+        }
+        *count = size_count;
+        return EPD_OK;
+    }
+
+    epd_gfx_font_asset_size_node_t cur     = asset->size_list;
+    uint32_t                       written = 0U;
+    for (; cur && written < *count; ++written, (cur = cur->next)) {
+        sizes[written] = cur->value.size;
+    }
+    *count = written;
+    return EPD_OK;
+}
+
+epd_err_t epd_gfx_font_asset_get_codepoints(const epd_gfx_font_asset_t asset, uint16_t size,
+    uint32_t* codepoints, uint32_t* count)
+{
+    if (!asset || size == 0U || !count) {
+        return EPD_ERR_INVALID_ARG;
+    }
+
+    epd_gfx_font_asset_size_node_t size_node = epd_gfx_font_asset_find_size(asset, size);
+    if (!size_node) {
+        return EPD_ERR_NOT_FOUND;
+    }
+
+    if (codepoints == NULL) {
+        uint32_t                        glyph_count = 0U;
+        epd_gfx_font_asset_glyph_node_t glyph_node  = size_node->value.glyph_list;
+        while (glyph_node) {
+            ++glyph_count;
+            glyph_node = glyph_node->next;
+        }
+        *count = glyph_count;
+        return EPD_OK;
+    }
+
+    epd_gfx_font_asset_glyph_node_t cur     = size_node->value.glyph_list;
+    uint32_t                        written = 0U;
+    for (; cur && written < *count; ++written, (cur = cur->next)) {
+        codepoints[written] = cur->value.codepoint;
+    }
+    *count = written;
+    return EPD_OK;
+}
+
 epd_err_t epd_gfx_font_asset_set_size(epd_gfx_font_asset_t asset,
     const epd_gfx_font_asset_size_config_t* config)
 {
@@ -452,6 +511,25 @@ epd_err_t epd_gfx_font_asset_set_size(epd_gfx_font_asset_t asset,
     return EPD_OK;
 }
 
+epd_err_t epd_gfx_font_asset_get_size_config(const epd_gfx_font_asset_t asset,
+    uint16_t size, epd_gfx_font_asset_size_config_t* out_config)
+{
+    if (!asset || size == 0U || !out_config) {
+        return EPD_ERR_INVALID_ARG;
+    }
+
+    epd_gfx_font_asset_size_node_t size_node = epd_gfx_font_asset_find_size(asset, size);
+    if (!size_node) {
+        return EPD_ERR_NOT_FOUND;
+    }
+
+    out_config->size        = size_node->value.size;
+    out_config->ascent      = size_node->value.ascent;
+    out_config->descent     = size_node->value.descent;
+    out_config->line_height = size_node->value.line_height;
+    return EPD_OK;
+}
+
 epd_err_t epd_gfx_font_asset_remove_size(epd_gfx_font_asset_t asset, uint16_t size)
 {
     if (!asset || size == 0U) {
@@ -477,6 +555,37 @@ epd_err_t epd_gfx_font_asset_remove_size(epd_gfx_font_asset_t asset, uint16_t si
     epd_gfx_font_asset_size_destroy(&cur->value);
     free(cur);
     return EPD_OK;
+}
+
+epd_err_t epd_gfx_font_asset_get_glyph(const epd_gfx_font_asset_t asset,
+    epd_gfx_font_asset_glyph_key_t key, epd_gfx_glyph_t* out_glyph)
+{
+    if (!asset || !out_glyph || key.size == 0U) {
+        return EPD_ERR_INVALID_ARG;
+    }
+    *out_glyph = NULL;
+
+    epd_gfx_font_asset_size_node_t size_node = epd_gfx_font_asset_find_size(asset, key.size);
+    if (!size_node) {
+        return EPD_ERR_NOT_FOUND;
+    }
+
+    epd_gfx_font_asset_glyph_node_t glyph_node =
+        epd_gfx_font_asset_find_glyph(&size_node->value, key.codepoint);
+    if (!glyph_node) {
+        return EPD_ERR_NOT_FOUND;
+    }
+
+    epd_gfx_glyph_config_t config = {
+        .width   = glyph_node->value.width,
+        .height  = glyph_node->value.height,
+        .xoffset = glyph_node->value.xoffset,
+        .yoffset = glyph_node->value.yoffset,
+        .advance = glyph_node->value.advance,
+        .data    = glyph_node->value.data,
+    };
+
+    return epd_gfx_glyph_create(&config, out_glyph);
 }
 
 epd_err_t epd_gfx_font_asset_add_glyph(epd_gfx_font_asset_t asset,

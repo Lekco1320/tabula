@@ -11,8 +11,8 @@
 
 #include <math.h>
 #include <stdlib.h>
-#include <epd_core/math.h>
 #include <stb_truetype.h>
+#include <epd_core/math.h>
 
 #include "epd_gfx/glyph_impl.h"
 #include "epd_gfx/sfnt_font.h"
@@ -67,6 +67,20 @@ epd_err_t epd_gfx_sfnt_font_destroy(epd_gfx_sfnt_font_t font)
         free(font);
     }
 
+    return EPD_OK;
+}
+
+epd_err_t epd_gfx_sfnt_font_get_size_config(const epd_gfx_sfnt_font_t font,
+    uint16_t size, epd_gfx_font_asset_size_config_t* out_config)
+{
+    if (!font || size == 0U || !out_config) {
+        return EPD_ERR_INVALID_ARG;
+    }
+
+    out_config->size        = size;
+    out_config->ascent      = font->ascent;
+    out_config->descent     = font->descent;
+    out_config->line_height = font->line_height;
     return EPD_OK;
 }
 

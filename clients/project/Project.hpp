@@ -12,8 +12,8 @@
 #ifndef _PROJECT_HPP_
 #define _PROJECT_HPP_
 
-#include <QVector>
 #include <QString>
+#include <QVector>
 
 #include "common/Common.h"
 
@@ -44,9 +44,8 @@ public:
     bool open(const QString& path, QString* error = nullptr);
     bool save(QString* error = nullptr) const;
 
-    bool addResourceFromFile(ProjectResourceType type, const QString& sourcePath, QString* error = nullptr) const;
-    bool updateResource(ProjectResourceType type, const QString& oldFileName,
-        const QString& newFileName, const QString& replacementPath, QString* error = nullptr) const;
+    bool createFontResource(const QString& fontName, QString* outFileName = nullptr,
+        QString* error = nullptr) const;
     bool removeResource(ProjectResourceType type, const QString& fileName, QString* error = nullptr) const;
 
     QVector<ProjectResource> resources(ProjectResourceType type) const;
@@ -60,14 +59,12 @@ public:
 
     static QString displayName(ProjectResourceType type);
     static QString directoryName(ProjectResourceType type);
-    static QString fileDialogFilter(ProjectResourceType type);
+    static bool validateFontName(const QString& fontName, QString* error = nullptr);
     static bool validateResourceFileName(ProjectResourceType type, const QString& fileName,
         QString* error = nullptr);
 
 private:
     bool ensureDirectories(QString* error = nullptr) const;
-    bool writeFileFromFile(const QString& sourcePath, const QString& targetPath,
-        QString* error = nullptr) const;
     QString resourcePath(ProjectResourceType type, const QString& fileName) const;
 
     QString       m_rootDir;

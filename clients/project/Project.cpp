@@ -7,21 +7,23 @@
  * @license MIT
  */
 
+#include <QByteArray>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSaveFile>
+#include <epd_gfx/font_asset.h>
 
+#include "project/EpdStreamAdapter.hpp"
 #include "project/Project.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 
-namespace {
+BEGIN_NAMESPACE()
 
 constexpr int kManifestVersion = 1;
-constexpr int kCopyBufferSize  = 64 * 1024;
 
 void SetError(QString* error, const QString& message)
 {
@@ -30,12 +32,7 @@ void SetError(QString* error, const QString& message)
     }
 }
 
-bool IsSameFileName(const QString& lhs, const QString& rhs)
-{
-    return lhs.compare(rhs, Qt::CaseInsensitive) == 0;
-}
-
-} // namespace
+END_NAMESPACE
 
 bool Project::create(const QString& rootDir, const ProjectScreen& screen, QString* error)
 {
@@ -141,72 +138,51 @@ bool Project::save(QString* error) const
     return true;
 }
 
-bool Project::addResourceFromFile(ProjectResourceType type, const QString& sourcePath, QString* error) const
+bool Project::createFontResource(const QString& fontName, QString* outFileName, QString* error) const
 {
-    const QFileInfo sourceInfo(sourcePath);
-    if (!sourceInfo.isFile()) {
-        SetError(error, QStringLiteral("Source resource is not a file."));
+    if (!validateFontName(fontName, error)) {
         return false;
     }
 
-    const QString fileName = sourceInfo.fileName();
-    if (!validateResourceFileName(type, fileName, error)) {
+    const QString fileName = fontName + QStringLiteral(".egf");
+    if (!validateResourceFileName(ProjectResourceType::Fonts, fileName, error)) {
         return false;
     }
 
-    const QString targetPath = resourcePath(type, fileName);
+    const QString targetPath = resourcePath(ProjectResourceType::Fonts, fileName);
     if (QFileInfo::exists(targetPath)) {
-        SetError(error, QStringLiteral("A resource with the same file name already exists."));
+        SetError(error, QStringLiteral("A font with the same name already exists."));
         return false;
     }
 
-    return writeFileFromFile(sourcePath, targetPath, error);
-}
-
-bool Project::updateResource(ProjectResourceType type, const QString& oldFileName,
-    const QString& newFileName, const QString& replacementPath, QString* error) const
-{
-    if (!validateResourceFileName(type, oldFileName, error)
-        || !validateResourceFileName(type, newFileName, error)) {
+    QSaveFile target(targetPath);
+    if (!target.open(QIODevice::WriteOnly)) {
+        SetError(error, QStringLiteral("Failed to open font file."));
         return false;
     }
 
-    const QString oldPath = resourcePath(type, oldFileName);
-    const QString newPath = resourcePath(type, newFileName);
-    if (!QFileInfo(oldPath).isFile()) {
-        SetError(error, QStringLiteral("Resource file does not exist."));
+    EpdStreamAdapter stream(&target);
+
+    const QByteArray     identity = fontName.toUtf8();
+    epd_gfx_font_asset_t asset    = nullptr;
+    epd_err_t            ret      = epd_gfx_font_asset_create(identity.constData(), &asset);
+    if (ret == EPD_OK) {
+        ret = epd_gfx_font_asset_write_egf(asset, stream.stream());
+    }
+    epd_gfx_font_asset_destroy(asset);
+    if (ret != EPD_OK) {
+        SetError(error, QStringLiteral("Failed to write font file."));
         return false;
     }
 
-    const bool renameFile  = !IsSameFileName(oldFileName, newFileName);
-    const bool replaceFile = !replacementPath.trimmed().isEmpty();
-    if (renameFile && QFileInfo::exists(newPath)) {
-        SetError(error, QStringLiteral("A resource with the new file name already exists."));
+    if (!target.commit()) {
+        SetError(error, QStringLiteral("Failed to save font file."));
         return false;
     }
 
-    if (replaceFile) {
-        if (!QFileInfo(replacementPath).isFile()) {
-            SetError(error, QStringLiteral("Replacement file does not exist."));
-            return false;
-        }
-
-        if (!writeFileFromFile(replacementPath, newPath, error)) {
-            return false;
-        }
-
-        if (renameFile && !QFile::remove(oldPath)) {
-            SetError(error, QStringLiteral("Failed to remove the old resource file."));
-            return false;
-        }
-        return true;
+    if (outFileName) {
+        *outFileName = fileName;
     }
-
-    if (renameFile && !QFile::rename(oldPath, newPath)) {
-        SetError(error, QStringLiteral("Failed to rename resource file."));
-        return false;
-    }
-
     return true;
 }
 
@@ -315,16 +291,27 @@ QString Project::directoryName(ProjectResourceType type)
     }
 }
 
-QString Project::fileDialogFilter(ProjectResourceType type)
+bool Project::validateFontName(const QString& fontName, QString* error)
 {
-    switch (type)
-    {
-    case ProjectResourceType::Fonts:
-        return QStringLiteral("EGF Fonts (*.egf)");
-
-    default:
-        return QStringLiteral("All Files (*)");
+    if (fontName.length() < 1 || fontName.length() > 64) {
+        SetError(error, QStringLiteral("Font name must contain 1 to 64 characters."));
+        return false;
     }
+
+    for (const QChar ch : fontName) {
+        const ushort value = ch.unicode();
+        const bool valid = (value >= 'A' && value <= 'Z')
+            || (value >= 'a' && value <= 'z')
+            || (value >= '0' && value <= '9')
+            || value == '_'
+            || value == '-';
+        if (!valid) {
+            SetError(error, QStringLiteral("Font name may only contain letters, digits, '_' and '-'."));
+            return false;
+        }
+    }
+
+    return true;
 }
 
 bool Project::validateResourceFileName(ProjectResourceType type, const QString& fileName, QString* error)
@@ -355,40 +342,6 @@ bool Project::ensureDirectories(QString* error) const
         SetError(error, QStringLiteral("Failed to create project asset directories."));
         return false;
     }
-    return true;
-}
-
-bool Project::writeFileFromFile(const QString& sourcePath, const QString& targetPath, QString* error) const
-{
-    QFile source(sourcePath);
-    if (!source.open(QIODevice::ReadOnly)) {
-        SetError(error, QStringLiteral("Failed to open source file."));
-        return false;
-    }
-
-    QSaveFile target(targetPath);
-    if (!target.open(QIODevice::WriteOnly)) {
-        SetError(error, QStringLiteral("Failed to open target file."));
-        return false;
-    }
-
-    while (!source.atEnd()) {
-        const QByteArray chunk = source.read(kCopyBufferSize);
-        if (chunk.isEmpty() && source.error() != QFile::NoError) {
-            SetError(error, QStringLiteral("Failed to read source file."));
-            return false;
-        }
-        if (target.write(chunk) != chunk.size()) {
-            SetError(error, QStringLiteral("Failed to write target file."));
-            return false;
-        }
-    }
-
-    if (!target.commit()) {
-        SetError(error, QStringLiteral("Failed to save target file."));
-        return false;
-    }
-
     return true;
 }
 

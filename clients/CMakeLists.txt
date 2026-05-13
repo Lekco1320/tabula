@@ -28,6 +28,8 @@ target_sources(tabula-host PRIVATE
     resources.qrc
     controls/Utils.cpp
     controls/Utils.hpp
+    project/EpdStreamAdapter.cpp
+    project/EpdStreamAdapter.hpp
     project/Project.cpp
     project/Project.hpp)
 
@@ -62,18 +64,32 @@ target_sources(tabula-host PRIVATE
     controls/widgets/CanvasPreviewer.hpp
     controls/widgets/ColorButton.cpp
     controls/widgets/ColorButton.hpp
+    controls/widgets/FontGlyphGridWidget.cpp
+    controls/widgets/FontGlyphGridWidget.hpp
+    controls/widgets/FontGlyphImage.cpp
+    controls/widgets/FontGlyphImage.hpp
+    controls/widgets/FontGlyphPreviewWidget.cpp
+    controls/widgets/FontGlyphPreviewWidget.hpp
     controls/widgets/FlowLayout.cpp
     controls/widgets/FlowLayout.hpp)
 
 target_sources(tabula-host PRIVATE
+    controls/workspaces/CanvasWorkspace.cpp
+    controls/workspaces/CanvasWorkspace.hpp
+    controls/workspaces/FontWorkspace.cpp
+    controls/workspaces/FontWorkspace.hpp
+    controls/workspaces/ResourceWorkspace.cpp
+    controls/workspaces/ResourceWorkspace.hpp)
+
+target_sources(tabula-host PRIVATE
+    controls/windows/AddGlyphDialog.cpp
+    controls/windows/AddGlyphDialog.hpp
     controls/windows/MainWindow.cpp
     controls/windows/MainWindow.hpp
-    controls/windows/PreviewWindow.cpp
-    controls/windows/PreviewWindow.hpp
+    controls/windows/NewFontDialog.cpp
+    controls/windows/NewFontDialog.hpp
     controls/windows/ProjectDialog.cpp
     controls/windows/ProjectDialog.hpp
-    controls/windows/ResourceEditDialog.cpp
-    controls/windows/ResourceEditDialog.hpp
     controls/windows/SetupDialog.cpp
     controls/windows/SetupDialog.hpp)
 

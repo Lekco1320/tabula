@@ -101,6 +101,14 @@ int16_t epd_gfx_glyph_get_yoffset(const epd_gfx_glyph_t glyph);
  */
 int16_t epd_gfx_glyph_get_advance(const epd_gfx_glyph_t glyph);
 
+/**
+ * @brief Get glyph bitmap data.
+ *
+ * @param glyph Glyph handle.
+ * @return Pointer to the glyph bitmap data, or NULL if glyph is null or empty.
+ */
+const uint8_t* epd_gfx_glyph_get_data(const epd_gfx_glyph_t glyph);
+
 #ifdef __cplusplus
 }
 #endif

@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <epd_core/common.h>
 
+#include <epd_gfx/font_asset.h>
 #include <epd_gfx/glyph.h>
 
 #ifdef __cplusplus
@@ -56,6 +57,17 @@ epd_err_t epd_gfx_sfnt_font_create(const epd_gfx_sfnt_font_config_t* config, epd
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
 epd_err_t epd_gfx_sfnt_font_destroy(epd_gfx_sfnt_font_t font);
+
+/**
+ * @brief Get size metrics from a SFNT font instance.
+ *
+ * @param font SFNT font handle.
+ * @param size Font pixel size represented by the SFNT font instance.
+ * @param out_config Pointer to receive the size metrics.
+ * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
+ */
+epd_err_t epd_gfx_sfnt_font_get_size_config(const epd_gfx_sfnt_font_t font,
+    uint16_t size, epd_gfx_font_asset_size_config_t* out_config);
 
 /**
  * @brief Render a glyph from a font using threshold/bias settings.

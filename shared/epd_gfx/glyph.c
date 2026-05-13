@@ -73,7 +73,7 @@ epd_err_t epd_gfx_glyph_destroy(epd_gfx_glyph_t glyph)
         glyph->data = NULL;
     }
     free(glyph);
-    
+
     return EPD_OK;
 }
 
@@ -100,4 +100,9 @@ int16_t epd_gfx_glyph_get_yoffset(const epd_gfx_glyph_t glyph)
 int16_t epd_gfx_glyph_get_advance(const epd_gfx_glyph_t glyph)
 {
     return (glyph ? glyph->advance : 0);
+}
+
+const uint8_t* epd_gfx_glyph_get_data(const epd_gfx_glyph_t glyph)
+{
+    return (glyph ? glyph->data : NULL);
 }

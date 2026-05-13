@@ -1,82 +1,105 @@
 ﻿/**
  * @file MainWindow.cpp
  * @brief Main window implementation for the tabula desktop client.
- * 
+ *
  * @author Lukaß Zhang <lekco_1320@qq.com>
  * @date 2025-12-9
  * @license MIT
  */
 
-#include <QFileDialog>
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QIcon>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QSizePolicy>
+#include <QStackedWidget>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 #include <QWidget>
-#include <epd_gfx/canvas.h>
 #include <oclero/qlementine/widgets/Label.hpp>
+#include <epd_gfx/canvas.h>
 
 #include "controls/windows/MainWindow.hpp"
-#include "controls/windows/PreviewWindow.hpp"
-#include "controls/windows/ResourceEditDialog.hpp"
+#include "controls/windows/NewFontDialog.hpp"
+#include "controls/workspaces/CanvasWorkspace.hpp"
+#include "controls/workspaces/FontWorkspace.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 
-namespace {
+BEGIN_NAMESPACE()
 
 constexpr int kResourceTypeRole = Qt::UserRole + 1;
 constexpr int kResourceFileRole = Qt::UserRole + 2;
+constexpr int kAssetsPaneWidth  = 240;
+constexpr int kWorkspaceMinW    = 1050;
+constexpr int kWorkspaceMinH    = 750;
 
-} // namespace
+END_NAMESPACE
 
-MainWindow::MainWindow(const Project& project, QWidget *parent)
+MainWindow::MainWindow(const Project& project, QWidget* parent)
     : QMainWindow(parent)
     , m_project(project)
 {
-    setFixedSize(QSize { 320, 520 });
+    setMinimumSize(QSize { kAssetsPaneWidth + kWorkspaceMinW, kWorkspaceMinH });
     setWindowTitle(QFileInfo(m_project.rootDir()).fileName());
 
     auto* central = new QWidget(this);
-    auto* layout  = new QVBoxLayout(central);
-    layout->setContentsMargins(10, 10, 10, 10);
-    layout->setSpacing(8);
+    auto* root    = new QHBoxLayout(central);
+    root->setContentsMargins(0, 0, 0, 0);
+    root->setSpacing(0);
+
+    auto* assetsPane = new QWidget(central);
+    assetsPane->setFixedWidth(kAssetsPaneWidth);
+    assetsPane->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+    auto* assetsLayout = new QVBoxLayout(assetsPane);
+    assetsLayout->setContentsMargins(10, 10, 10, 10);
+    assetsLayout->setSpacing(8);
 
     auto* assetsLabel = new oclero::qlementine::Label(
         QStringLiteral("Assets"),
         oclero::qlementine::TextRole::H5,
-        central);
-    layout->addWidget(assetsLabel);
+        assetsPane);
+    assetsLayout->addWidget(assetsLabel);
 
-    m_resourceTree = new QTreeWidget(central);
+    m_resourceTree = new QTreeWidget(assetsPane);
     m_resourceTree->setHeaderHidden(true);
-    layout->addWidget(m_resourceTree, 1);
+    assetsLayout->addWidget(m_resourceTree, 1);
     connect(m_resourceTree, &QTreeWidget::currentItemChanged, this, [this]() {
+        updateWorkspace();
         updateResourceButtons();
     });
 
-    auto* buttonRow    = new QWidget(central);
+    auto* buttonRow    = new QWidget(assetsPane);
     auto* buttonLayout = new QHBoxLayout(buttonRow);
     buttonLayout->setContentsMargins(0, 0, 0, 0);
     buttonLayout->setSpacing(6);
 
     m_addButton    = new QPushButton(QStringLiteral("Add"), buttonRow);
-    m_editButton   = new QPushButton(QStringLiteral("Edit"), buttonRow);
     m_deleteButton = new QPushButton(QStringLiteral("Delete"), buttonRow);
     buttonLayout->addWidget(m_addButton);
-    buttonLayout->addWidget(m_editButton);
     buttonLayout->addWidget(m_deleteButton);
-    layout->addWidget(buttonRow);
+    assetsLayout->addWidget(buttonRow);
 
-    m_previewButton = new QPushButton(QStringLiteral("Preview"), central);
-    layout->addWidget(m_previewButton);
+    const ProjectScreen screen = m_project.screen();
+    epd_gfx_canvas_config_t config;
+    config.width    = static_cast<uint16_t>(screen.width);
+    config.height   = static_cast<uint16_t>(screen.height);
+    config.format   = EPD_GFX_FORMAT_NATIVE;
+    config.rotation = EPD_GFX_ROTATE_0;
+
+    m_workspaceStack  = new QStackedWidget(central);
+    m_canvasWorkspace = new CanvasWorkspace(config, m_workspaceStack);
+    m_fontWorkspace   = new FontWorkspace(m_workspaceStack);
+    m_workspaceStack->addWidget(m_canvasWorkspace);
+    m_workspaceStack->addWidget(m_fontWorkspace);
+    m_workspaceStack->setCurrentWidget(m_canvasWorkspace);
 
     connect(m_addButton, &QPushButton::clicked, this, &MainWindow::addSelectedResource);
-    connect(m_editButton, &QPushButton::clicked, this, &MainWindow::editSelectedResource);
     connect(m_deleteButton, &QPushButton::clicked, this, &MainWindow::deleteSelectedResource);
-    connect(m_previewButton, &QPushButton::clicked, this, &MainWindow::openPreviewWindow);
+
+    root->addWidget(assetsPane);
+    root->addWidget(m_workspaceStack, 1);
 
     setCentralWidget(central);
     refreshResourceTree();
@@ -111,13 +134,51 @@ void MainWindow::addResources(ProjectResourceType type, QTreeWidgetItem* parentI
     }
 }
 
+void MainWindow::selectResource(ProjectResourceType type, const QString& fileName)
+{
+    for (int i = 0; i < m_resourceTree->topLevelItemCount(); ++i) {
+        QTreeWidgetItem* category = m_resourceTree->topLevelItem(i);
+        if (static_cast<ProjectResourceType>(category->data(0, kResourceTypeRole).toInt()) != type) {
+            continue;
+        }
+
+        for (int j = 0; j < category->childCount(); ++j) {
+            QTreeWidgetItem* item = category->child(j);
+            if (item->data(0, kResourceFileRole).toString() == fileName) {
+                m_resourceTree->setCurrentItem(item);
+                return;
+            }
+        }
+    }
+}
+
+void MainWindow::updateWorkspace()
+{
+    const ProjectResourceType type     = selectedResourceType();
+    const QString             fileName = selectedResourceFileName();
+    if (type == ProjectResourceType::Fonts && !fileName.isEmpty()) {
+        const QVector<ProjectResource> resources = m_project.resources(type);
+        for (const ProjectResource& resource : resources) {
+            if (resource.fileName == fileName) {
+                if (m_fontWorkspace->resourcePath() != resource.absolutePath) {
+                    m_fontWorkspace->setResource(resource);
+                }
+                m_workspaceStack->setCurrentWidget(m_fontWorkspace);
+                return;
+            }
+        }
+    }
+
+    m_fontWorkspace->clearResource();
+    m_workspaceStack->setCurrentWidget(m_canvasWorkspace);
+}
+
 void MainWindow::updateResourceButtons()
 {
     const ProjectResourceType type = selectedResourceType();
-    const bool hasType = type != ProjectResourceType::Unknown;
-    const bool hasResource = selectedItemIsResource();
+    const bool                hasType     = type != ProjectResourceType::Unknown;
+    const bool                hasResource = selectedItemIsResource();
     m_addButton->setEnabled(hasType);
-    m_editButton->setEnabled(hasResource);
     m_deleteButton->setEnabled(hasResource);
 }
 
@@ -128,47 +189,30 @@ void MainWindow::addSelectedResource()
         return;
     }
 
-    const QString file = QFileDialog::getOpenFileName(this, QStringLiteral("Add %1").arg(Project::displayName(type)),
-        QString(), Project::fileDialogFilter(type));
-    if (file.isEmpty()) {
+    if (type == ProjectResourceType::Fonts) {
+        NewFontDialog dialog(this);
+        if (dialog.exec() != QDialog::Accepted) {
+            return;
+        }
+
+        QString fileName;
+        QString error;
+        if (!m_project.createFontResource(dialog.fontName(), &fileName, &error)) {
+            QMessageBox::critical(this, QStringLiteral("Font Error"), error);
+            return;
+        }
+
+        refreshResourceTree();
+        selectResource(type, fileName);
+        updateResourceButtons();
         return;
     }
-
-    QString error;
-    if (!m_project.addResourceFromFile(type, file, &error)) {
-        QMessageBox::critical(this, QStringLiteral("Asset Error"), error);
-        return;
-    }
-
-    refreshResourceTree();
-}
-
-void MainWindow::editSelectedResource()
-{
-    const ProjectResourceType type = selectedResourceType();
-    const QString fileName = selectedResourceFileName();
-    if (type == ProjectResourceType::Unknown || fileName.isEmpty()) {
-        return;
-    }
-
-    ResourceEditDialog dialog(type, fileName, this);
-    if (dialog.exec() != QDialog::Accepted) {
-        return;
-    }
-
-    QString error;
-    if (!m_project.updateResource(type, fileName, dialog.fileName(), dialog.replacementPath(), &error)) {
-        QMessageBox::critical(this, QStringLiteral("Asset Error"), error);
-        return;
-    }
-
-    refreshResourceTree();
 }
 
 void MainWindow::deleteSelectedResource()
 {
-    const ProjectResourceType type = selectedResourceType();
-    const QString fileName = selectedResourceFileName();
+    const ProjectResourceType type     = selectedResourceType();
+    const QString             fileName = selectedResourceFileName();
     if (type == ProjectResourceType::Unknown || fileName.isEmpty()) {
         return;
     }
@@ -186,28 +230,6 @@ void MainWindow::deleteSelectedResource()
     }
 
     refreshResourceTree();
-}
-
-void MainWindow::openPreviewWindow()
-{
-    if (!m_previewWindow) {
-        const ProjectScreen screen = m_project.screen();
-
-        epd_gfx_canvas_config_t config;
-        config.width    = static_cast<uint16_t>(screen.width);
-        config.height   = static_cast<uint16_t>(screen.height);
-        config.format   = EPD_GFX_FORMAT_NATIVE;
-        config.rotation = EPD_GFX_ROTATE_0;
-
-        m_previewWindow = new PreviewWindow(config, this);
-        connect(m_previewWindow, &QObject::destroyed, this, [this]() {
-            m_previewWindow = nullptr;
-        });
-    }
-
-    m_previewWindow->show();
-    m_previewWindow->raise();
-    m_previewWindow->activateWindow();
 }
 
 ProjectResourceType MainWindow::selectedResourceType() const
