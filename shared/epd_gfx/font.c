@@ -8,9 +8,11 @@
  */
 
 #include <stdlib.h>
+#include <epd_gfx/egf.h>
+#include <epd_gfx/font.h>
 
-#include "epd_gfx/font.h"
 #include "epd_gfx/font_impl.h"
+#include "epd_gfx/glyph_impl.h"
 
 static epd_err_t epd_gfx_font_lower_bound_size(const epd_stream_t* stream, uint32_t size_count, uint16_t target_size,
     uint32_t* out_index, epd_gfx_egf_size_record_t* out_record, bool* out_exact)

@@ -9,32 +9,31 @@
 
 #pragma once
 
-#ifndef _EPD_GFX_FONT_ASSET_H_
-#define _EPD_GFX_FONT_ASSET_H_
+#ifndef _EPD_ASSET_FONT_ASSET_H_
+#define _EPD_ASSET_FONT_ASSET_H_
 
 #include <stdint.h>
 #include <epd_core/common.h>
 #include <epd_core/stream.h>
-
-#include "epd_gfx/glyph.h"
+#include <epd_gfx/glyph.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct epd_gfx_font_asset_impl* epd_gfx_font_asset_t;
+typedef struct epd_asset_font_asset_impl* epd_asset_font_asset_t;
 
 typedef struct {
     uint16_t size;
     int16_t  ascent;
     int16_t  descent;
     int16_t  line_height;
-} epd_gfx_font_asset_size_config_t;
+} epd_asset_font_asset_size_config_t;
 
 typedef struct {
     uint32_t codepoint;
     uint16_t size;
-} epd_gfx_font_asset_glyph_key_t;
+} epd_asset_font_asset_glyph_key_t;
 
 /**
  * @brief Create an editable font asset.
@@ -45,7 +44,7 @@ typedef struct {
  * @param out_asset Pointer to the created asset handle.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_gfx_font_asset_create(const char* name, epd_gfx_font_asset_t* out_asset);
+epd_err_t epd_asset_font_asset_create(const char* name, epd_asset_font_asset_t* out_asset);
 
 /**
  * @brief Load an editable font asset from an EGF1 font stream.
@@ -56,7 +55,7 @@ epd_err_t epd_gfx_font_asset_create(const char* name, epd_gfx_font_asset_t* out_
  * @param out_asset Pointer to the created asset handle.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_gfx_font_asset_load_egf(const epd_stream_t* stream, epd_gfx_font_asset_t* out_asset);
+epd_err_t epd_asset_font_asset_load_egf(const epd_stream_t* stream, epd_asset_font_asset_t* out_asset);
 
 /**
  * @brief Destroy a font asset and release its resources.
@@ -64,7 +63,7 @@ epd_err_t epd_gfx_font_asset_load_egf(const epd_stream_t* stream, epd_gfx_font_a
  * @param asset Font asset handle to destroy.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_gfx_font_asset_destroy(epd_gfx_font_asset_t asset);
+epd_err_t epd_asset_font_asset_destroy(epd_asset_font_asset_t asset);
 
 /**
  * @brief Get font sizes stored in a font asset.
@@ -77,7 +76,7 @@ epd_err_t epd_gfx_font_asset_destroy(epd_gfx_font_asset_t asset);
  * @param count Pointer to input capacity and output count.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_gfx_font_asset_get_sizes(const epd_gfx_font_asset_t asset, uint16_t* sizes,
+epd_err_t epd_asset_font_asset_get_sizes(const epd_asset_font_asset_t asset, uint16_t* sizes,
     uint32_t* count);
 
 /**
@@ -92,7 +91,7 @@ epd_err_t epd_gfx_font_asset_get_sizes(const epd_gfx_font_asset_t asset, uint16_
  * @param count Pointer to input capacity and output count.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_gfx_font_asset_get_codepoints(const epd_gfx_font_asset_t asset,
+epd_err_t epd_asset_font_asset_get_codepoints(const epd_asset_font_asset_t asset,
     uint16_t size, uint32_t* codepoints, uint32_t* count);
 
 /**
@@ -102,8 +101,8 @@ epd_err_t epd_gfx_font_asset_get_codepoints(const epd_gfx_font_asset_t asset,
  * @param config Size metrics configuration.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_gfx_font_asset_set_size(epd_gfx_font_asset_t asset,
-    const epd_gfx_font_asset_size_config_t* config);
+epd_err_t epd_asset_font_asset_set_size(epd_asset_font_asset_t asset,
+    const epd_asset_font_asset_size_config_t* config);
 
 /**
  * @brief Get metrics for a font size.
@@ -113,8 +112,8 @@ epd_err_t epd_gfx_font_asset_set_size(epd_gfx_font_asset_t asset,
  * @param out_config Pointer to receive the size metrics.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_gfx_font_asset_get_size_config(const epd_gfx_font_asset_t asset,
-    uint16_t size, epd_gfx_font_asset_size_config_t* out_config);
+epd_err_t epd_asset_font_asset_get_size_config(const epd_asset_font_asset_t asset,
+    uint16_t size, epd_asset_font_asset_size_config_t* out_config);
 
 /**
  * @brief Remove a font size and all glyphs stored under it.
@@ -125,7 +124,7 @@ epd_err_t epd_gfx_font_asset_get_size_config(const epd_gfx_font_asset_t asset,
  * @param size Font pixel size to remove.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_gfx_font_asset_remove_size(epd_gfx_font_asset_t asset, uint16_t size);
+epd_err_t epd_asset_font_asset_remove_size(epd_asset_font_asset_t asset, uint16_t size);
 
 /**
  * @brief Get a glyph copy from a font asset.
@@ -138,8 +137,8 @@ epd_err_t epd_gfx_font_asset_remove_size(epd_gfx_font_asset_t asset, uint16_t si
  * @param out_glyph Pointer to receive the copied glyph handle.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_gfx_font_asset_get_glyph(const epd_gfx_font_asset_t asset,
-    epd_gfx_font_asset_glyph_key_t key, epd_gfx_glyph_t* out_glyph);
+epd_err_t epd_asset_font_asset_get_glyph(const epd_asset_font_asset_t asset,
+    epd_asset_font_asset_glyph_key_t key, epd_gfx_glyph_t* out_glyph);
 
 /**
  * @brief Add or replace a glyph in a font asset.
@@ -151,8 +150,8 @@ epd_err_t epd_gfx_font_asset_get_glyph(const epd_gfx_font_asset_t asset,
  * @param glyph Glyph bitmap and metrics to copy into the asset.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_gfx_font_asset_add_glyph(epd_gfx_font_asset_t asset,
-    epd_gfx_font_asset_glyph_key_t key, const epd_gfx_glyph_t glyph);
+epd_err_t epd_asset_font_asset_add_glyph(epd_asset_font_asset_t asset,
+    epd_asset_font_asset_glyph_key_t key, const epd_gfx_glyph_t glyph);
 
 /**
  * @brief Remove a glyph from a font asset.
@@ -161,8 +160,8 @@ epd_err_t epd_gfx_font_asset_add_glyph(epd_gfx_font_asset_t asset,
  * @param key Glyph key identifying the glyph to remove.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_gfx_font_asset_remove_glyph(epd_gfx_font_asset_t asset,
-    epd_gfx_font_asset_glyph_key_t key);
+epd_err_t epd_asset_font_asset_remove_glyph(epd_asset_font_asset_t asset,
+    epd_asset_font_asset_glyph_key_t key);
 
 /**
  * @brief Check whether a font asset contains a glyph.
@@ -171,8 +170,8 @@ epd_err_t epd_gfx_font_asset_remove_glyph(epd_gfx_font_asset_t asset,
  * @param key Glyph key identifying the glyph to query.
  * @return true if the glyph exists, otherwise false.
  */
-bool epd_gfx_font_asset_contains_glyph(const epd_gfx_font_asset_t asset,
-    epd_gfx_font_asset_glyph_key_t key);
+bool epd_asset_font_asset_contains_glyph(const epd_asset_font_asset_t asset,
+    epd_asset_font_asset_glyph_key_t key);
 
 /**
  * @brief Write a font asset as an EGF1 font stream.
@@ -183,10 +182,10 @@ bool epd_gfx_font_asset_contains_glyph(const epd_gfx_font_asset_t asset,
  * @param stream Writable stream to receive the EGF1 data.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_gfx_font_asset_write_egf(const epd_gfx_font_asset_t asset, epd_stream_t* stream);
+epd_err_t epd_asset_font_asset_write_egf(const epd_asset_font_asset_t asset, epd_stream_t* stream);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // !_EPD_GFX_FONT_ASSET_H_
+#endif // !_EPD_ASSET_FONT_ASSET_H_

@@ -109,6 +109,23 @@ int16_t epd_gfx_glyph_get_advance(const epd_gfx_glyph_t glyph);
  */
 const uint8_t* epd_gfx_glyph_get_data(const epd_gfx_glyph_t glyph);
 
+/**
+ * @brief Get the byte stride of a 1bpp glyph bitmap row.
+ *
+ * @param width Glyph bitmap width in pixels.
+ * @return Row stride in bytes.
+ */
+uint32_t epd_gfx_glyph_stride(uint16_t width);
+
+/**
+ * @brief Get the byte size of a 1bpp glyph bitmap.
+ *
+ * @param width Glyph bitmap width in pixels.
+ * @param height Glyph bitmap height in pixels.
+ * @return Bitmap data size in bytes.
+ */
+uint32_t epd_gfx_glyph_data_bytes(uint16_t width, uint16_t height);
+
 #ifdef __cplusplus
 }
 #endif

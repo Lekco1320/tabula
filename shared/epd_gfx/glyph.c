@@ -9,8 +9,8 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <epd_gfx/glyph.h>
 
-#include "epd_gfx/glyph.h"
 #include "epd_gfx/glyph_impl.h"
 
 epd_err_t epd_gfx_glyph_create(const epd_gfx_glyph_config_t* config, epd_gfx_glyph_t* out_glyph)
@@ -105,4 +105,14 @@ int16_t epd_gfx_glyph_get_advance(const epd_gfx_glyph_t glyph)
 const uint8_t* epd_gfx_glyph_get_data(const epd_gfx_glyph_t glyph)
 {
     return (glyph ? glyph->data : NULL);
+}
+
+uint32_t epd_gfx_glyph_stride(uint16_t width)
+{
+    return (width + 7U) / 8U;
+}
+
+uint32_t epd_gfx_glyph_data_bytes(uint16_t width, uint16_t height)
+{
+    return epd_gfx_glyph_stride(width) * height;
 }

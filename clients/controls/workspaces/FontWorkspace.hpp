@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include <QString>
 #include <QVector>
-#include <epd_gfx/font_asset.h>
+#include <epd_asset/font_asset.h>
 
 #include "controls/workspaces/ResourceWorkspace.hpp"
 
@@ -54,7 +54,7 @@ private:
     static QString formatCodepoint(uint32_t codepoint);
 
     ProjectResource         m_resource;
-    epd_gfx_font_asset_t    m_asset             = nullptr;
+    epd_asset_font_asset_t    m_asset             = nullptr;
     uint16_t                m_selectedSize      = 0U;
     uint32_t                m_selectedCodepoint = 0U;
     FontGlyphGridWidget*    m_grid              = nullptr;

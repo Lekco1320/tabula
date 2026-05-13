@@ -26,13 +26,12 @@ LEKCO_BEGIN_NAMESPACE
 BEGIN_NAMESPACE()
 
 constexpr int kHeaderHeight   = 36;
-constexpr int kCellSize       = 72;
 constexpr int kCellGap        = 8;
 constexpr int kGlyphPadding   = 8;
-constexpr int kCodepointSpace = 22;
 constexpr int kCachePadding   = 2;
 constexpr int kHeaderMargin   = 12;
 constexpr int kDisclosureSize = 8;
+constexpr int kMinCellSize    = 72;
 
 END_NAMESPACE
 
@@ -43,7 +42,7 @@ FontGlyphGridWidget::FontGlyphGridWidget(QWidget* parent)
     setMouseTracking(true);
 }
 
-void FontGlyphGridWidget::setFontAsset(epd_gfx_font_asset_t asset)
+void FontGlyphGridWidget::setFontAsset(epd_asset_font_asset_t asset)
 {
     m_asset = asset;
     m_cache.clear();
@@ -150,12 +149,13 @@ void FontGlyphGridWidget::paintEvent(QPaintEvent* event)
             continue;
         }
 
-        const int columns = columnCount();
+        const int cellSize = sectionCellSize(section);
+        const int columns  = columnCount(section);
         const int rows    = columns > 0 ? (section.codepoints.size() + columns - 1) / columns : 0;
         for (int row = 0; row < rows; ++row) {
-            const int rowY = y + row * (kCellSize + kCellGap);
-            if (rowY + kCellSize < -kCellSize * kCachePadding
-                || rowY > viewH + kCellSize * kCachePadding) {
+            const int rowY = y + row * (cellSize + kCellGap);
+            if (rowY + cellSize < -cellSize * kCachePadding
+                || rowY > viewH + cellSize * kCachePadding) {
                 continue;
             }
 
@@ -166,7 +166,7 @@ void FontGlyphGridWidget::paintEvent(QPaintEvent* event)
                 }
 
                 const uint32_t codepoint = section.codepoints[index];
-                const QRect   cell       = cellRect(y, index);
+                const QRect   cell       = cellRect(section, y, index);
                 const bool    visible    = cell.bottom() >= 0 && cell.top() <= viewH;
                 visibleKeys.insert(cacheKey(section.size, codepoint));
 
@@ -183,7 +183,7 @@ void FontGlyphGridWidget::paintEvent(QPaintEvent* event)
                 if (glyph.valid) {
                     const int   scale      = sectionScale(section);
                     const QRect lineRect   = cell.adjusted(kGlyphPadding, kGlyphPadding,
-                        -kGlyphPadding, -kGlyphPadding - kCodepointSpace);
+                        -kGlyphPadding, -kGlyphPadding - codepointTextHeight());
                     const int   lineHeight = qMax(1, static_cast<int>(section.lineHeight)) * scale;
                     const int   lineTop    = lineRect.top() + qMax(0, (lineRect.height() - lineHeight) / 2);
                     const int   baseline   = lineTop + static_cast<int>(section.ascent) * scale;
@@ -206,7 +206,7 @@ void FontGlyphGridWidget::paintEvent(QPaintEvent* event)
                     formatCodepoint(codepoint));
             }
         }
-        y += rows * (kCellSize + kCellGap);
+        y += rows * (cellSize + kCellGap);
     }
 
     pruneCache(visibleKeys);
@@ -231,22 +231,23 @@ void FontGlyphGridWidget::mousePressEvent(QMouseEvent* event)
             continue;
         }
 
-        const int columns = columnCount();
+        const int cellSize = sectionCellSize(section);
+        const int columns  = columnCount(section);
         const int rows    = columns > 0 ? (section.codepoints.size() + columns - 1) / columns : 0;
         const int localY  = event->pos().y() - y;
-        if (localY >= 0 && localY < rows * (kCellSize + kCellGap)) {
-            const int row = localY / (kCellSize + kCellGap);
-            const int col = (event->pos().x() - kCellGap) / (kCellSize + kCellGap);
+        if (localY >= 0 && localY < rows * (cellSize + kCellGap)) {
+            const int row = localY / (cellSize + kCellGap);
+            const int col = (event->pos().x() - kCellGap) / (cellSize + kCellGap);
             if (col >= 0 && col < columns) {
                 const int index = row * columns + col;
-                if (index < section.codepoints.size() && cellRect(y, index).contains(event->pos())) {
+                if (index < section.codepoints.size() && cellRect(section, y, index).contains(event->pos())) {
                     selectGlyph(section.size, section.codepoints[index]);
                     emit glyphSelected(section.size, section.codepoints[index]);
                     return;
                 }
             }
         }
-        y += rows * (kCellSize + kCellGap);
+        y += rows * (cellSize + kCellGap);
     }
 
     clearSelection();
@@ -259,9 +260,10 @@ void FontGlyphGridWidget::resizeEvent(QResizeEvent* event)
     updateScrollRange();
 }
 
-int FontGlyphGridWidget::columnCount() const
+int FontGlyphGridWidget::columnCount(const Section& section) const
 {
-    return qMax(1, (viewport()->width() + kCellGap) / (kCellSize + kCellGap));
+    const int cellSize = sectionCellSize(section);
+    return qMax(1, (viewport()->width() + kCellGap) / (cellSize + kCellGap));
 }
 
 int FontGlyphGridWidget::sectionHeight(const Section& section) const
@@ -270,9 +272,10 @@ int FontGlyphGridWidget::sectionHeight(const Section& section) const
         return kHeaderHeight;
     }
 
-    const int columns = columnCount();
+    const int cellSize = sectionCellSize(section);
+    const int columns  = columnCount(section);
     const int rows    = columns > 0 ? (section.codepoints.size() + columns - 1) / columns : 0;
-    return kHeaderHeight + rows * (kCellSize + kCellGap);
+    return kHeaderHeight + rows * (cellSize + kCellGap);
 }
 
 int FontGlyphGridWidget::contentHeight() const
@@ -287,8 +290,20 @@ int FontGlyphGridWidget::contentHeight() const
 int FontGlyphGridWidget::sectionScale(const Section& section) const
 {
     const int lineHeight      = qMax(1, static_cast<int>(section.lineHeight));
-    const int availableHeight = kCellSize - 2 * kGlyphPadding - kCodepointSpace;
+    const int availableHeight = kMinCellSize - 2 * kGlyphPadding - codepointTextHeight();
     return qMax(1, availableHeight / lineHeight);
+}
+
+int FontGlyphGridWidget::sectionCellSize(const Section& section) const
+{
+    const int scale      = sectionScale(section);
+    const int lineHeight = qMax(1, static_cast<int>(section.lineHeight)) * scale;
+    return qMax(kMinCellSize, lineHeight + 2 * kGlyphPadding + codepointTextHeight());
+}
+
+int FontGlyphGridWidget::codepointTextHeight() const
+{
+    return fontMetrics().height() + 6;
 }
 
 QRect FontGlyphGridWidget::headerRect(int y) const
@@ -296,13 +311,14 @@ QRect FontGlyphGridWidget::headerRect(int y) const
     return QRect(0, y, viewport()->width(), kHeaderHeight);
 }
 
-QRect FontGlyphGridWidget::cellRect(int y, int index) const
+QRect FontGlyphGridWidget::cellRect(const Section& section, int y, int index) const
 {
-    const int columns = columnCount();
-    const int row     = index / columns;
-    const int col     = index % columns;
-    return QRect(col * (kCellSize + kCellGap) + kCellGap, y + row * (kCellSize + kCellGap),
-        kCellSize, kCellSize);
+    const int cellSize = sectionCellSize(section);
+    const int columns  = columnCount(section);
+    const int row      = index / columns;
+    const int col      = index % columns;
+    return QRect(col * (cellSize + kCellGap) + kCellGap, y + row * (cellSize + kCellGap),
+        cellSize, cellSize);
 }
 
 FontGlyphGridWidget::GlyphRenderData FontGlyphGridWidget::glyphRenderData(uint16_t size, uint32_t codepoint)
@@ -316,12 +332,12 @@ FontGlyphGridWidget::GlyphRenderData FontGlyphGridWidget::glyphRenderData(uint16
         return GlyphRenderData();
     }
 
-    epd_gfx_font_asset_glyph_key_t glyphKey;
+    epd_asset_font_asset_glyph_key_t glyphKey;
     glyphKey.codepoint = codepoint;
     glyphKey.size      = size;
 
     epd_gfx_glyph_t glyph = nullptr;
-    if (epd_gfx_font_asset_get_glyph(m_asset, glyphKey, &glyph) != EPD_OK || !glyph) {
+    if (epd_asset_font_asset_get_glyph(m_asset, glyphKey, &glyph) != EPD_OK || !glyph) {
         return GlyphRenderData();
     }
 

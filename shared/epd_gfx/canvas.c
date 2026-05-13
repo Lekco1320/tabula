@@ -15,6 +15,7 @@
 #include "epd_gfx/codec.h"
 #include "epd_gfx/canvas.h"
 #include "epd_gfx/canvas_impl.h"
+#include "epd_gfx/glyph.h"
 #include "epd_gfx/glyph_impl.h"
 
 static EPD_INLINE void swap(uint16_t* a, uint16_t* b)

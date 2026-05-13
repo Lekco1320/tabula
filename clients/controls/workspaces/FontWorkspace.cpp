@@ -21,9 +21,9 @@
 #include <QWidget>
 #include <QtGlobal>
 #include <oclero/qlementine/widgets/Label.hpp>
+#include <epd_asset/font_face.h>
 #include <epd_core/common.h>
 #include <epd_gfx/glyph.h>
-#include <epd_gfx/sfnt_font.h>
 
 #include "controls/widgets/FontGlyphGridWidget.hpp"
 #include "controls/widgets/FontGlyphImage.hpp"
@@ -123,7 +123,7 @@ void FontWorkspace::clearResource()
 {
     m_grid->clear();
     if (m_asset) {
-        epd_gfx_font_asset_destroy(m_asset);
+        epd_asset_font_asset_destroy(m_asset);
         m_asset = nullptr;
     }
 
@@ -145,7 +145,7 @@ void FontWorkspace::loadResource()
 {
     m_grid->clear();
     if (m_asset) {
-        epd_gfx_font_asset_destroy(m_asset);
+        epd_asset_font_asset_destroy(m_asset);
         m_asset = nullptr;
     }
     m_selectedSize      = 0U;
@@ -160,7 +160,7 @@ void FontWorkspace::loadResource()
     }
 
     EpdStreamAdapter stream(&file);
-    epd_err_t ret = epd_gfx_font_asset_load_egf(stream.stream(), &m_asset);
+    epd_err_t ret = epd_asset_font_asset_load_egf(stream.stream(), &m_asset);
     if (ret != EPD_OK) {
         QMessageBox::critical(this, QStringLiteral("Font Error"),
             QStringLiteral("Failed to load font file: %1").arg(ErrorText(ret)));
@@ -186,7 +186,7 @@ bool FontWorkspace::saveResource()
     }
 
     EpdStreamAdapter stream(&file);
-    const epd_err_t ret = epd_gfx_font_asset_write_egf(m_asset, stream.stream());
+    const epd_err_t ret = epd_asset_font_asset_write_egf(m_asset, stream.stream());
     if (ret != EPD_OK || !file.commit()) {
         QMessageBox::critical(this, QStringLiteral("Font Error"),
             QStringLiteral("Failed to save font file: %1").arg(ret == EPD_OK ? QStringLiteral("commit failed") : ErrorText(ret)));
@@ -206,13 +206,13 @@ void FontWorkspace::refreshSections()
     }
 
     uint32_t sizeCount = 0U;
-    if (epd_gfx_font_asset_get_sizes(m_asset, nullptr, &sizeCount) != EPD_OK) {
+    if (epd_asset_font_asset_get_sizes(m_asset, nullptr, &sizeCount) != EPD_OK) {
         m_grid->setSections(sections);
         return;
     }
 
     QVector<uint16_t> sizes(static_cast<int>(sizeCount));
-    if (sizeCount > 0U && epd_gfx_font_asset_get_sizes(m_asset, sizes.data(), &sizeCount) != EPD_OK) {
+    if (sizeCount > 0U && epd_asset_font_asset_get_sizes(m_asset, sizes.data(), &sizeCount) != EPD_OK) {
         m_grid->setSections(sections);
         return;
     }
@@ -220,12 +220,12 @@ void FontWorkspace::refreshSections()
 
     for (uint16_t size : sizes) {
         uint32_t codepointCount = 0U;
-        if (epd_gfx_font_asset_get_codepoints(m_asset, size, nullptr, &codepointCount) != EPD_OK) {
+        if (epd_asset_font_asset_get_codepoints(m_asset, size, nullptr, &codepointCount) != EPD_OK) {
             continue;
         }
 
-        epd_gfx_font_asset_size_config_t sizeConfig;
-        if (epd_gfx_font_asset_get_size_config(m_asset, size, &sizeConfig) != EPD_OK) {
+        epd_asset_font_asset_size_config_t sizeConfig;
+        if (epd_asset_font_asset_get_size_config(m_asset, size, &sizeConfig) != EPD_OK) {
             continue;
         }
 
@@ -236,7 +236,7 @@ void FontWorkspace::refreshSections()
         section.lineHeight = sizeConfig.line_height;
         section.codepoints.resize(static_cast<int>(codepointCount));
         if (codepointCount > 0U
-            && epd_gfx_font_asset_get_codepoints(m_asset, size, section.codepoints.data(), &codepointCount) != EPD_OK) {
+            && epd_asset_font_asset_get_codepoints(m_asset, size, section.codepoints.data(), &codepointCount) != EPD_OK) {
             continue;
         }
         section.codepoints.resize(static_cast<int>(codepointCount));
@@ -277,37 +277,38 @@ void FontWorkspace::addGlyph()
 
     QFile fontFile(dialog.fontPath());
     if (!fontFile.open(QIODevice::ReadOnly)) {
-        QMessageBox::critical(this, QStringLiteral("Glyph Error"), QStringLiteral("Failed to read SFNT font file."));
+        QMessageBox::critical(this, QStringLiteral("Glyph Error"), QStringLiteral("Failed to read source font file."));
         return;
     }
 
     const QByteArray fontData = fontFile.readAll();
     if (fontData.isEmpty()) {
-        QMessageBox::critical(this, QStringLiteral("Glyph Error"), QStringLiteral("SFNT font file is empty."));
+        QMessageBox::critical(this, QStringLiteral("Glyph Error"), QStringLiteral("Source font file is empty."));
         return;
     }
 
     const uint16_t size = dialog.size();
 
-    epd_gfx_sfnt_font_config_t sfntConfig;
-    sfntConfig.data    = reinterpret_cast<const uint8_t*>(fontData.constData());
-    sfntConfig.px_size = size;
+    epd_asset_font_face_config_t faceConfig;
+    faceConfig.data      = reinterpret_cast<const uint8_t*>(fontData.constData());
+    faceConfig.data_size = static_cast<size_t>(fontData.size());
+    faceConfig.px_size   = size;
 
-    epd_gfx_sfnt_font_t sfnt = nullptr;
-    epd_err_t           ret  = epd_gfx_sfnt_font_create(&sfntConfig, &sfnt);
+    epd_asset_font_face_t face = nullptr;
+    epd_err_t             ret  = epd_asset_font_face_create(&faceConfig, &face);
     if (ret != EPD_OK) {
         QMessageBox::critical(this, QStringLiteral("Glyph Error"),
-            QStringLiteral("Failed to open SFNT font: %1").arg(ErrorText(ret)));
+            QStringLiteral("Failed to open source font: %1").arg(ErrorText(ret)));
         return;
     }
 
-    epd_gfx_font_asset_size_config_t sizeConfig;
-    ret = epd_gfx_sfnt_font_get_size_config(sfnt, size, &sizeConfig);
+    epd_asset_font_asset_size_config_t sizeConfig;
+    ret = epd_asset_font_face_get_size_config(face, size, &sizeConfig);
     if (ret == EPD_OK) {
-        ret = epd_gfx_font_asset_set_size(m_asset, &sizeConfig);
+        ret = epd_asset_font_asset_set_size(m_asset, &sizeConfig);
     }
     if (ret != EPD_OK) {
-        epd_gfx_sfnt_font_destroy(sfnt);
+        epd_asset_font_face_destroy(face);
         QMessageBox::critical(this, QStringLiteral("Glyph Error"),
             QStringLiteral("Failed to set font size: %1").arg(ErrorText(ret)));
         loadResource();
@@ -334,37 +335,37 @@ void FontWorkspace::addGlyph()
             break;
         }
 
-        if (!epd_gfx_sfnt_font_contains_glyph(sfnt, codepoint)) {
+        if (!epd_asset_font_face_contains_glyph(face, codepoint)) {
             ++skipped;
             continue;
         }
 
-        epd_gfx_sfnt_font_render_config_t renderConfig;
+        epd_asset_font_face_render_config_t renderConfig;
         renderConfig.codepoint = codepoint;
         renderConfig.threshold = 128U;
         renderConfig.bias      = 0;
 
         epd_gfx_glyph_t glyph = nullptr;
-        ret = epd_gfx_sfnt_font_render_glyph(sfnt, &renderConfig, &glyph);
+        ret = epd_asset_font_face_render_glyph(face, &renderConfig, &glyph);
         if (ret == EPD_ERR_NOT_FOUND) {
             ++skipped;
             continue;
         }
         if (ret != EPD_OK) {
-            epd_gfx_sfnt_font_destroy(sfnt);
+            epd_asset_font_face_destroy(face);
             QMessageBox::critical(this, QStringLiteral("Glyph Error"),
                 QStringLiteral("Failed to render glyph %1: %2").arg(formatCodepoint(codepoint), ErrorText(ret)));
             loadResource();
             return;
         }
 
-        epd_gfx_font_asset_glyph_key_t key;
+        epd_asset_font_asset_glyph_key_t key;
         key.codepoint = codepoint;
         key.size      = size;
-        ret = epd_gfx_font_asset_add_glyph(m_asset, key, glyph);
+        ret = epd_asset_font_asset_add_glyph(m_asset, key, glyph);
         epd_gfx_glyph_destroy(glyph);
         if (ret != EPD_OK) {
-            epd_gfx_sfnt_font_destroy(sfnt);
+            epd_asset_font_face_destroy(face);
             QMessageBox::critical(this, QStringLiteral("Glyph Error"),
                 QStringLiteral("Failed to add glyph %1: %2").arg(formatCodepoint(codepoint), ErrorText(ret)));
             loadResource();
@@ -377,7 +378,7 @@ void FontWorkspace::addGlyph()
         }
     }
     progress.setValue(progress.maximum());
-    epd_gfx_sfnt_font_destroy(sfnt);
+    epd_asset_font_face_destroy(face);
 
     if (added == 0) {
         loadResource();
@@ -412,10 +413,10 @@ void FontWorkspace::deleteGlyph()
         return;
     }
 
-    epd_gfx_font_asset_glyph_key_t key;
+    epd_asset_font_asset_glyph_key_t key;
     key.codepoint = codepoint;
     key.size      = size;
-    const epd_err_t ret = epd_gfx_font_asset_remove_glyph(m_asset, key);
+    const epd_err_t ret = epd_asset_font_asset_remove_glyph(m_asset, key);
     if (ret != EPD_OK) {
         QMessageBox::critical(this, QStringLiteral("Glyph Error"),
             QStringLiteral("Failed to delete glyph: %1").arg(ErrorText(ret)));
@@ -429,10 +430,10 @@ void FontWorkspace::deleteGlyph()
     bool     hasAdjacent       = false;
     uint32_t adjacentCodepoint = 0U;
     uint32_t codepointCount    = 0U;
-    if (epd_gfx_font_asset_get_codepoints(m_asset, size, nullptr, &codepointCount) == EPD_OK
+    if (epd_asset_font_asset_get_codepoints(m_asset, size, nullptr, &codepointCount) == EPD_OK
         && codepointCount > 0U) {
         QVector<uint32_t> codepoints(static_cast<int>(codepointCount));
-        if (epd_gfx_font_asset_get_codepoints(m_asset, size, codepoints.data(), &codepointCount) == EPD_OK) {
+        if (epd_asset_font_asset_get_codepoints(m_asset, size, codepoints.data(), &codepointCount) == EPD_OK) {
             codepoints.resize(static_cast<int>(codepointCount));
             adjacentCodepoint = codepoints.last();
             for (uint32_t value : codepoints) {
@@ -467,19 +468,19 @@ void FontWorkspace::updateGlyphDetails(uint16_t size, uint32_t codepoint)
         return;
     }
 
-    epd_gfx_font_asset_glyph_key_t key;
+    epd_asset_font_asset_glyph_key_t key;
     key.codepoint = codepoint;
     key.size      = size;
 
     epd_gfx_glyph_t glyph = nullptr;
-    epd_err_t       ret   = epd_gfx_font_asset_get_glyph(m_asset, key, &glyph);
+    epd_err_t       ret   = epd_asset_font_asset_get_glyph(m_asset, key, &glyph);
     if (ret != EPD_OK || !glyph) {
         clearGlyphSelection();
         return;
     }
 
-    epd_gfx_font_asset_size_config_t sizeConfig;
-    ret = epd_gfx_font_asset_get_size_config(m_asset, size, &sizeConfig);
+    epd_asset_font_asset_size_config_t sizeConfig;
+    ret = epd_asset_font_asset_get_size_config(m_asset, size, &sizeConfig);
     if (ret != EPD_OK) {
         epd_gfx_glyph_destroy(glyph);
         clearGlyphSelection();

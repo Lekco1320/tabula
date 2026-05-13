@@ -14,7 +14,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSaveFile>
-#include <epd_gfx/font_asset.h>
+#include <epd_asset/font_asset.h>
 
 #include "project/EpdStreamAdapter.hpp"
 #include "project/Project.hpp"
@@ -163,13 +163,13 @@ bool Project::createFontResource(const QString& fontName, QString* outFileName, 
 
     EpdStreamAdapter stream(&target);
 
-    const QByteArray     identity = fontName.toUtf8();
-    epd_gfx_font_asset_t asset    = nullptr;
-    epd_err_t            ret      = epd_gfx_font_asset_create(identity.constData(), &asset);
+    const QByteArray       identity = fontName.toUtf8();
+    epd_asset_font_asset_t asset    = nullptr;
+    epd_err_t              ret      = epd_asset_font_asset_create(identity.constData(), &asset);
     if (ret == EPD_OK) {
-        ret = epd_gfx_font_asset_write_egf(asset, stream.stream());
+        ret = epd_asset_font_asset_write_egf(asset, stream.stream());
     }
-    epd_gfx_font_asset_destroy(asset);
+    epd_asset_font_asset_destroy(asset);
     if (ret != EPD_OK) {
         SetError(error, QStringLiteral("Failed to write font file."));
         return false;

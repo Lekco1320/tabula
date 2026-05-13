@@ -105,6 +105,7 @@ target_link_libraries(tabula-host PRIVATE
     Qt6::Widgets
     Qt6::Svg
     qlementine
+    epd_asset
     epd_gfx
     epd_core)
 
