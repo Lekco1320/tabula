@@ -38,18 +38,13 @@ typedef struct {
 /**
  * @brief Create an editable font asset.
  *
- * The asset uses `name` to derive the font identity hash written into the EGF header.
- *
- * @param name Font identity string, or NULL for an anonymous asset.
  * @param out_asset Pointer to the created asset handle.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_asset_font_asset_create(const char* name, epd_asset_font_asset_t* out_asset);
+epd_err_t epd_asset_font_asset_create(epd_asset_font_asset_t* out_asset);
 
 /**
  * @brief Load an editable font asset from an EGF1 font stream.
- *
- * The asset keeps the EGF header hash; the original identity string cannot be recovered.
  *
  * @param stream Stream providing the EGF1 font data.
  * @param out_asset Pointer to the created asset handle.

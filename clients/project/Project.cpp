@@ -7,7 +7,6 @@
  * @license MIT
  */
 
-#include <QByteArray>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -15,6 +14,7 @@
 #include <QJsonObject>
 #include <QSaveFile>
 #include <epd_asset/font_asset.h>
+#include <epd_gfx/egf.h>
 
 #include "project/EpdStreamAdapter.hpp"
 #include "project/Project.hpp"
@@ -163,9 +163,8 @@ bool Project::createFontResource(const QString& fontName, QString* outFileName, 
 
     EpdStreamAdapter stream(&target);
 
-    const QByteArray       identity = fontName.toUtf8();
-    epd_asset_font_asset_t asset    = nullptr;
-    epd_err_t              ret      = epd_asset_font_asset_create(identity.constData(), &asset);
+    epd_asset_font_asset_t asset = nullptr;
+    epd_err_t              ret   = epd_asset_font_asset_create(&asset);
     if (ret == EPD_OK) {
         ret = epd_asset_font_asset_write_egf(asset, stream.stream());
     }
@@ -213,6 +212,9 @@ QVector<ProjectResource> Project::resources(ProjectResourceType type) const
     const QFileInfoList files = dir.entryInfoList(QDir::Files | QDir::Readable, QDir::Name);
     for (const QFileInfo& file : files) {
         if (!validateResourceFileName(type, file.fileName())) {
+            continue;
+        }
+        if (type == ProjectResourceType::Fonts && !isValidFontResource(file.absoluteFilePath())) {
             continue;
         }
 
@@ -343,6 +345,26 @@ bool Project::ensureDirectories(QString* error) const
         return false;
     }
     return true;
+}
+
+bool Project::isValidFontResource(const QString& path) const
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return false;
+    }
+
+    EpdStreamAdapter stream(&file);
+    epd_gfx_egf_header_t header = {};
+    if (!epd_gfx_egf_read_header(stream.stream(), &header) || !epd_gfx_egf_check_magic(&header)) {
+        return false;
+    }
+
+    const quint64 expectedSize = EPD_GFX_EGF_HEADER_BYTES
+        + static_cast<quint64>(header.size_count) * EPD_GFX_EGF_SIZE_RECORD_BYTES
+        + static_cast<quint64>(header.glyph_count) * EPD_GFX_EGF_GLYPH_INDEX_BYTES
+        + header.data_count;
+    return static_cast<quint64>(file.size()) == expectedSize;
 }
 
 QString Project::resourcePath(ProjectResourceType type, const QString& fileName) const

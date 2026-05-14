@@ -156,8 +156,14 @@ void MainWindow::updateWorkspace()
 {
     const ProjectResourceType type     = selectedResourceType();
     const QString             fileName = selectedResourceFileName();
-    if (type == ProjectResourceType::Fonts && !fileName.isEmpty()) {
+    if (type == ProjectResourceType::Fonts) {
         const QVector<ProjectResource> resources = m_project.resources(type);
+        if (fileName.isEmpty()) {
+            m_fontWorkspace->setFontResources(resources);
+            m_workspaceStack->setCurrentWidget(m_fontWorkspace);
+            return;
+        }
+
         for (const ProjectResource& resource : resources) {
             if (resource.fileName == fileName) {
                 if (m_fontWorkspace->resourcePath() != resource.absolutePath) {

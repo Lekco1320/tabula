@@ -7,6 +7,7 @@
  * @license MIT
  */
 
+#include <QComboBox>
 #include <QDialogButtonBox>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -90,11 +91,43 @@ AddGlyphDialog::AddGlyphDialog(QWidget* parent)
     m_codepointStack->addWidget(singleRow);
     m_codepointStack->addWidget(rangeRow);
 
+    m_renderModeCombo = new QComboBox(this);
+    m_renderModeCombo->addItem(QStringLiteral("Monochrome"),
+        EPD_ASSET_FONT_FACE_RENDER_MONO);
+    m_renderModeCombo->addItem(QStringLiteral("Grayscale Threshold"),
+        EPD_ASSET_FONT_FACE_RENDER_GRAY_THRESHOLD);
+    connect(m_renderModeCombo, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+        this, &AddGlyphDialog::updateRenderMode);
+
+    auto* grayParams      = new QWidget(this);
+    auto* grayParamLayout = new QFormLayout(grayParams);
+    grayParamLayout->setContentsMargins(0, 0, 0, 0);
+
+    m_thresholdSpin = new QSpinBox(grayParams);
+    m_thresholdSpin->setRange(0, 255);
+    m_thresholdSpin->setValue(128);
+
+    m_biasSpin = new QSpinBox(grayParams);
+    m_biasSpin->setRange(-128, 127);
+    m_biasSpin->setValue(0);
+
+    grayParamLayout->addRow(QStringLiteral("Threshold:"), m_thresholdSpin);
+    grayParamLayout->addRow(QStringLiteral("Bias:"), m_biasSpin);
+
+    m_renderParamStack = new QStackedWidget(this);
+    m_renderParamStack->addWidget(grayParams);
+
     auto* form = new QFormLayout;
     form->addRow(QStringLiteral("Font File:"), fontRow);
     form->addRow(QStringLiteral("Size:"), m_sizeSpin);
     form->addRow(QStringLiteral("Mode:"), modeRow);
     form->addRow(QStringLiteral("Codepoint:"), m_codepointStack);
+    form->addRow(QStringLiteral("Render Mode:"), m_renderModeCombo);
+
+    m_renderParamRow = new QWidget(this);
+    auto* renderParamLayout = new QFormLayout(m_renderParamRow);
+    renderParamLayout->setContentsMargins(0, 0, 0, 0);
+    renderParamLayout->addRow(QStringLiteral("Render Parameters:"), m_renderParamStack);
 
     auto* buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     connect(buttonBox, &QDialogButtonBox::accepted, this, &AddGlyphDialog::accept);
@@ -102,10 +135,12 @@ AddGlyphDialog::AddGlyphDialog(QWidget* parent)
 
     auto* layout = new QVBoxLayout(this);
     layout->addLayout(form);
+    layout->addWidget(m_renderParamRow);
     layout->addWidget(buttonBox);
     setLayout(layout);
 
     updateMode();
+    updateRenderMode();
 }
 
 QString AddGlyphDialog::fontPath() const
@@ -126,6 +161,21 @@ uint32_t AddGlyphDialog::startCodepoint() const
 uint32_t AddGlyphDialog::endCodepoint() const
 {
     return m_endCodepoint;
+}
+
+epd_asset_font_face_render_mode_t AddGlyphDialog::renderMode() const
+{
+    return static_cast<epd_asset_font_face_render_mode_t>(m_renderModeCombo->currentData().toInt());
+}
+
+uint8_t AddGlyphDialog::threshold() const
+{
+    return static_cast<uint8_t>(m_thresholdSpin->value());
+}
+
+int8_t AddGlyphDialog::bias() const
+{
+    return static_cast<int8_t>(m_biasSpin->value());
 }
 
 void AddGlyphDialog::accept()
@@ -178,6 +228,18 @@ void AddGlyphDialog::updateMode()
 {
     const bool single = m_singleRadio->isChecked();
     m_codepointStack->setCurrentIndex(single ? 0 : 1);
+}
+
+void AddGlyphDialog::updateRenderMode(int index)
+{
+    Q_UNUSED(index)
+
+    const bool showParams = renderMode() == EPD_ASSET_FONT_FACE_RENDER_GRAY_THRESHOLD;
+    m_renderParamRow->setVisible(showParams);
+    if (showParams) {
+        m_renderParamStack->setCurrentIndex(0);
+    }
+    adjustSize();
 }
 
 bool AddGlyphDialog::parseCodepoint(const QString& text, uint32_t* out_codepoint)

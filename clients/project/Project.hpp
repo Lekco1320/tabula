@@ -65,6 +65,7 @@ public:
 
 private:
     bool ensureDirectories(QString* error = nullptr) const;
+    bool isValidFontResource(const QString& path) const;
     QString resourcePath(ProjectResourceType type, const QString& fileName) const;
 
     QString       m_rootDir;

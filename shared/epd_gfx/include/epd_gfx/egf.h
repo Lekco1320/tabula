@@ -25,7 +25,7 @@ extern "C" {
 
 #define EPD_GFX_EGF_MAGIC             "EGF1"
 #define EPD_GFX_EGF_MAGIC_BYTES       4U
-#define EPD_GFX_EGF_HEADER_BYTES      24U
+#define EPD_GFX_EGF_HEADER_BYTES      16U
 #define EPD_GFX_EGF_SIZE_TABLE_OFFSET EPD_GFX_EGF_HEADER_BYTES
 #define EPD_GFX_EGF_SIZE_RECORD_BYTES 20U
 #define EPD_GFX_EGF_GLYPH_INDEX_BYTES 18U
@@ -35,7 +35,6 @@ extern "C" {
  */
 typedef struct {
     char     magic[4];
-    uint64_t hash;
     uint32_t size_count;
     uint32_t glyph_count;
     uint32_t data_count;

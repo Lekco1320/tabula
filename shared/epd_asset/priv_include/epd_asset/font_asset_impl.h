@@ -53,8 +53,6 @@ struct epd_asset_font_asset_size_node {
 typedef struct epd_asset_font_asset_size_node* epd_asset_font_asset_size_node_t;
 
 struct epd_asset_font_asset_impl {
-    uint64_t hash;
-
     epd_asset_font_asset_size_node_t size_list;
 };
 

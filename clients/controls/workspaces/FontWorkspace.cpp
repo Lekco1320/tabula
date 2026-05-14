@@ -9,6 +9,7 @@
 
 #include <QByteArray>
 #include <QFile>
+#include <QFileInfo>
 #include <QFont>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -17,12 +18,14 @@
 #include <QPushButton>
 #include <QSaveFile>
 #include <QSizePolicy>
+#include <QStackedWidget>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <QtGlobal>
 #include <oclero/qlementine/widgets/Label.hpp>
 #include <epd_asset/font_face.h>
 #include <epd_core/common.h>
+#include <epd_gfx/egf.h>
 #include <epd_gfx/glyph.h>
 
 #include "controls/widgets/FontGlyphGridWidget.hpp"
@@ -45,31 +48,58 @@ QString ErrorText(epd_err_t err)
     return QString::fromLatin1(epd_err_to_str(err));
 }
 
+QString FormatBytes(qint64 bytes)
+{
+    return QStringLiteral("%1 bytes").arg(bytes);
+}
+
 END_NAMESPACE
 
 FontWorkspace::FontWorkspace(QWidget* parent)
     : ResourceWorkspace(parent)
 {
-    auto* root = new QHBoxLayout(this);
-    root->setContentsMargins(0, 0, 0, 0);
-    root->setSpacing(0);
+    m_contentStack = new QStackedWidget(this);
 
-    m_grid = new FontGlyphGridWidget(this);
+    m_resourcesPage = new QWidget(m_contentStack);
+    auto* resourcesLayout = new QVBoxLayout(m_resourcesPage);
+    resourcesLayout->setContentsMargins(24, 24, 24, 24);
+    resourcesLayout->setSpacing(12);
+    resourcesLayout->addStretch(1);
+
+    m_resourcesTitle = new oclero::qlementine::Label(QStringLiteral("Font Assets"),
+        oclero::qlementine::TextRole::H5, m_resourcesPage);
+    m_resourcesTitle->setAlignment(Qt::AlignCenter);
+    resourcesLayout->addWidget(m_resourcesTitle, 0, Qt::AlignHCenter);
+
+    m_resourcesMetrics = new QLabel(m_resourcesPage);
+    m_resourcesMetrics->setAlignment(Qt::AlignCenter);
+    m_resourcesMetrics->setTextFormat(Qt::RichText);
+    resourcesLayout->setSpacing(6);
+    resourcesLayout->addWidget(m_resourcesMetrics, 0, Qt::AlignHCenter);
+    resourcesLayout->addStretch(1);
+
+    m_editorPage = new QWidget(m_contentStack);
+    auto* editorLayout = new QHBoxLayout(m_editorPage);
+    editorLayout->setContentsMargins(0, 0, 0, 0);
+    editorLayout->setSpacing(0);
+
+    m_grid = new FontGlyphGridWidget(m_editorPage);
     m_grid->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    root->addWidget(m_grid, 1);
+    editorLayout->addWidget(m_grid, 1);
+    connect(m_grid, &FontGlyphGridWidget::sizeSelected, this, &FontWorkspace::selectSize);
     connect(m_grid, &FontGlyphGridWidget::glyphSelected, this, &FontWorkspace::selectGlyph);
     connect(m_grid, &FontGlyphGridWidget::selectionCleared, this, &FontWorkspace::clearGlyphSelection);
 
-    auto* detailsPane = new QWidget(this);
+    auto* detailsPane = new QWidget(m_editorPage);
     detailsPane->setFixedWidth(kDetailsPaneWidth);
     detailsPane->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
     auto* detailsLayout = new QVBoxLayout(detailsPane);
     detailsLayout->setContentsMargins(12, 12, 12, 12);
     detailsLayout->setSpacing(10);
 
-    auto* titleLabel = new oclero::qlementine::Label(QStringLiteral("Glyph Preview"),
+    m_titleLabel = new oclero::qlementine::Label(QStringLiteral("Glyph Preview"),
         oclero::qlementine::TextRole::H5, detailsPane);
-    detailsLayout->addWidget(titleLabel);
+    detailsLayout->addWidget(m_titleLabel);
 
     m_previewWidget = new FontGlyphPreviewWidget(detailsPane);
     m_previewWidget->setFixedSize(kPreviewSize, kPreviewSize);
@@ -95,15 +125,23 @@ FontWorkspace::FontWorkspace(QWidget* parent)
     detailsLayout->addWidget(m_addButton);
     detailsLayout->addWidget(m_deleteButton);
     connect(m_addButton, &QPushButton::clicked, this, &FontWorkspace::addGlyph);
-    connect(m_deleteButton, &QPushButton::clicked, this, &FontWorkspace::deleteGlyph);
+    connect(m_deleteButton, &QPushButton::clicked, this, &FontWorkspace::deleteSelected);
 
-    auto* divider = new QWidget(this);
+    auto* divider = new QWidget(m_editorPage);
     divider->setFixedWidth(1);
     divider->setStyleSheet(QStringLiteral("background-color: #b0b0b0;"));
     divider->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
-    root->addWidget(divider);
-    root->addWidget(detailsPane);
+    editorLayout->addWidget(divider);
+    editorLayout->addWidget(detailsPane);
+    m_contentStack->addWidget(m_resourcesPage);
+    m_contentStack->addWidget(m_editorPage);
+    m_contentStack->setCurrentWidget(m_resourcesPage);
+
+    auto* outer = new QHBoxLayout(this);
+    outer->setContentsMargins(0, 0, 0, 0);
+    outer->setSpacing(0);
+    outer->addWidget(m_contentStack, 1);
     setDetailsEnabled(false);
 }
 
@@ -114,26 +152,24 @@ FontWorkspace::~FontWorkspace()
 
 void FontWorkspace::setResource(const ProjectResource& resource)
 {
-    clearResource();
+    clearLoadedFont();
     m_resource = resource;
+    m_contentStack->setCurrentWidget(m_editorPage);
     loadResource();
+}
+
+void FontWorkspace::setFontResources(const QVector<ProjectResource>& resources)
+{
+    clearLoadedFont();
+    updateFontResourcesSummary(resources);
+    m_contentStack->setCurrentWidget(m_resourcesPage);
 }
 
 void FontWorkspace::clearResource()
 {
-    m_grid->clear();
-    if (m_asset) {
-        epd_asset_font_asset_destroy(m_asset);
-        m_asset = nullptr;
-    }
-
-    m_resource          = ProjectResource();
-    m_selectedSize      = 0U;
-    m_selectedCodepoint = 0U;
-    m_previewWidget->clearGlyph();
-    m_codepointLabel->setText(QStringLiteral("Select a glyph"));
-    m_metricsLabel->clear();
-    setDetailsEnabled(false);
+    clearLoadedFont();
+    m_contentStack->setCurrentWidget(m_resourcesPage);
+    m_resourcesMetrics->clear();
 }
 
 QString FontWorkspace::resourcePath() const
@@ -148,9 +184,11 @@ void FontWorkspace::loadResource()
         epd_asset_font_asset_destroy(m_asset);
         m_asset = nullptr;
     }
+
+    m_selectionKind     = SelectionKind::None;
     m_selectedSize      = 0U;
     m_selectedCodepoint = 0U;
-    clearGlyphSelection();
+    updateFontSummary();
     setDetailsEnabled(false);
 
     QFile file(m_resource.absolutePath);
@@ -170,6 +208,23 @@ void FontWorkspace::loadResource()
     m_grid->setFontAsset(m_asset);
     refreshSections();
     setDetailsEnabled(true);
+    updateFontSummary();
+}
+
+void FontWorkspace::clearLoadedFont()
+{
+    m_grid->clear();
+    if (m_asset) {
+        epd_asset_font_asset_destroy(m_asset);
+        m_asset = nullptr;
+    }
+
+    m_resource          = ProjectResource();
+    m_selectionKind     = SelectionKind::None;
+    m_selectedSize      = 0U;
+    m_selectedCodepoint = 0U;
+    updateFontSummary();
+    setDetailsEnabled(false);
 }
 
 bool FontWorkspace::saveResource()
@@ -247,8 +302,17 @@ void FontWorkspace::refreshSections()
     m_grid->setSections(sections);
 }
 
+void FontWorkspace::selectSize(uint16_t size)
+{
+    m_selectionKind     = SelectionKind::Size;
+    m_selectedSize      = size;
+    m_selectedCodepoint = 0U;
+    updateSizeSummary(size);
+}
+
 void FontWorkspace::selectGlyph(uint16_t size, uint32_t codepoint)
 {
+    m_selectionKind     = SelectionKind::Glyph;
     m_selectedSize      = size;
     m_selectedCodepoint = codepoint;
     updateGlyphDetails(size, codepoint);
@@ -256,11 +320,10 @@ void FontWorkspace::selectGlyph(uint16_t size, uint32_t codepoint)
 
 void FontWorkspace::clearGlyphSelection()
 {
+    m_selectionKind     = SelectionKind::None;
     m_selectedSize      = 0U;
     m_selectedCodepoint = 0U;
-    m_previewWidget->clearGlyph();
-    m_codepointLabel->setText(QStringLiteral("Select a glyph"));
-    m_metricsLabel->clear();
+    updateFontSummary();
     m_deleteButton->setEnabled(false);
 }
 
@@ -342,8 +405,9 @@ void FontWorkspace::addGlyph()
 
         epd_asset_font_face_render_config_t renderConfig;
         renderConfig.codepoint = codepoint;
-        renderConfig.threshold = 128U;
-        renderConfig.bias      = 0;
+        renderConfig.mode      = dialog.renderMode();
+        renderConfig.threshold = dialog.threshold();
+        renderConfig.bias      = dialog.bias();
 
         epd_gfx_glyph_t glyph = nullptr;
         ret = epd_asset_font_face_render_glyph(face, &renderConfig, &glyph);
@@ -399,9 +463,73 @@ void FontWorkspace::addGlyph()
         QStringLiteral("Added %1 glyphs, skipped %2 unsupported codepoints.").arg(added).arg(skipped));
 }
 
-void FontWorkspace::deleteGlyph()
+void FontWorkspace::deleteSelected()
+{
+    if (m_selectionKind == SelectionKind::Size) {
+        deleteSize();
+        return;
+    }
+    if (m_selectionKind == SelectionKind::Glyph) {
+        deleteGlyph();
+    }
+}
+
+void FontWorkspace::deleteSize()
 {
     if (!m_asset || m_selectedSize == 0U) {
+        return;
+    }
+
+    const uint16_t size       = m_selectedSize;
+    uint32_t       glyphCount = 0U;
+    (void)epd_asset_font_asset_get_codepoints(m_asset, size, nullptr, &glyphCount);
+
+    const int result = QMessageBox::question(this, QStringLiteral("Delete Size"),
+        QStringLiteral("Delete size %1 and all %2 glyphs?").arg(size).arg(glyphCount));
+    if (result != QMessageBox::Yes) {
+        return;
+    }
+
+    const epd_err_t ret = epd_asset_font_asset_remove_size(m_asset, size);
+    if (ret != EPD_OK) {
+        QMessageBox::critical(this, QStringLiteral("Font Error"),
+            QStringLiteral("Failed to delete size: %1").arg(ErrorText(ret)));
+        return;
+    }
+
+    if (!saveResource()) {
+        return;
+    }
+
+    uint16_t adjacentSize = 0U;
+    uint32_t sizeCount    = 0U;
+    if (epd_asset_font_asset_get_sizes(m_asset, nullptr, &sizeCount) == EPD_OK && sizeCount > 0U) {
+        QVector<uint16_t> sizes(static_cast<int>(sizeCount));
+        if (epd_asset_font_asset_get_sizes(m_asset, sizes.data(), &sizeCount) == EPD_OK) {
+            sizes.resize(static_cast<int>(sizeCount));
+            adjacentSize = sizes.last();
+            for (uint16_t value : sizes) {
+                if (value > size) {
+                    adjacentSize = value;
+                    break;
+                }
+            }
+        }
+    }
+
+    refreshSections();
+    if (adjacentSize != 0U) {
+        selectSize(adjacentSize);
+        m_grid->selectSize(adjacentSize);
+    } else {
+        m_grid->clearSelection();
+        clearGlyphSelection();
+    }
+}
+
+void FontWorkspace::deleteGlyph()
+{
+    if (!m_asset || m_selectedSize == 0U || m_selectionKind != SelectionKind::Glyph) {
         return;
     }
 
@@ -451,6 +579,7 @@ void FontWorkspace::deleteGlyph()
         selectGlyph(size, adjacentCodepoint);
         m_grid->selectGlyph(size, adjacentCodepoint);
     } else {
+        m_grid->clearSelection();
         clearGlyphSelection();
     }
 }
@@ -458,7 +587,170 @@ void FontWorkspace::deleteGlyph()
 void FontWorkspace::setDetailsEnabled(bool enabled)
 {
     m_addButton->setEnabled(enabled);
-    m_deleteButton->setEnabled(enabled && m_selectedSize != 0U);
+    m_deleteButton->setEnabled(enabled && m_selectionKind != SelectionKind::None);
+}
+
+void FontWorkspace::updateFontSummary()
+{
+    m_previewWidget->clearGlyph();
+    m_titleLabel->setText(QStringLiteral("Font Summary"));
+    m_titleLabel->setVisible(true);
+    m_previewWidget->setVisible(false);
+    m_codepointLabel->setVisible(false);
+    m_deleteButton->setVisible(false);
+    m_deleteButton->setText(QStringLiteral("Delete Glyph"));
+    m_deleteButton->setEnabled(false);
+
+    if (!m_asset) {
+        m_metricsLabel->clear();
+        return;
+    }
+
+    uint32_t sizeCount = 0U;
+    if (epd_asset_font_asset_get_sizes(m_asset, nullptr, &sizeCount) != EPD_OK) {
+        m_metricsLabel->clear();
+        return;
+    }
+
+    QVector<uint16_t> sizes(static_cast<int>(sizeCount));
+    if (sizeCount > 0U && epd_asset_font_asset_get_sizes(m_asset, sizes.data(), &sizeCount) != EPD_OK) {
+        m_metricsLabel->clear();
+        return;
+    }
+    sizes.resize(static_cast<int>(sizeCount));
+
+    const QFileInfo fileInfo(m_resource.absolutePath);
+    uint32_t glyphCount = 0U;
+    QString  sizeRows;
+    for (uint16_t size : sizes) {
+        uint32_t codepointCount = 0U;
+        if (epd_asset_font_asset_get_codepoints(m_asset, size, nullptr, &codepointCount) != EPD_OK) {
+            continue;
+        }
+
+        glyphCount += codepointCount;
+        sizeRows   += QStringLiteral("<tr><td style=\"padding-left: 12px;\">- Size %1</td><td align=\"right\">%2 glyphs</td></tr>")
+            .arg(size)
+            .arg(codepointCount);
+    }
+
+    m_metricsLabel->setText(QStringLiteral(
+        "<table cellspacing=\"0\" cellpadding=\"2\" width=\"100%\">"
+        "<tr><td>File Size</td><td align=\"right\">%1 bytes</td></tr>"
+        "<tr><td>Sizes</td><td align=\"right\">%2</td></tr>"
+        "<tr><td>Total Glyphs</td><td align=\"right\">%3</td></tr>"
+        "%4"
+        "</table>")
+        .arg(fileInfo.size())
+        .arg(sizeCount)
+        .arg(glyphCount)
+        .arg(sizeRows));
+}
+
+void FontWorkspace::updateFontResourcesSummary(const QVector<ProjectResource>& resources)
+{
+    int     fontCount  = 0;
+    qint64  totalBytes = 0;
+    QString rows;
+
+    for (const ProjectResource& resource : resources) {
+        QFileInfo fileInfo(resource.absolutePath);
+        QFile     file(resource.absolutePath);
+        if (!file.open(QIODevice::ReadOnly)) {
+            continue;
+        }
+
+        EpdStreamAdapter stream(&file);
+        epd_gfx_egf_header_t header = {};
+        if (!epd_gfx_egf_read_header(stream.stream(), &header) || !epd_gfx_egf_check_magic(&header)) {
+            continue;
+        }
+
+        const quint64 expectedSize = EPD_GFX_EGF_HEADER_BYTES
+            + static_cast<quint64>(header.size_count) * EPD_GFX_EGF_SIZE_RECORD_BYTES
+            + static_cast<quint64>(header.glyph_count) * EPD_GFX_EGF_GLYPH_INDEX_BYTES
+            + header.data_count;
+        if (static_cast<quint64>(fileInfo.size()) != expectedSize) {
+            continue;
+        }
+
+        ++fontCount;
+        totalBytes += fileInfo.size();
+        rows += QStringLiteral(
+            "<tr>"
+            "<td style=\"padding-right: 30px;\">%1</td>"
+            "<td align=\"center\" style=\"padding-left: 16px; padding-right: 16px;\">%2</td>"
+            "<td align=\"center\" style=\"padding-left: 16px; padding-right: 16px;\">%3</td>"
+            "<td align=\"right\" style=\"padding-left: 30px;\">%4</td>"
+        "</tr>")
+            .arg(fileInfo.completeBaseName())
+            .arg(header.size_count)
+            .arg(header.glyph_count)
+            .arg(FormatBytes(fileInfo.size()).replace(QStringLiteral("bytes"), QStringLiteral("Bytes")));
+    }
+
+    m_resourcesTitle->setText(QStringLiteral("Font Assets"));
+    m_resourcesMetrics->setText(QStringLiteral(
+        "<div align=\"center\">"
+        "<p>%1 Font%2, %3</p>"
+        "<p>&nbsp;</p>"
+        "<table cellspacing=\"0\" cellpadding=\"1\">"
+        "<tr>"
+        "<th align=\"left\" style=\"padding-right: 30px;\">Name</th>"
+        "<th align=\"center\" style=\"padding-left: 16px; padding-right: 16px;\">Sizes</th>"
+        "<th align=\"center\" style=\"padding-left: 16px; padding-right: 16px;\">Glyphs</th>"
+        "<th align=\"right\" style=\"padding-left: 30px;\">Size</th>"
+        "</tr>"
+        "%4"
+        "</table>"
+        "</div>")
+        .arg(fontCount)
+        .arg(fontCount == 1 ? QString() : QStringLiteral("s"))
+        .arg(FormatBytes(totalBytes).replace(QStringLiteral("bytes"), QStringLiteral("Bytes")))
+        .arg(rows));
+}
+
+void FontWorkspace::updateSizeSummary(uint16_t size)
+{
+    if (!m_asset) {
+        clearGlyphSelection();
+        return;
+    }
+
+    epd_asset_font_asset_size_config_t sizeConfig;
+    epd_err_t ret = epd_asset_font_asset_get_size_config(m_asset, size, &sizeConfig);
+    if (ret != EPD_OK) {
+        clearGlyphSelection();
+        return;
+    }
+
+    uint32_t glyphCount = 0U;
+    ret = epd_asset_font_asset_get_codepoints(m_asset, size, nullptr, &glyphCount);
+    if (ret != EPD_OK) {
+        clearGlyphSelection();
+        return;
+    }
+
+    m_previewWidget->clearGlyph();
+    m_titleLabel->setText(QStringLiteral("Size %1").arg(size));
+    m_titleLabel->setVisible(true);
+    m_previewWidget->setVisible(false);
+    m_codepointLabel->setVisible(false);
+    m_deleteButton->setText(QStringLiteral("Delete Size"));
+    m_deleteButton->setVisible(true);
+    m_deleteButton->setEnabled(true);
+
+    m_metricsLabel->setText(QStringLiteral(
+        "<table cellspacing=\"0\" cellpadding=\"2\" width=\"100%\">"
+        "<tr><td>Glyphs</td><td align=\"right\">%1</td></tr>"
+        "<tr><td>Ascender</td><td align=\"right\">%2 px</td></tr>"
+        "<tr><td>Descender</td><td align=\"right\">%3 px</td></tr>"
+        "<tr><td>Line Height</td><td align=\"right\">%4 px</td></tr>"
+        "</table>")
+        .arg(glyphCount)
+        .arg(sizeConfig.ascent)
+        .arg(sizeConfig.descent)
+        .arg(sizeConfig.line_height));
 }
 
 void FontWorkspace::updateGlyphDetails(uint16_t size, uint32_t codepoint)
@@ -488,6 +780,12 @@ void FontWorkspace::updateGlyphDetails(uint16_t size, uint32_t codepoint)
     }
 
     const QImage glyphImage = toMonoImage(glyph);
+    m_titleLabel->setText(QStringLiteral("Glyph Preview"));
+    m_titleLabel->setVisible(true);
+    m_previewWidget->setVisible(true);
+    m_codepointLabel->setVisible(true);
+    m_deleteButton->setText(QStringLiteral("Delete Glyph"));
+    m_deleteButton->setVisible(true);
     m_previewWidget->setGlyph(glyphImage, epd_gfx_glyph_get_xoffset(glyph),
         epd_gfx_glyph_get_yoffset(glyph), epd_gfx_glyph_get_advance(glyph),
         sizeConfig.ascent, sizeConfig.line_height);

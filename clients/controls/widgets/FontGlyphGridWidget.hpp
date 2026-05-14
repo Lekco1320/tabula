@@ -46,10 +46,12 @@ public:
     void setFontAsset(epd_asset_font_asset_t asset);
     void setSections(const QVector<Section>& sections);
     void clear();
+    void selectSize(uint16_t size);
     void selectGlyph(uint16_t size, uint32_t codepoint);
     void clearSelection();
 
 signals:
+    void sizeSelected(uint16_t size);
     void glyphSelected(uint16_t size, uint32_t codepoint);
     void selectionCleared();
 
@@ -73,7 +75,10 @@ private:
     int sectionScale(const Section& section) const;
     int sectionCellSize(const Section& section) const;
     int codepointTextHeight() const;
+    int gridWidth() const;
     QRect headerRect(int y) const;
+    QRect headerContentRect(const QRect& header) const;
+    QRect disclosureRect(const QRect& header) const;
     QRect cellRect(const Section& section, int y, int index) const;
     GlyphRenderData glyphRenderData(uint16_t size, uint32_t codepoint);
     void updateScrollRange();
@@ -82,11 +87,12 @@ private:
     static QString formatCodepoint(uint32_t codepoint);
     static quint64 cacheKey(uint16_t size, uint32_t codepoint);
 
-    epd_asset_font_asset_t            m_asset             = nullptr;
+    epd_asset_font_asset_t          m_asset             = nullptr;
     QVector<Section>                m_sections;
     QHash<quint64, GlyphRenderData> m_cache;
     uint16_t                        m_selectedSize      = 0U;
     uint32_t                        m_selectedCodepoint = 0U;
+    uint16_t                        m_selectedSizeOnly  = 0U;
 };
 
 LEKCO_END_NAMESPACE

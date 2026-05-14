@@ -11,6 +11,7 @@
 #include <QFont>
 #include <QFrame>
 #include <QMouseEvent>
+#include <QPalette>
 #include <QPainter>
 #include <QScrollBar>
 #include <QSet>
@@ -26,6 +27,7 @@ LEKCO_BEGIN_NAMESPACE
 BEGIN_NAMESPACE()
 
 constexpr int kHeaderHeight   = 36;
+constexpr int kHeaderGap      = 6;
 constexpr int kCellGap        = 8;
 constexpr int kGlyphPadding   = 8;
 constexpr int kCachePadding   = 2;
@@ -62,9 +64,18 @@ void FontGlyphGridWidget::clear()
     m_asset             = nullptr;
     m_selectedSize      = 0U;
     m_selectedCodepoint = 0U;
+    m_selectedSizeOnly  = 0U;
     m_sections.clear();
     m_cache.clear();
     updateScrollRange();
+    viewport()->update();
+}
+
+void FontGlyphGridWidget::selectSize(uint16_t size)
+{
+    m_selectedSize      = 0U;
+    m_selectedCodepoint = 0U;
+    m_selectedSizeOnly  = size;
     viewport()->update();
 }
 
@@ -72,6 +83,7 @@ void FontGlyphGridWidget::selectGlyph(uint16_t size, uint32_t codepoint)
 {
     m_selectedSize      = size;
     m_selectedCodepoint = codepoint;
+    m_selectedSizeOnly  = 0U;
     viewport()->update();
 }
 
@@ -79,6 +91,7 @@ void FontGlyphGridWidget::clearSelection()
 {
     m_selectedSize      = 0U;
     m_selectedCodepoint = 0U;
+    m_selectedSizeOnly  = 0U;
     viewport()->update();
 }
 
@@ -93,11 +106,21 @@ void FontGlyphGridWidget::paintEvent(QPaintEvent* event)
     const int viewH   = viewport()->height();
     int y             = -scrollY;
     QSet<quint64> visibleKeys;
+    const QColor highlightColor = palette().color(QPalette::Highlight);
+    QColor       highlightFill  = highlightColor;
+    highlightFill.setAlpha(36);
 
     for (const Section& section : m_sections) {
         const QRect header = headerRect(y);
         if (header.bottom() >= -kHeaderHeight && header.top() <= viewH + kHeaderHeight) {
-            const QPoint center(kHeaderMargin + kDisclosureSize / 2, header.center().y());
+            const QRect headerContent = headerContentRect(header);
+            if (m_selectedSizeOnly == section.size) {
+                painter.setPen(Qt::NoPen);
+                painter.setBrush(highlightFill);
+                painter.drawRect(headerContent);
+            }
+
+            const QPoint center(kHeaderMargin + kDisclosureSize / 2, headerContent.center().y());
             QPolygon triangle;
             if (section.expanded) {
                 triangle << QPoint(center.x() - kDisclosureSize / 2, center.y() - kDisclosureSize / 4)
@@ -126,7 +149,7 @@ void FontGlyphGridWidget::paintEvent(QPaintEvent* event)
             }
             painter.setFont(titleFont);
             painter.setPen(palette().text().color());
-            const QRect   titleRect = header.adjusted(kHeaderMargin + kDisclosureSize + 8, 0, -kHeaderMargin, 0);
+            const QRect   titleRect = headerContent.adjusted(kHeaderMargin + kDisclosureSize + 8, 0, -kHeaderMargin, 0);
             const QString title     = QStringLiteral("Size %1").arg(section.size);
             painter.drawText(titleRect, Qt::AlignVCenter | Qt::AlignLeft, title);
 
@@ -139,7 +162,7 @@ void FontGlyphGridWidget::paintEvent(QPaintEvent* event)
                 countFont.setPixelSize(basePixelSize);
             }
             painter.setFont(countFont);
-            painter.setPen(QColor(90, 90, 90));
+            painter.setPen(QColor(80, 80, 80));
             painter.drawText(titleRect.adjusted(titleWidth + 10, 0, 0, 0), Qt::AlignVCenter | Qt::AlignLeft,
                 QStringLiteral("%1 glyphs").arg(section.codepoints.size()));
         }
@@ -175,9 +198,11 @@ void FontGlyphGridWidget::paintEvent(QPaintEvent* event)
                 }
 
                 const bool selected = m_selectedSize == section.size && m_selectedCodepoint == codepoint;
-                painter.setPen(selected ? QColor(40, 110, 220) : QColor(180, 180, 180));
-                painter.setBrush(selected ? QColor(220, 235, 255) : QColor(255, 255, 255));
-                painter.drawRoundedRect(cell.adjusted(1, 1, -1, -1), 5, 5);
+                painter.setRenderHint(QPainter::Antialiasing, true);
+                painter.setPen(QPen(selected ? highlightColor : palette().mid().color(), 1.0));
+                painter.setBrush(selected ? highlightFill : palette().base().color());
+                painter.drawRoundedRect(QRectF(cell).adjusted(0.5, 0.5, -0.5, -0.5), 5.0, 5.0);
+                painter.setRenderHint(QPainter::Antialiasing, false);
 
                 const GlyphRenderData glyph = glyphRenderData(section.size, codepoint);
                 if (glyph.valid) {
@@ -220,9 +245,14 @@ void FontGlyphGridWidget::mousePressEvent(QMouseEvent* event)
     for (Section& section : m_sections) {
         const QRect header = headerRect(y);
         if (header.contains(event->pos())) {
-            section.expanded = !section.expanded;
-            updateScrollRange();
-            viewport()->update();
+            if (disclosureRect(header).contains(event->pos())) {
+                section.expanded = !section.expanded;
+                updateScrollRange();
+                viewport()->update();
+            } else {
+                selectSize(section.size);
+                emit sizeSelected(section.size);
+            }
             return;
         }
         y += kHeaderHeight;
@@ -263,7 +293,7 @@ void FontGlyphGridWidget::resizeEvent(QResizeEvent* event)
 int FontGlyphGridWidget::columnCount(const Section& section) const
 {
     const int cellSize = sectionCellSize(section);
-    return qMax(1, (viewport()->width() + kCellGap) / (cellSize + kCellGap));
+    return qMax(1, (gridWidth() + kCellGap) / (cellSize + kCellGap));
 }
 
 int FontGlyphGridWidget::sectionHeight(const Section& section) const
@@ -306,9 +336,26 @@ int FontGlyphGridWidget::codepointTextHeight() const
     return fontMetrics().height() + 6;
 }
 
+int FontGlyphGridWidget::gridWidth() const
+{
+    const int scrollBarWidth = verticalScrollBar()->isVisible() ? verticalScrollBar()->width() : 0;
+    return qMax(1, viewport()->width() - scrollBarWidth);
+}
+
 QRect FontGlyphGridWidget::headerRect(int y) const
 {
-    return QRect(0, y, viewport()->width(), kHeaderHeight);
+    return QRect(0, y, gridWidth(), kHeaderHeight);
+}
+
+QRect FontGlyphGridWidget::headerContentRect(const QRect& header) const
+{
+    return header.adjusted(0, 0, 0, -kHeaderGap);
+}
+
+QRect FontGlyphGridWidget::disclosureRect(const QRect& header) const
+{
+    const QRect content = headerContentRect(header);
+    return QRect(content.left(), content.top(), kHeaderMargin + kDisclosureSize, content.height());
 }
 
 QRect FontGlyphGridWidget::cellRect(const Section& section, int y, int index) const

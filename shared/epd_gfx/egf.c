@@ -38,7 +38,6 @@ bool epd_gfx_egf_read_header(const epd_stream_t* stream, epd_gfx_egf_header_t* h
     }
 
     return epd_gfx_egf_stream_read_exact(stream, header->magic, sizeof(header->magic)) &&
-           epd_gfx_egf_stream_read_exact(stream, &header->hash, sizeof(header->hash)) &&
            epd_gfx_egf_stream_read_exact(stream, &header->size_count, sizeof(header->size_count)) &&
            epd_gfx_egf_stream_read_exact(stream, &header->glyph_count, sizeof(header->glyph_count)) &&
            epd_gfx_egf_stream_read_exact(stream, &header->data_count, sizeof(header->data_count));

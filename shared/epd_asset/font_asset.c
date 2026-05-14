@@ -9,7 +9,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <xxhash.h>
 #include <epd_asset/font_asset.h>
 #include <epd_gfx/egf.h>
 
@@ -160,12 +159,11 @@ static epd_err_t epd_asset_font_asset_write_exact(epd_stream_t* stream, const vo
     return (stream->write(stream->ctx, data, size) == size) ? EPD_OK : EPD_ERR_INVALID_STATE;
 }
 
-static epd_err_t epd_asset_font_asset_write_header(const epd_asset_font_asset_t asset, epd_stream_t* stream,
-    uint32_t size_count, uint32_t glyph_count, uint32_t data_count)
+static epd_err_t epd_asset_font_asset_write_header(epd_stream_t* stream, uint32_t size_count,
+    uint32_t glyph_count, uint32_t data_count)
 {
     epd_err_t ret = EPD_OK;
     EPD_CHECK_RET(epd_asset_font_asset_write_exact(stream, EPD_GFX_EGF_MAGIC, EPD_GFX_EGF_MAGIC_BYTES));
-    EPD_CHECK_RET(epd_asset_font_asset_write_exact(stream, &asset->hash, sizeof(asset->hash)));
     EPD_CHECK_RET(epd_asset_font_asset_write_exact(stream, &size_count, sizeof(size_count)));
     EPD_CHECK_RET(epd_asset_font_asset_write_exact(stream, &glyph_count, sizeof(glyph_count)));
 
@@ -288,7 +286,7 @@ static epd_err_t epd_asset_font_asset_read_glyph_data(const epd_stream_t* stream
     return EPD_OK;
 }
 
-epd_err_t epd_asset_font_asset_create(const char* name, epd_asset_font_asset_t* out_asset)
+epd_err_t epd_asset_font_asset_create(epd_asset_font_asset_t* out_asset)
 {
     if (!out_asset) {
         return EPD_ERR_INVALID_ARG;
@@ -299,7 +297,6 @@ epd_err_t epd_asset_font_asset_create(const char* name, epd_asset_font_asset_t* 
         return EPD_ERR_NO_MEM;
     }
 
-    asset->hash      = name ? XXH3_64bits(name, strlen(name)) : 0U;
     asset->size_list = NULL;
     *out_asset       = asset;
     return EPD_OK;
@@ -329,7 +326,6 @@ epd_err_t epd_asset_font_asset_load_egf(const epd_stream_t* stream, epd_asset_fo
         return EPD_ERR_NO_MEM;
     }
 
-    asset->hash      = header.hash;
     asset->size_list = NULL;
 
     uint32_t glyph_index_table_offset = EPD_GFX_EGF_SIZE_TABLE_OFFSET +
@@ -677,8 +673,7 @@ epd_err_t epd_asset_font_asset_write_egf(const epd_asset_font_asset_t asset, epd
     epd_asset_font_asset_stats_t stats = epd_asset_font_asset_stats(asset);
     epd_err_t                  ret   = EPD_OK;
 
-    EPD_CHECK_RET(epd_asset_font_asset_write_header(asset, stream, stats.size_count, stats.glyph_count,
-        stats.data_count));
+    EPD_CHECK_RET(epd_asset_font_asset_write_header(stream, stats.size_count, stats.glyph_count, stats.data_count));
     EPD_CHECK_RET(epd_asset_font_asset_write_size_table(asset, stream));
     EPD_CHECK_RET(epd_asset_font_asset_write_glyph_index_table(asset, stream));
     return epd_asset_font_asset_write_glyph_data_table(asset, stream);

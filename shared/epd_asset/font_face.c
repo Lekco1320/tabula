@@ -80,6 +80,47 @@ static epd_err_t epd_asset_font_face_render_bitmap(const FT_Bitmap* bitmap,
     return EPD_OK;
 }
 
+static epd_err_t epd_asset_font_face_render_gray_bitmap(const FT_Bitmap* bitmap,
+    uint8_t threshold, int8_t bias, uint8_t** out_data)
+{
+    const uint16_t width  = (uint16_t)bitmap->width;
+    const uint16_t height = (uint16_t)bitmap->rows;
+    const uint16_t stride = (uint16_t)epd_gfx_glyph_stride(width);
+    const uint32_t size   = epd_gfx_glyph_data_bytes(width, height);
+    uint8_t*       data   = (uint8_t*)calloc(1, size);
+    if (!data) {
+        return EPD_ERR_NO_MEM;
+    }
+
+    int32_t pitch     = bitmap->pitch;
+    bool    bottom_up = false;
+    if (pitch < 0) {
+        pitch     = -pitch;
+        bottom_up = true;
+    }
+
+    for (uint16_t y = 0U; y < height; ++y) {
+        uint16_t row       = bottom_up ? (uint16_t)(height - y - 1U) : y;
+        const uint8_t* src = bitmap->buffer + (uint32_t)row * (uint32_t)pitch;
+        uint8_t*       dst = data + (uint32_t)y * stride;
+        for (uint16_t x = 0U; x < width; ++x) {
+            int16_t value = (int16_t)src[x] + (int16_t)bias;
+            if (value < 0) {
+                value = 0;
+            } else if (value > 255) {
+                value = 255;
+            }
+            if ((uint8_t)value >= threshold) {
+                uint16_t dst_index = x / 8U;
+                dst[dst_index] |= (uint8_t)(0x80U >> (x & 7U));
+            }
+        }
+    }
+
+    *out_data = data;
+    return EPD_OK;
+}
+
 epd_err_t epd_asset_font_face_create(const epd_asset_font_face_config_t* config, epd_asset_font_face_t* out_font)
 {
     if (!config || !out_font || !config->data || config->data_size == 0U || config->px_size == 0U) {
@@ -162,7 +203,18 @@ epd_err_t epd_asset_font_face_render_glyph(const epd_asset_font_face_t font,
     if (FT_Get_Char_Index(font->face, config->codepoint) == 0U) {
         return EPD_ERR_NOT_FOUND;
     }
-    if (FT_Load_Char(font->face, config->codepoint, FT_LOAD_RENDER | FT_LOAD_TARGET_MONO) != 0) {
+    int32_t load_flags = FT_LOAD_RENDER;
+    switch (config->mode) {
+        case EPD_ASSET_FONT_FACE_RENDER_MONO:
+            load_flags |= FT_LOAD_TARGET_MONO;
+            break;
+        case EPD_ASSET_FONT_FACE_RENDER_GRAY_THRESHOLD:
+            load_flags |= FT_LOAD_TARGET_NORMAL;
+            break;
+        default:
+            return EPD_ERR_INVALID_ARG;
+    }
+    if (FT_Load_Char(font->face, config->codepoint, load_flags) != 0) {
         return EPD_FAIL;
     }
 
@@ -171,12 +223,24 @@ epd_err_t epd_asset_font_face_render_glyph(const epd_asset_font_face_t font,
     if (bmp->width == 0U || bmp->rows == 0U || !bmp->buffer) {
         return epd_asset_font_face_create_empty_glyph(slot, out_glyph);
     }
-    if (bmp->pixel_mode != FT_PIXEL_MODE_MONO) {
-        return EPD_ERR_NOT_SUPPORTED;
-    }
-
     uint8_t*  data = NULL;
-    epd_err_t ret  = epd_asset_font_face_render_bitmap(bmp, &data);
+    epd_err_t ret  = EPD_OK;
+    switch (config->mode) {
+        case EPD_ASSET_FONT_FACE_RENDER_MONO:
+            if (bmp->pixel_mode != FT_PIXEL_MODE_MONO) {
+                return EPD_ERR_NOT_SUPPORTED;
+            }
+            ret = epd_asset_font_face_render_bitmap(bmp, &data);
+            break;
+        case EPD_ASSET_FONT_FACE_RENDER_GRAY_THRESHOLD:
+            if (bmp->pixel_mode != FT_PIXEL_MODE_GRAY || bmp->num_grays != 256U) {
+                return EPD_ERR_NOT_SUPPORTED;
+            }
+            ret = epd_asset_font_face_render_gray_bitmap(bmp, config->threshold, config->bias, &data);
+            break;
+        default:
+            return EPD_ERR_INVALID_ARG;
+    }
     if (ret != EPD_OK) {
         return ret;
     }

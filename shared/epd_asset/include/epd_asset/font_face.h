@@ -30,16 +30,16 @@ typedef struct {
     uint16_t       px_size;
 } epd_asset_font_face_config_t;
 
+typedef enum {
+    EPD_ASSET_FONT_FACE_RENDER_MONO = 0,
+    EPD_ASSET_FONT_FACE_RENDER_GRAY_THRESHOLD,
+} epd_asset_font_face_render_mode_t;
+
 typedef struct {
-    uint32_t codepoint;
-    uint8_t  threshold;
-    int8_t   bias;
-#if 0
-    uint8_t  bayer_order;
-    uint16_t gamma_q8;
-    int8_t   embolden;
-    uint8_t  oversample;
-#endif
+    uint32_t                          codepoint;
+    epd_asset_font_face_render_mode_t mode;
+    uint8_t                           threshold;
+    int8_t                            bias;
 } epd_asset_font_face_render_config_t;
 
 /**
@@ -71,7 +71,7 @@ epd_err_t epd_asset_font_face_get_size_config(const epd_asset_font_face_t font,
     uint16_t size, epd_asset_font_asset_size_config_t* out_config);
 
 /**
- * @brief Render a monochrome glyph from a font face.
+ * @brief Render a glyph from a font face into EGF-compatible 1bpp bitmap data.
  *
  * @param font Font face handle.
  * @param config Glyph render configuration.
