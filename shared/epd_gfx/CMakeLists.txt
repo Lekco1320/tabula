@@ -5,7 +5,8 @@ set(EPD_GFX_SRCS
     codec.c
     egf.c
     font.c
-    glyph.c)
+    glyph.c
+    text.c)
 
 if(COMMAND idf_component_register)
     idf_component_register(
@@ -29,5 +30,5 @@ else()
         PRIVATE
             $<BUILD_INTERFACE:${EPD_GFX_PRIV_INCLUDE_DIR}>)
     target_link_libraries(epd_gfx PUBLIC epd_core)
-    target_compile_features(epd_gfx PUBLIC c_std_99)
+    target_compile_features(epd_gfx PUBLIC c_std_11)
 endif()

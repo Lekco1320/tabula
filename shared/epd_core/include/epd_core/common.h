@@ -54,7 +54,6 @@ typedef enum {
     EPD_ERR_INVALID_MAC      = 0x10B,  /*!< MAC address was invalid */
     EPD_ERR_NOT_FINISHED     = 0x10C,  /*!< Operation has not fully completed */
     EPD_ERR_NOT_ALLOWED      = 0x10D,  /*!< Operation is not allowed */
-    EPD_FALLBACK             = 0x10E,  /*!< Operation succeeded with fallback */
 } epd_err_t;
 
 /**

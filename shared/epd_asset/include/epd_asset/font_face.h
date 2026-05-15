@@ -60,15 +60,15 @@ epd_err_t epd_asset_font_face_create(const epd_asset_font_face_config_t* config,
 epd_err_t epd_asset_font_face_destroy(epd_asset_font_face_t font);
 
 /**
- * @brief Get size metrics from a font face.
+ * @brief Get size info from a font face.
  *
  * @param font Font face handle.
  * @param size Font pixel size represented by the font face.
- * @param out_config Pointer to receive the size metrics.
+ * @param out_info Pointer to receive the size info.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_asset_font_face_get_size_config(const epd_asset_font_face_t font,
-    uint16_t size, epd_asset_font_asset_size_config_t* out_config);
+epd_err_t epd_asset_font_face_get_size_info(const epd_asset_font_face_t font,
+    uint16_t size, epd_asset_font_asset_size_info_t* out_info);
 
 /**
  * @brief Render a glyph from a font face into EGF-compatible 1bpp bitmap data.

@@ -15,8 +15,6 @@
 #include <stdint.h>
 #include <epd_core/common.h>
 
-#include "epd_gfx/common.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -32,17 +30,10 @@ typedef struct {
     uint8_t* data;
 } epd_gfx_glyph_config_t;
 
-typedef enum {
-    EPD_GFX_GLYPH_FALLBACK_NONE    = 0,
-    EPD_GFX_GLYPH_FALLBACK_SMALLER = 1,
-    EPD_GFX_GLYPH_FALLBACK_LARGER  = 2,
-} epd_gfx_glyph_fallback_t;
-
 typedef struct {
-    uint32_t                 codepoint;  /*!< Unicode codepoint to query. */
-    uint16_t                 size;       /*!< Font pixel size to query; must be non-zero. */
-    epd_gfx_glyph_fallback_t fallback;   /*!< Fallback strategy when the exact size or glyph is unavailable. */
-} epd_gfx_glyph_seek_config_t;
+    uint32_t codepoint;  /*!< Unicode codepoint to query exactly. */
+    uint16_t size;       /*!< Font pixel size to query exactly; must be non-zero. */
+} epd_gfx_glyph_key_t;
 
 /**
  * @brief Create a glyph with the given configuration.

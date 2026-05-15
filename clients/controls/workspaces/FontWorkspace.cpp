@@ -279,16 +279,16 @@ void FontWorkspace::refreshSections()
             continue;
         }
 
-        epd_asset_font_asset_size_config_t sizeConfig;
-        if (epd_asset_font_asset_get_size_config(m_asset, size, &sizeConfig) != EPD_OK) {
+        epd_asset_font_asset_size_info_t sizeInfo;
+        if (epd_asset_font_asset_get_size_info(m_asset, size, &sizeInfo) != EPD_OK) {
             continue;
         }
 
         FontGlyphGridWidget::Section section;
         section.size       = size;
-        section.ascent     = sizeConfig.ascent;
-        section.descent    = sizeConfig.descent;
-        section.lineHeight = sizeConfig.line_height;
+        section.ascent     = sizeInfo.ascent;
+        section.descent    = sizeInfo.descent;
+        section.lineHeight = sizeInfo.line_height;
         section.codepoints.resize(static_cast<int>(codepointCount));
         if (codepointCount > 0U
             && epd_asset_font_asset_get_codepoints(m_asset, size, section.codepoints.data(), &codepointCount) != EPD_OK) {
@@ -365,10 +365,10 @@ void FontWorkspace::addGlyph()
         return;
     }
 
-    epd_asset_font_asset_size_config_t sizeConfig;
-    ret = epd_asset_font_face_get_size_config(face, size, &sizeConfig);
+    epd_asset_font_asset_size_info_t sizeInfo;
+    ret = epd_asset_font_face_get_size_info(face, size, &sizeInfo);
     if (ret == EPD_OK) {
-        ret = epd_asset_font_asset_set_size(m_asset, &sizeConfig);
+        ret = epd_asset_font_asset_set_size_info(m_asset, &sizeInfo);
     }
     if (ret != EPD_OK) {
         epd_asset_font_face_destroy(face);
@@ -717,8 +717,8 @@ void FontWorkspace::updateSizeSummary(uint16_t size)
         return;
     }
 
-    epd_asset_font_asset_size_config_t sizeConfig;
-    epd_err_t ret = epd_asset_font_asset_get_size_config(m_asset, size, &sizeConfig);
+    epd_asset_font_asset_size_info_t sizeInfo;
+    epd_err_t ret = epd_asset_font_asset_get_size_info(m_asset, size, &sizeInfo);
     if (ret != EPD_OK) {
         clearGlyphSelection();
         return;
@@ -748,9 +748,9 @@ void FontWorkspace::updateSizeSummary(uint16_t size)
         "<tr><td>Line Height</td><td align=\"right\">%4 px</td></tr>"
         "</table>")
         .arg(glyphCount)
-        .arg(sizeConfig.ascent)
-        .arg(sizeConfig.descent)
-        .arg(sizeConfig.line_height));
+        .arg(sizeInfo.ascent)
+        .arg(sizeInfo.descent)
+        .arg(sizeInfo.line_height));
 }
 
 void FontWorkspace::updateGlyphDetails(uint16_t size, uint32_t codepoint)
@@ -771,8 +771,8 @@ void FontWorkspace::updateGlyphDetails(uint16_t size, uint32_t codepoint)
         return;
     }
 
-    epd_asset_font_asset_size_config_t sizeConfig;
-    ret = epd_asset_font_asset_get_size_config(m_asset, size, &sizeConfig);
+    epd_asset_font_asset_size_info_t sizeInfo;
+    ret = epd_asset_font_asset_get_size_info(m_asset, size, &sizeInfo);
     if (ret != EPD_OK) {
         epd_gfx_glyph_destroy(glyph);
         clearGlyphSelection();
@@ -788,7 +788,7 @@ void FontWorkspace::updateGlyphDetails(uint16_t size, uint32_t codepoint)
     m_deleteButton->setVisible(true);
     m_previewWidget->setGlyph(glyphImage, epd_gfx_glyph_get_xoffset(glyph),
         epd_gfx_glyph_get_yoffset(glyph), epd_gfx_glyph_get_advance(glyph),
-        sizeConfig.ascent, sizeConfig.line_height);
+        sizeInfo.ascent, sizeInfo.line_height);
     m_codepointLabel->setText(formatCodepoint(codepoint));
     m_metricsLabel->setText(QStringLiteral(
         "<table cellspacing=\"0\" cellpadding=\"2\" width=\"100%\">"
@@ -808,9 +808,9 @@ void FontWorkspace::updateGlyphDetails(uint16_t size, uint32_t codepoint)
         .arg(epd_gfx_glyph_get_xoffset(glyph))
         .arg(epd_gfx_glyph_get_yoffset(glyph))
         .arg(epd_gfx_glyph_get_advance(glyph))
-        .arg(sizeConfig.ascent)
-        .arg(sizeConfig.descent)
-        .arg(sizeConfig.line_height));
+        .arg(sizeInfo.ascent)
+        .arg(sizeInfo.descent)
+        .arg(sizeInfo.line_height));
     m_deleteButton->setEnabled(true);
 
     epd_gfx_glyph_destroy(glyph);

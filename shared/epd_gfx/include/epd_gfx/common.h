@@ -12,6 +12,25 @@
 #ifndef _EPD_GFX_COMMON_H_
 #define _EPD_GFX_COMMON_H_
 
+#include <stdint.h>
+
+typedef struct {
+    uint16_t x;
+    uint16_t y;
+} epd_gfx_point_t;
+
+typedef struct {
+    uint16_t width;
+    uint16_t height;
+} epd_gfx_size_t;
+
+typedef struct {
+    uint16_t x;
+    uint16_t y;
+    uint16_t width;
+    uint16_t height;
+} epd_gfx_rect_t;
+
 typedef enum {
     EPD_GFX_BLACK = 0b000,
     EPD_GFX_WHITE = 0b011,

@@ -28,7 +28,7 @@ typedef struct {
     int16_t  ascent;
     int16_t  descent;
     int16_t  line_height;
-} epd_asset_font_asset_size_config_t;
+} epd_asset_font_asset_size_info_t;
 
 typedef struct {
     uint32_t codepoint;
@@ -90,25 +90,25 @@ epd_err_t epd_asset_font_asset_get_codepoints(const epd_asset_font_asset_t asset
     uint16_t size, uint32_t* codepoints, uint32_t* count);
 
 /**
- * @brief Add or update metrics for a font size.
+ * @brief Add or update info for a font size.
  *
  * @param asset Font asset handle to update.
- * @param config Size metrics configuration.
+ * @param info Size info.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_asset_font_asset_set_size(epd_asset_font_asset_t asset,
-    const epd_asset_font_asset_size_config_t* config);
+epd_err_t epd_asset_font_asset_set_size_info(epd_asset_font_asset_t asset,
+    const epd_asset_font_asset_size_info_t* info);
 
 /**
- * @brief Get metrics for a font size.
+ * @brief Get info for a font size.
  *
  * @param asset Font asset handle.
  * @param size Font pixel size to query.
- * @param out_config Pointer to receive the size metrics.
+ * @param out_info Pointer to receive the size info.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_asset_font_asset_get_size_config(const epd_asset_font_asset_t asset,
-    uint16_t size, epd_asset_font_asset_size_config_t* out_config);
+epd_err_t epd_asset_font_asset_get_size_info(const epd_asset_font_asset_t asset,
+    uint16_t size, epd_asset_font_asset_size_info_t* out_info);
 
 /**
  * @brief Remove a font size and all glyphs stored under it.

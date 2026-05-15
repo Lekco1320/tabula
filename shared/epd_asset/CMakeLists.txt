@@ -30,4 +30,4 @@ target_link_libraries(epd_asset PUBLIC
     epd_core
     epd_gfx
     freetype)
-target_compile_features(epd_asset PUBLIC c_std_99)
+target_compile_features(epd_asset PUBLIC c_std_11)

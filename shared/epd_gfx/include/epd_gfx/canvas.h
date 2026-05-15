@@ -110,12 +110,11 @@ uint16_t epd_gfx_canvas_get_logical_height(const epd_gfx_canvas_t canvas);
  * @brief Get a pixel at logical coordinates.
  *
  * @param canvas Canvas handle.
- * @param x Logical X coordinate.
- * @param y Logical Y coordinate.
+ * @param point Logical point.
  * @return Color of the pixel.
  */
 epd_gfx_color_t epd_gfx_canvas_get_pixel(const epd_gfx_canvas_t canvas,
-    uint16_t x, uint16_t y);
+    epd_gfx_point_t point);
 
 /**
  * @brief Clear the canvas to white.
@@ -138,67 +137,58 @@ epd_err_t epd_gfx_canvas_fill(epd_gfx_canvas_t canvas, epd_gfx_color_t color);
  * @brief Draw a pixel at logical coordinates.
  *
  * @param canvas Canvas handle.
- * @param x Logical X coordinate.
- * @param y Logical Y coordinate.
+ * @param point Logical point.
  * @param color Pixel color.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
 epd_err_t epd_gfx_canvas_draw_pixel(epd_gfx_canvas_t canvas,
-    uint16_t x, uint16_t y, epd_gfx_color_t color);
+    epd_gfx_point_t point, epd_gfx_color_t color);
 
 /**
  * @brief Draw a horizontal line in logical coordinates (rotation-aware).
  *
  * @param canvas Canvas handle.
- * @param x Logical start X.
- * @param y Logical start Y.
+ * @param start Logical start point.
  * @param w Line length.
  * @param color Line color.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
 epd_err_t epd_gfx_canvas_draw_hline(epd_gfx_canvas_t canvas,
-    uint16_t x, uint16_t y, uint16_t w, epd_gfx_color_t color);
+    epd_gfx_point_t start, uint16_t w, epd_gfx_color_t color);
 
 /**
  * @brief Draw a vertical line in logical coordinates (rotation-aware).
  *
  * @param canvas Canvas handle.
- * @param x Logical start X.
- * @param y Logical start Y.
+ * @param start Logical start point.
  * @param h Line length.
  * @param color Line color.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
 epd_err_t epd_gfx_canvas_draw_vline(epd_gfx_canvas_t canvas,
-    uint16_t x, uint16_t y, uint16_t h, epd_gfx_color_t color);
+    epd_gfx_point_t start, uint16_t h, epd_gfx_color_t color);
 
 /**
  * @brief Draw a rectangle border (four edges) in logical coordinates.
  *
  * @param canvas Canvas handle.
- * @param x Logical X of top-left corner.
- * @param y Logical Y of top-left corner.
- * @param w Rectangle width.
- * @param h Rectangle height.
+ * @param rect Logical rectangle.
  * @param color Border color.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
 epd_err_t epd_gfx_canvas_draw_rect(epd_gfx_canvas_t canvas,
-    uint16_t x, uint16_t y, uint16_t w, uint16_t h, epd_gfx_color_t color);
+    epd_gfx_rect_t rect, epd_gfx_color_t color);
 
 /**
  * @brief Draw a filled rectangle in logical coordinates.
  *
  * @param canvas Canvas handle.
- * @param x Logical X of top-left corner.
- * @param y Logical Y of top-left corner.
- * @param w Rectangle width.
- * @param h Rectangle height.
+ * @param rect Logical rectangle.
  * @param color Fill color.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
 epd_err_t epd_gfx_canvas_fill_rect(epd_gfx_canvas_t canvas,
-    uint16_t x, uint16_t y, uint16_t w, uint16_t h, epd_gfx_color_t color);
+    epd_gfx_rect_t rect, epd_gfx_color_t color);
 
 /**
  * @brief Present the canvas buffer to a frame sink.
@@ -242,18 +232,16 @@ epd_err_t epd_gfx_canvas_load_planes(epd_gfx_canvas_t canvas, const uint8_t* pwh
     const uint8_t* pred, uint32_t size);
 
 /**
- * @brief Draw a glyph at logical coordinates.
+ * @brief Draw a glyph at a logical baseline origin.
  *
  * @param canvas Canvas handle.
  * @param glyph Glyph handle to draw.
- * @param x Logical X coordinate.
- * @param y Logical Y coordinate.
+ * @param point Logical glyph baseline origin.
  * @param color Glyph foreground color.
- * @param background Glyph background color.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
 epd_err_t epd_gfx_canvas_draw_glyph(epd_gfx_canvas_t canvas, epd_gfx_glyph_t glyph,
-    uint16_t x, uint16_t y, epd_gfx_color_t color, epd_gfx_bg_color_t background);
+    epd_gfx_point_t point, epd_gfx_color_t color);
 
 #ifdef __cplusplus
 }

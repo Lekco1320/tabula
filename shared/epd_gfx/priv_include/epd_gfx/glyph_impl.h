@@ -25,9 +25,6 @@ struct epd_gfx_glyph_impl {
     int16_t  yoffset;
     int16_t  advance;
     uint8_t* data;
-
-    int16_t  ascent;
-    int16_t  line_height;
 };
 
 #ifdef __cplusplus

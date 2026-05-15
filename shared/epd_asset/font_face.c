@@ -179,17 +179,17 @@ epd_err_t epd_asset_font_face_destroy(epd_asset_font_face_t font)
     return EPD_OK;
 }
 
-epd_err_t epd_asset_font_face_get_size_config(const epd_asset_font_face_t font,
-    uint16_t size, epd_asset_font_asset_size_config_t* out_config)
+epd_err_t epd_asset_font_face_get_size_info(const epd_asset_font_face_t font,
+    uint16_t size, epd_asset_font_asset_size_info_t* out_info)
 {
-    if (!font || size == 0U || !out_config) {
+    if (!font || size == 0U || !out_info) {
         return EPD_ERR_INVALID_ARG;
     }
 
-    out_config->size        = size;
-    out_config->ascent      = font->ascent;
-    out_config->descent     = font->descent;
-    out_config->line_height = font->line_height;
+    out_info->size        = size;
+    out_info->ascent      = font->ascent;
+    out_info->descent     = font->descent;
+    out_info->line_height = font->line_height;
     return EPD_OK;
 }
 

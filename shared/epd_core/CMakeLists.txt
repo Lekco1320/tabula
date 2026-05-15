@@ -15,5 +15,5 @@ else()
         AUTORCC OFF
     )
     target_include_directories(epd_core PUBLIC $<BUILD_INTERFACE:${EPD_CORE_INCLUDE_DIR}>)
-    target_compile_features(epd_core PUBLIC c_std_99)
+    target_compile_features(epd_core PUBLIC c_std_11)
 endif()

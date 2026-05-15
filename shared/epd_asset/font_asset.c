@@ -341,12 +341,12 @@ epd_err_t epd_asset_font_asset_load_egf(const epd_stream_t* stream, epd_asset_fo
             goto fail;
         }
 
-        epd_asset_font_asset_size_config_t size_config;
-        size_config.size        = size_record.size;
-        size_config.ascent      = size_record.ascent;
-        size_config.descent     = size_record.descent;
-        size_config.line_height = size_record.line_height;
-        EPD_CHECK_GOTO(epd_asset_font_asset_set_size(asset, &size_config), fail);
+        epd_asset_font_asset_size_info_t size_info;
+        size_info.size        = size_record.size;
+        size_info.ascent      = size_record.ascent;
+        size_info.descent     = size_record.descent;
+        size_info.line_height = size_record.line_height;
+        EPD_CHECK_GOTO(epd_asset_font_asset_set_size_info(asset, &size_info), fail);
 
         epd_asset_font_asset_size_node_t size_node = epd_asset_font_asset_find_size(asset, size_record.size);
         if (!size_node) {
@@ -463,24 +463,24 @@ epd_err_t epd_asset_font_asset_get_codepoints(const epd_asset_font_asset_t asset
     return EPD_OK;
 }
 
-epd_err_t epd_asset_font_asset_set_size(epd_asset_font_asset_t asset,
-    const epd_asset_font_asset_size_config_t* config)
+epd_err_t epd_asset_font_asset_set_size_info(epd_asset_font_asset_t asset,
+    const epd_asset_font_asset_size_info_t* info)
 {
-    if (!asset || !config || config->size == 0U) {
+    if (!asset || !info || info->size == 0U) {
         return EPD_ERR_INVALID_ARG;
     }
 
     epd_asset_font_asset_size_node_t pre = NULL;
     epd_asset_font_asset_size_node_t cur = asset->size_list;
-    while (cur && cur->value.size < config->size) {
+    while (cur && cur->value.size < info->size) {
         pre = cur;
         cur = cur->next;
     }
 
-    if (cur && cur->value.size == config->size) {
-        cur->value.ascent      = config->ascent;
-        cur->value.descent     = config->descent;
-        cur->value.line_height = config->line_height;
+    if (cur && cur->value.size == info->size) {
+        cur->value.ascent      = info->ascent;
+        cur->value.descent     = info->descent;
+        cur->value.line_height = info->line_height;
         return EPD_OK;
     }
 
@@ -490,10 +490,10 @@ epd_err_t epd_asset_font_asset_set_size(epd_asset_font_asset_t asset,
         return EPD_ERR_NO_MEM;
     }
 
-    node->value.size        = config->size;
-    node->value.ascent      = config->ascent;
-    node->value.descent     = config->descent;
-    node->value.line_height = config->line_height;
+    node->value.size        = info->size;
+    node->value.ascent      = info->ascent;
+    node->value.descent     = info->descent;
+    node->value.line_height = info->line_height;
     node->value.glyph_list  = NULL;
     node->next              = cur;
 
@@ -506,10 +506,10 @@ epd_err_t epd_asset_font_asset_set_size(epd_asset_font_asset_t asset,
     return EPD_OK;
 }
 
-epd_err_t epd_asset_font_asset_get_size_config(const epd_asset_font_asset_t asset,
-    uint16_t size, epd_asset_font_asset_size_config_t* out_config)
+epd_err_t epd_asset_font_asset_get_size_info(const epd_asset_font_asset_t asset,
+    uint16_t size, epd_asset_font_asset_size_info_t* out_info)
 {
-    if (!asset || size == 0U || !out_config) {
+    if (!asset || size == 0U || !out_info) {
         return EPD_ERR_INVALID_ARG;
     }
 
@@ -518,10 +518,10 @@ epd_err_t epd_asset_font_asset_get_size_config(const epd_asset_font_asset_t asse
         return EPD_ERR_NOT_FOUND;
     }
 
-    out_config->size        = size_node->value.size;
-    out_config->ascent      = size_node->value.ascent;
-    out_config->descent     = size_node->value.descent;
-    out_config->line_height = size_node->value.line_height;
+    out_info->size        = size_node->value.size;
+    out_info->ascent      = size_node->value.ascent;
+    out_info->descent     = size_node->value.descent;
+    out_info->line_height = size_node->value.line_height;
     return EPD_OK;
 }
 

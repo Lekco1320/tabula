@@ -67,6 +67,27 @@ static EPD_INLINE uint8_t epd_gfx_mask_nibble(uint8_t digit)
     return (uint8_t)(0x0F << (digit << 2U));  // x: 0..1
 }
 
+static EPD_INLINE uint8_t epd_gfx_mono_bit_at(const uint8_t* row, uint16_t x)
+{
+    return (uint8_t)((row[x / 8U] << (x & 7U)) & 0x80U);
+}
+
+static EPD_INLINE uint8_t epd_gfx_mono_row_mask(const uint8_t* row,
+    uint16_t src_x, uint8_t dst_bit, uint8_t count)
+{
+    uint8_t  src_bit  = (uint8_t)(src_x & 7U);
+    uint16_t src_byte = src_x / 8U;
+    uint16_t window   = (uint16_t)row[src_byte] << 8U;
+    if ((uint8_t)(src_bit + count) > 8U) {
+        window |= row[src_byte + 1U];
+    }
+
+    uint8_t src_mask = (uint8_t)((window << src_bit) >> 8U);
+    uint8_t begin    = (uint8_t)(7U - (dst_bit + count - 1U));
+    uint8_t end      = (uint8_t)(7U - dst_bit);
+    return (uint8_t)((src_mask >> dst_bit) & epd_gfx_mask_range_bits(begin, end));
+}
+
 static EPD_INLINE epd_gfx_color_t epd_gfx_bit_to_color(uint8_t wbit, uint8_t rbit)
 {
     uint8_t t = (1 ^ rbit) & wbit;
@@ -120,6 +141,14 @@ static EPD_INLINE void epd_gfx_planes_set_pixel(uint8_t* pwht, uint8_t* pred,
     epd_gfx_planes_set_pixel_impl(pwht, pred, mask, color);
 }
 
+static EPD_INLINE void epd_gfx_native_set_pixel_impl(uint8_t* pnative,
+    uint8_t mask, epd_gfx_color_t color)
+{
+    uint8_t byte = epd_gfx_pack_colors(color, color);
+    uint8_t old  = *pnative;
+    *pnative     = (uint8_t)((old & (uint8_t)~mask) | (byte & mask));
+}
+
 static EPD_INLINE void epd_gfx_planes_set_range_pixels(uint8_t* pwht, uint8_t* pred,
     uint8_t begin, uint8_t end, epd_gfx_color_t color)
 {
@@ -152,9 +181,7 @@ static EPD_INLINE void epd_gfx_native_set_pixel(uint8_t* pnative, uint8_t idx,
 {
     uint8_t digit = 1U - (idx & 1U);
     uint8_t mask  = epd_gfx_mask_nibble(digit);
-    uint8_t byte  = epd_gfx_pack_colors(color, color);
-    uint8_t old   = *pnative;
-    *pnative      = (uint8_t)((old & (uint8_t)~mask) | (byte & mask));
+    epd_gfx_native_set_pixel_impl(pnative, mask, color);
 }
 
 static EPD_INLINE void epd_gfx_native_set_bytes(uint8_t* pnative, uint32_t length,

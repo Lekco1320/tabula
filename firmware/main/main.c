@@ -161,12 +161,12 @@ void app_main(void)
     }
 
     epd_gfx_canvas_fill(canvas, EPD_GFX_WHITE);
-    epd_gfx_canvas_fill_rect(canvas, 150, 150, 200, 200, EPD_GFX_RED);
-    epd_gfx_canvas_draw_rect(canvas, 150, 150, 200, 200, EPD_GFX_BLACK);
-    epd_gfx_canvas_draw_hline(canvas, 50, 50, 400, EPD_GFX_BLACK);
-    epd_gfx_canvas_draw_vline(canvas, 600, 10, 350, EPD_GFX_RED);
-    epd_gfx_canvas_fill_rect(canvas, 600, 350, 50, 50, EPD_GFX_BLACK);
-    epd_gfx_canvas_draw_pixel(canvas, 250, 250, EPD_GFX_WHITE);
+    epd_gfx_canvas_fill_rect(canvas, (epd_gfx_rect_t){ 150, 150, 200, 200 }, EPD_GFX_RED);
+    epd_gfx_canvas_draw_rect(canvas, (epd_gfx_rect_t){ 150, 150, 200, 200 }, EPD_GFX_BLACK);
+    epd_gfx_canvas_draw_hline(canvas, (epd_gfx_point_t){ 50, 50 }, 400, EPD_GFX_BLACK);
+    epd_gfx_canvas_draw_vline(canvas, (epd_gfx_point_t){ 600, 10 }, 350, EPD_GFX_RED);
+    epd_gfx_canvas_fill_rect(canvas, (epd_gfx_rect_t){ 600, 350, 50, 50 }, EPD_GFX_BLACK);
+    epd_gfx_canvas_draw_pixel(canvas, (epd_gfx_point_t){ 250, 250 }, EPD_GFX_WHITE);
 
     ret = epd_gfx_canvas_flush(canvas, &sink);
     if (ret != EPD_OK) {

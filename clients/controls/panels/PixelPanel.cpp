@@ -56,7 +56,10 @@ DrawFunc PixelPanel::drawFunc() const
     const int y      = m_y->value();
     const auto color = m_colorBtn->currentColor();
     return [x, y, color](epd_gfx_canvas_t c) {
-        return epd_gfx_canvas_draw_pixel(c, x, y, color);
+        return epd_gfx_canvas_draw_pixel(c, epd_gfx_point_t{
+            static_cast<uint16_t>(x),
+            static_cast<uint16_t>(y),
+        }, color);
     };
 }
 
