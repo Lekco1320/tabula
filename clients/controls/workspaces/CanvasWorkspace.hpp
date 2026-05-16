@@ -20,6 +20,7 @@ LEKCO_BEGIN_NAMESPACE
 
 class CanvasPreviewer;
 class CursorBar;
+class FontProvider;
 class RotationBar;
 class ToolPanel;
 
@@ -29,10 +30,12 @@ class CanvasWorkspace
     Q_OBJECT
 
 public:
-    explicit CanvasWorkspace(const epd_gfx_canvas_config_t& config, QWidget* parent = nullptr);
+    explicit CanvasWorkspace(const epd_gfx_canvas_config_t& config, FontProvider* fontProvider,
+        QWidget* parent = nullptr);
 
     void setResource(const ProjectResource& resource) override;
     void clearResource() override;
+    void refreshFonts();
 
 private:
     epd_gfx_canvas_config_t m_canvasConfig;

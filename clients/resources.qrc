@@ -3,6 +3,7 @@
         <file>common/icons/DrawHLine.svg</file>
         <file>common/icons/DrawPixel.svg</file>
         <file>common/icons/DrawRect.svg</file>
+        <file>common/icons/DrawText.svg</file>
         <file>common/icons/DrawVLine.svg</file>
         <file>common/icons/FillPanel.svg</file>
         <file>common/icons/FillRect.svg</file>
@@ -14,5 +15,7 @@
         <file>common/icons/Rotation180.svg</file>
         <file>common/icons/Rotation270.svg</file>
         <file>common/icons/Rotation90.svg</file>
+        <file>common/icons/TextHAlign.svg</file>
+        <file>common/icons/TextVAlign.svg</file>
     </qresource>
 </RCC>

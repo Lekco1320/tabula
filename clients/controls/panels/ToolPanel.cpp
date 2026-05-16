@@ -15,12 +15,12 @@
 #include "controls/panels/RectPanel.hpp"
 #include "controls/panels/FillPanel.hpp"
 #include "controls/panels/PixelPanel.hpp"
-#include "controls/widgets/CanvasPreviewer.hpp"
+#include "controls/panels/TextPanel.hpp"
 #include "controls/widgets/AdaptiveStackedWidget.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 
-ToolPanel::ToolPanel(CanvasPreviewer* previewer, QWidget* parent)
+ToolPanel::ToolPanel(FontProvider* fontProvider, QWidget* parent)
     : QWidget(parent)
     , m_toolBar(new ToolBar(this))
     , m_stackedWidget(new AdaptiveStackedWidget(this))
@@ -33,12 +33,14 @@ ToolPanel::ToolPanel(CanvasPreviewer* previewer, QWidget* parent)
     auto* fRectPanel = new RectPanel(QStringLiteral("Fill Rectange"), false, this);
     auto* pixelPanel = new PixelPanel(QStringLiteral("Draw Pixel"), this);
     auto* fillPanel  = new FillPanel(QStringLiteral("Fill Panel"), this);
+    auto* textPanel  = new TextPanel(QStringLiteral("Draw Text"), fontProvider, this);
     addControlPanel(hLinePanel);
     addControlPanel(vLinePanel);
     addControlPanel(dRectPanel);
     addControlPanel(fRectPanel);
     addControlPanel(pixelPanel);
     addControlPanel(fillPanel);
+    addControlPanel(textPanel);
     m_stackedWidget->setCollapsed(true);
 
     auto* layout = new QVBoxLayout(this);
@@ -49,7 +51,7 @@ ToolPanel::ToolPanel(CanvasPreviewer* previewer, QWidget* parent)
 
     connect(m_toolBar, &ToolBar::toolChanged, this, [this](ToolBar::Tool tool) {
         int id = static_cast<int>(tool);
-        if (id > -1 && id < 6) {
+        if (id > -1 && id < m_controlPanels.size()) {
             m_stackedWidget->setCurrentIndex(id);
             m_stackedWidget->setCollapsed(false);
             m_controlPanels[id]->updatePreview();
@@ -65,6 +67,16 @@ void ToolPanel::updateCanvas(const epd_gfx_canvas_t canvas)
         panel->updateRange(canvas);
         if (!m_stackedWidget->isCollapsed() && m_stackedWidget->currentWidget() == panel) {
             panel->updatePreview();
+        }
+    }
+}
+
+void ToolPanel::refreshFonts()
+{
+    for (auto panel : m_controlPanels) {
+        auto* textPanel = qobject_cast<TextPanel*>(panel);
+        if (textPanel) {
+            textPanel->refreshFonts();
         }
     }
 }

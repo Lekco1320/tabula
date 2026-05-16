@@ -40,6 +40,7 @@ END_NAMESPACE
 MainWindow::MainWindow(const Project& project, QWidget* parent)
     : QMainWindow(parent)
     , m_project(project)
+    , m_fontProvider(&m_project)
 {
     setMinimumSize(QSize { kAssetsPaneWidth + kWorkspaceMinW, kWorkspaceMinH });
     setWindowTitle(QFileInfo(m_project.rootDir()).fileName());
@@ -89,7 +90,7 @@ MainWindow::MainWindow(const Project& project, QWidget* parent)
     config.rotation = EPD_GFX_ROTATE_0;
 
     m_workspaceStack  = new QStackedWidget(central);
-    m_canvasWorkspace = new CanvasWorkspace(config, m_workspaceStack);
+    m_canvasWorkspace = new CanvasWorkspace(config, &m_fontProvider, m_workspaceStack);
     m_fontWorkspace   = new FontWorkspace(m_workspaceStack);
     m_workspaceStack->addWidget(m_canvasWorkspace);
     m_workspaceStack->addWidget(m_fontWorkspace);
@@ -108,10 +109,19 @@ MainWindow::MainWindow(const Project& project, QWidget* parent)
 void MainWindow::refreshResourceTree()
 {
     m_resourceTree->clear();
+
+    auto* canvasItem = new QTreeWidgetItem(m_resourceTree);
+    canvasItem->setText(0, QStringLiteral("Canvas Preview"));
+    canvasItem->setIcon(0, QIcon(QStringLiteral(":/common/icons/Pointer.svg")));
+    canvasItem->setData(0, kResourceTypeRole, static_cast<int>(ProjectResourceType::Unknown));
+
     addResources(ProjectResourceType::Fonts, nullptr);
 
     for (int i = 0; i < m_resourceTree->topLevelItemCount(); ++i) {
         m_resourceTree->topLevelItem(i)->setExpanded(true);
+    }
+    if (m_canvasWorkspace) {
+        m_canvasWorkspace->refreshFonts();
     }
     m_resourceTree->setCurrentItem(m_resourceTree->topLevelItem(0));
     updateResourceButtons();

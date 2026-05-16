@@ -32,6 +32,7 @@ ToolBar::ToolBar(QWidget* parent)
     ADD_TOOLBUTTON(FillRect,  "Fill rectangle");
     ADD_TOOLBUTTON(DrawPixel, "Draw pixel");
     ADD_TOOLBUTTON(FillPanel, "Fill panel");
+    ADD_TOOLBUTTON(DrawText,  "Draw text");
 
     connect(static_cast<IconButtonBar*>(this), &IconButtonBar::selectionChanged, this, [this](int id) {
         m_current = static_cast<Tool>(id);

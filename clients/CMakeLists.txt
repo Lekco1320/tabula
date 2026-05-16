@@ -30,8 +30,11 @@ target_sources(tabula-host PRIVATE
     controls/Utils.hpp
     project/EpdStreamAdapter.cpp
     project/EpdStreamAdapter.hpp
+    project/FontProvider.hpp
     project/Project.cpp
-    project/Project.hpp)
+    project/Project.hpp
+    project/ProjectFontProvider.cpp
+    project/ProjectFontProvider.hpp)
 
 target_sources(tabula-host PRIVATE
     controls/bars/CursorBar.cpp
@@ -54,6 +57,8 @@ target_sources(tabula-host PRIVATE
     controls/panels/PixelPanel.hpp
     controls/panels/RectPanel.cpp
     controls/panels/RectPanel.hpp
+    controls/panels/TextPanel.cpp
+    controls/panels/TextPanel.hpp
     controls/panels/ToolPanel.cpp
     controls/panels/ToolPanel.hpp)
 
@@ -70,6 +75,8 @@ target_sources(tabula-host PRIVATE
     controls/widgets/FontGlyphImage.hpp
     controls/widgets/FontGlyphPreviewWidget.cpp
     controls/widgets/FontGlyphPreviewWidget.hpp
+    controls/widgets/FlowButton.cpp
+    controls/widgets/FlowButton.hpp
     controls/widgets/FlowLayout.cpp
     controls/widgets/FlowLayout.hpp)
 

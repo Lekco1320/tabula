@@ -16,6 +16,7 @@
 #include <QString>
 
 #include "common/Common.h"
+#include "project/ProjectFontProvider.hpp"
 #include "project/Project.hpp"
 
 class QPushButton;
@@ -48,13 +49,14 @@ private:
     QString selectedResourceFileName() const;
     bool selectedItemIsResource() const;
 
-    Project          m_project;
-    QTreeWidget*     m_resourceTree     = nullptr;
-    QPushButton*     m_addButton        = nullptr;
-    QPushButton*     m_deleteButton     = nullptr;
-    QStackedWidget*  m_workspaceStack   = nullptr;
-    CanvasWorkspace* m_canvasWorkspace  = nullptr;
-    FontWorkspace*   m_fontWorkspace    = nullptr;
+    Project             m_project;
+    ProjectFontProvider m_fontProvider;
+    QTreeWidget*        m_resourceTree     = nullptr;
+    QPushButton*        m_addButton        = nullptr;
+    QPushButton*        m_deleteButton     = nullptr;
+    QStackedWidget*     m_workspaceStack   = nullptr;
+    CanvasWorkspace*    m_canvasWorkspace  = nullptr;
+    FontWorkspace*      m_fontWorkspace    = nullptr;
 };
 
 LEKCO_END_NAMESPACE

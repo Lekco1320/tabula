@@ -27,18 +27,27 @@ class ColorButton
     Q_OBJECT
 
 public:
+    enum class Mode {
+        Foreground,
+        Background,
+    };
+
     explicit ColorButton(QWidget* parent = nullptr);
+    explicit ColorButton(Mode mode, QWidget* parent = nullptr);
 
     epd_gfx_color_t currentColor() const;
+    epd_gfx_bg_color_t currentBackgroundColor() const;
 
 signals:
     void colorChanged(epd_gfx_color_t color);
+    void backgroundColorChanged(epd_gfx_bg_color_t color);
 
 private:
     void updateIcon();
     void nextColor();
 
-    int m_index;
+    Mode m_mode;
+    int  m_index;
     static QColor s_colors[];
 };
 

@@ -33,7 +33,8 @@ class ToolBar
 public:
     enum class Tool {
         DrawHLine, DrawVLine, DrawRect,
-        FillRect, DrawPixel, FillPanel, None
+        FillRect, DrawPixel, FillPanel,
+        DrawText, None
     };
 
     explicit ToolBar(QWidget* parent = nullptr);

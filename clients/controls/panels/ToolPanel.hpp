@@ -21,8 +21,8 @@
 LEKCO_BEGIN_NAMESPACE
 
 class ToolBar;
-class CanvasPreviewer;
 class AdaptiveStackedWidget;
+class FontProvider;
 
 class ToolPanel
     : public QWidget
@@ -30,8 +30,9 @@ class ToolPanel
     Q_OBJECT
 
 public:
-    explicit ToolPanel(CanvasPreviewer* previewer, QWidget* parent = nullptr);
+    explicit ToolPanel(FontProvider* fontProvider, QWidget* parent = nullptr);
     void updateCanvas(const epd_gfx_canvas_t canvas);
+    void refreshFonts();
 
 signals:
     void refreshRequested();
@@ -39,7 +40,6 @@ signals:
     void previewRequested(const DrawFunc& drawFunc);
 
 private:
-    CanvasPreviewer*       m_previewer;
     ToolBar*               m_toolBar;
     QVector<ControlPanel*> m_controlPanels;
     AdaptiveStackedWidget* m_stackedWidget;

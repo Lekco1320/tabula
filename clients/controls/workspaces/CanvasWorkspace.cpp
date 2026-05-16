@@ -19,10 +19,12 @@
 #include "controls/panels/ToolPanel.hpp"
 #include "controls/widgets/CanvasPreviewer.hpp"
 #include "controls/workspaces/CanvasWorkspace.hpp"
+#include "project/FontProvider.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 
-CanvasWorkspace::CanvasWorkspace(const epd_gfx_canvas_config_t& config, QWidget* parent)
+CanvasWorkspace::CanvasWorkspace(const epd_gfx_canvas_config_t& config, FontProvider* fontProvider,
+    QWidget* parent)
     : ResourceWorkspace(parent)
     , m_canvasConfig(config)
 {
@@ -58,7 +60,7 @@ CanvasWorkspace::CanvasWorkspace(const epd_gfx_canvas_config_t& config, QWidget*
         m_previewer->setRotation(rotation);
     });
 
-    m_toolPanel = new ToolPanel(m_previewer, rightPane);
+    m_toolPanel = new ToolPanel(fontProvider, rightPane);
     m_toolPanel->updateCanvas(m_previewer->getCanvas());
     rightLayout->addWidget(m_toolPanel);
     rightLayout->addStretch(1);
@@ -96,6 +98,13 @@ void CanvasWorkspace::setResource(const ProjectResource& resource)
 
 void CanvasWorkspace::clearResource()
 {
+}
+
+void CanvasWorkspace::refreshFonts()
+{
+    if (m_toolPanel) {
+        m_toolPanel->refreshFonts();
+    }
 }
 
 LEKCO_END_NAMESPACE
