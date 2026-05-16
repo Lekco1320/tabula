@@ -11,3 +11,6 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 idf_build_set_property(MINIMAL_BUILD ON)
 set(PROJECT_VER "0.0.0")
 project(epaper)
+
+set(TABULA_ASSETS_DIR "${CMAKE_SOURCE_DIR}/assets" CACHE PATH "Assets source directory")
+spiffs_create_partition_image(assets "${TABULA_ASSETS_DIR}" FLASH_IN_PROJECT)

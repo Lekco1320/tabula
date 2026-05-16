@@ -6,5 +6,6 @@ idf_component_register(
         esp_psram
         led_strip
         epd_panel
+        epd_vfs
     INCLUDE_DIRS
         "")

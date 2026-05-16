@@ -2,4 +2,5 @@
 .vscode/
 build/
 managed_components/
+assets/
 dependencies.lock

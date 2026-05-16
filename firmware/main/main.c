@@ -1,11 +1,6 @@
-/*
- * SPDX-FileCopyrightText: 2010-2022 Espressif Systems (Shanghai) CO LTD
- *
- * SPDX-License-Identifier: CC0-1.0
- */
-
-#include <stdio.h>
 #include <inttypes.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -14,9 +9,13 @@
 #include "esp_system.h"
 #include "esp_log.h"
 #include "led_strip.h"
-
+#include <epd_core/common.h>
+#include <epd_core/stream.h>
 #include <epd_gfx/canvas.h>
+#include <epd_gfx/font.h>
+#include <epd_gfx/text.h>
 #include <epd_panel/epd_panel.h>
+#include <epd_vfs/epd_vfs.h>
 
 // GPIO assignment
 #define LED_STRIP_BLINK_GPIO 48
@@ -123,7 +122,7 @@ void app_main(void)
     epd_panel_t panel = NULL;
     ret = epd_panel_create(&config, &panel);
     if (ret != EPD_OK) {
-        ESP_LOGE("epd_test", "EPD panel creation failed! err=%s", esp_err_to_name(ret));
+        ESP_LOGE("epd_test", "EPD panel creation failed! err=%s", epd_err_to_str(ret));
         return;
     } else {
         ESP_LOGI("epd_test", "EPD panel created! addr:0x%x", panel);
@@ -131,8 +130,8 @@ void app_main(void)
 
     ret = epd_panel_init(panel);
     if (ret != EPD_OK) {
-        ESP_LOGE("epd_test", "EPD panel initialization failed! err=%s", esp_err_to_name(ret));
-        return;
+        ESP_LOGE("epd_test", "EPD panel initialization failed! err=%s", epd_err_to_str(ret));
+        goto clean_panel;
     } else {
         ESP_LOGI("epd_test", "EPD panel initialized");
     }
@@ -146,44 +145,118 @@ void app_main(void)
     epd_gfx_canvas_t canvas = NULL;
     ret = epd_gfx_canvas_create(&canvas_config, &canvas);
     if (ret != EPD_OK) {
-        ESP_LOGE("epd_test", "EPD canvas create failed! err=%s", esp_err_to_name(ret));
-        return;
+        ESP_LOGE("epd_test", "EPD canvas create failed! err=%s", epd_err_to_str(ret));
+        goto clean_panel;
     } else {
         ESP_LOGI("epd_test", "EPD canvas created!");
     }
 
     epd_gfx_frame_view_sink_t sink = epd_panel_make_sink(panel);
-    if (ret != EPD_OK) {
-        ESP_LOGE("epd_test", "EPD panel sink create failed! err=%s", esp_err_to_name(ret));
-        return;
+    if (!sink.context || !sink.flush_impl) {
+        ESP_LOGE("epd_test", "EPD panel sink create failed!");
+        goto clean_canvas;
     } else {
         ESP_LOGI("epd_test", "EPD panel sink created!");
     }
 
+    epd_stream_t   system_font_stream = { 0 };
+    epd_stream_t   song_font_stream   = { 0 };
+    epd_gfx_font_t system_font        = NULL;
+    epd_gfx_font_t song_font          = NULL;
+    bool           vfs_mounted        = false;
+
     epd_gfx_canvas_fill(canvas, EPD_GFX_WHITE);
-    epd_gfx_canvas_fill_rect(canvas, (epd_gfx_rect_t){ 150, 150, 200, 200 }, EPD_GFX_RED);
-    epd_gfx_canvas_draw_rect(canvas, (epd_gfx_rect_t){ 150, 150, 200, 200 }, EPD_GFX_BLACK);
-    epd_gfx_canvas_draw_hline(canvas, (epd_gfx_point_t){ 50, 50 }, 400, EPD_GFX_BLACK);
-    epd_gfx_canvas_draw_vline(canvas, (epd_gfx_point_t){ 600, 10 }, 350, EPD_GFX_RED);
-    epd_gfx_canvas_fill_rect(canvas, (epd_gfx_rect_t){ 600, 350, 50, 50 }, EPD_GFX_BLACK);
-    epd_gfx_canvas_draw_pixel(canvas, (epd_gfx_point_t){ 250, 250 }, EPD_GFX_WHITE);
+
+    ret = epd_vfs_mount();
+    if (ret != EPD_OK) {
+        ESP_LOGE("epd_test", "EPD VFS mount failed! err=%s", epd_err_to_str(ret));
+        goto clean_fonts;
+    }
+    vfs_mounted = true;
+
+    ret = epd_vfs_open_file(EPD_VFS_FONTS_PATH "/system.egf", &system_font_stream);
+    if (ret != EPD_OK) {
+        ESP_LOGE("epd_test", "Open system font failed! err=%s", epd_err_to_str(ret));
+        goto clean_fonts;
+    }
+
+    ret = epd_vfs_open_file(EPD_VFS_FONTS_PATH "/song.egf", &song_font_stream);
+    if (ret != EPD_OK) {
+        ESP_LOGE("epd_test", "Open song font failed! err=%s", epd_err_to_str(ret));
+        goto clean_fonts;
+    }
+
+    ret = epd_gfx_font_load(&system_font_stream, &system_font);
+    if (ret != EPD_OK) {
+        ESP_LOGE("epd_test", "Load system font failed! err=%s", epd_err_to_str(ret));
+        goto clean_fonts;
+    }
+
+    ret = epd_gfx_font_load(&song_font_stream, &song_font);
+    if (ret != EPD_OK) {
+        ESP_LOGE("epd_test", "Load song font failed! err=%s", epd_err_to_str(ret));
+        goto clean_fonts;
+    }
+
+    epd_gfx_text_style_t system_style = {
+        .size           = 16,
+        .color          = EPD_GFX_WHITE,
+        .background     = EPD_GFX_BG_RED,
+        .flow           = EPD_GFX_TEXT_FLOW_HORIZONTAL,
+        .letter_spacing = 0,
+    };
+    ret = epd_gfx_canvas_draw_utf8(canvas, system_font, u8"I Love Lukas Zhang",
+        (epd_gfx_point_t){ 250, 150 }, &system_style, NULL);
+    if (ret != EPD_OK) {
+        ESP_LOGE("epd_test", "Draw system text failed! err=%s", epd_err_to_str(ret));
+        goto clean_fonts;
+    }
+
+    epd_gfx_text_style_t song_style = {
+        .size           = 32,
+        .color          = EPD_GFX_BLACK,
+        .background     = EPD_GFX_BG_TRANSPARENT,
+        .flow           = EPD_GFX_TEXT_FLOW_HORIZONTAL,
+        .letter_spacing = 0,
+    };
+    ret = epd_gfx_canvas_draw_utf8(canvas, song_font, u8"我爱卢卡斯",
+        (epd_gfx_point_t){ 245, 170 }, &song_style, NULL);
+    if (ret != EPD_OK) {
+        ESP_LOGE("epd_test", "Draw song text failed! err=%s", epd_err_to_str(ret));
+        goto clean_fonts;
+    }
 
     ret = epd_gfx_canvas_flush(canvas, &sink);
     if (ret != EPD_OK) {
-        ESP_LOGE("epd_test", "EPD canvas flush failed! err=%s", esp_err_to_name(ret));
-        return;
+        ESP_LOGE("epd_test", "EPD canvas flush failed! err=%s", epd_err_to_str(ret));
+        goto clean_fonts;
     } else {
         ESP_LOGI("epd_test", "EPD canvas flush flushed!");
     }
 
     ret = epd_panel_sleep(panel);
     if (ret != EPD_OK) {
-        ESP_LOGE("epd_test", "EPD panel sleeping failed! err=%s", esp_err_to_name(ret));
-        return;
+        ESP_LOGE("epd_test", "EPD panel sleeping failed! err=%s", epd_err_to_str(ret));
     } else {
         ESP_LOGI("epd_test", "EPD panel slept!");
     }
 
+clean_fonts:
+    (void)epd_gfx_font_destroy(system_font);
+    (void)epd_gfx_font_destroy(song_font);
+    if (system_font_stream.ctx) {
+        (void)epd_vfs_close_file(&system_font_stream);
+    }
+    if (song_font_stream.ctx) {
+        (void)epd_vfs_close_file(&song_font_stream);
+    }
+    if (vfs_mounted) {
+        (void)epd_vfs_unmount();
+    }
+
+clean_canvas:
     (void)epd_gfx_canvas_destroy(canvas);
+
+clean_panel:
     (void)epd_panel_destroy(panel);
 }
