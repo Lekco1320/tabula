@@ -17,20 +17,13 @@ LEKCO_BEGIN_NAMESPACE
 
 FillPanel::FillPanel(const QString& title, QWidget* parent)
     : ControlPanel(title, parent)
-    , m_previewBtn(new QCheckBox(QStringLiteral("Preview"), this))
+    , m_previewBtn(createPreviewCheckBox())
     , m_colorBtn(new ColorButton(this))
-    , m_draw(new QPushButton(QStringLiteral("Draw"), this))
+    , m_draw(createDrawButton())
 {
-    m_previewBtn->setStyleSheet(QStringLiteral("QCheckBox { spacing: 4px; }"));
-    connect(m_previewBtn, &QCheckBox::checkStateChanged, [this](int checked) {
-        m_enablePreview = (bool)checked;
-        updatePreview();
-    });
-
     m_root->addWidget(MakeRow(this, 0, m_previewBtn, m_colorBtn), 1, 0);
     m_root->addWidget(m_draw, 1, 1);
 
-    connect(m_draw, &QPushButton::clicked, this, &FillPanel::updateDraw);
     connect(m_colorBtn, &ColorButton::colorChanged, this, &FillPanel::updatePreview);
 }
 

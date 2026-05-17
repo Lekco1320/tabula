@@ -32,7 +32,7 @@ class ToolPanel
 public:
     explicit ToolPanel(FontProvider* fontProvider, QWidget* parent = nullptr);
     void updateCanvas(const epd_gfx_canvas_t canvas);
-    void refreshFonts();
+    void refreshProjectResources();
 
 signals:
     void refreshRequested();
@@ -43,6 +43,7 @@ private:
     ToolBar*               m_toolBar;
     QVector<ControlPanel*> m_controlPanels;
     AdaptiveStackedWidget* m_stackedWidget;
+    FontProvider*          m_fontProvider;
 
     void addControlPanel(ControlPanel* panel);
 };

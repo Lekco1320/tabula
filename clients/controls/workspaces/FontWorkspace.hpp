@@ -15,14 +15,14 @@
 #include <stdint.h>
 #include <QString>
 #include <QVector>
+#include <QWidget>
 #include <epd_asset/font_asset.h>
 
-#include "controls/workspaces/ResourceWorkspace.hpp"
+#include "project/Project.hpp"
 
 class QLabel;
 class QPushButton;
 class QStackedWidget;
-class QWidget;
 
 LEKCO_BEGIN_NAMESPACE
 
@@ -30,17 +30,17 @@ class FontGlyphGridWidget;
 class FontGlyphPreviewWidget;
 
 class FontWorkspace
-    : public ResourceWorkspace
+    : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit FontWorkspace(QWidget* parent = nullptr);
+    explicit FontWorkspace(const Project& project, QWidget* parent = nullptr);
     ~FontWorkspace();
 
-    void setResource(const ProjectResource& resource) override;
+    void setResource(const ProjectResource& resource);
     void setFontResources(const QVector<ProjectResource>& resources);
-    void clearResource() override;
+    void clearResource();
     QString resourcePath() const;
 
 private:
@@ -61,6 +61,7 @@ private:
     void deleteSelected();
     void deleteSize();
     void deleteGlyph();
+    bool hasEditableSource() const;
     void setDetailsEnabled(bool enabled);
     void updateFontSummary();
     void updateFontResourcesSummary(const QVector<ProjectResource>& resources);
@@ -69,6 +70,7 @@ private:
 
     static QString formatCodepoint(uint32_t codepoint);
 
+    const Project&          m_project;
     ProjectResource         m_resource;
     epd_asset_font_asset_t  m_asset             = nullptr;
     SelectionKind           m_selectionKind     = SelectionKind::None;

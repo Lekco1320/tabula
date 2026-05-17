@@ -12,9 +12,10 @@
 #ifndef _CANVASWORKSPACE_HPP_
 #define _CANVASWORKSPACE_HPP_
 
+#include <QWidget>
 #include <epd_gfx/canvas.h>
 
-#include "controls/workspaces/ResourceWorkspace.hpp"
+#include "common/Common.h"
 
 LEKCO_BEGIN_NAMESPACE
 
@@ -25,7 +26,7 @@ class RotationBar;
 class ToolPanel;
 
 class CanvasWorkspace
-    : public ResourceWorkspace
+    : public QWidget
 {
     Q_OBJECT
 
@@ -33,9 +34,7 @@ public:
     explicit CanvasWorkspace(const epd_gfx_canvas_config_t& config, FontProvider* fontProvider,
         QWidget* parent = nullptr);
 
-    void setResource(const ProjectResource& resource) override;
-    void clearResource() override;
-    void refreshFonts();
+    void refreshProjectResources();
 
 private:
     epd_gfx_canvas_config_t m_canvasConfig;

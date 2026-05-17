@@ -25,7 +25,7 @@ LEKCO_BEGIN_NAMESPACE
 
 CanvasWorkspace::CanvasWorkspace(const epd_gfx_canvas_config_t& config, FontProvider* fontProvider,
     QWidget* parent)
-    : ResourceWorkspace(parent)
+    : QWidget(parent)
     , m_canvasConfig(config)
 {
     auto* root = new QHBoxLayout(this);
@@ -91,19 +91,10 @@ CanvasWorkspace::CanvasWorkspace(const epd_gfx_canvas_config_t& config, FontProv
     root->setStretch(2, 0);
 }
 
-void CanvasWorkspace::setResource(const ProjectResource& resource)
-{
-    Q_UNUSED(resource)
-}
-
-void CanvasWorkspace::clearResource()
-{
-}
-
-void CanvasWorkspace::refreshFonts()
+void CanvasWorkspace::refreshProjectResources()
 {
     if (m_toolPanel) {
-        m_toolPanel->refreshFonts();
+        m_toolPanel->refreshProjectResources();
     }
 }
 

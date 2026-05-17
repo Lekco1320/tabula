@@ -7,13 +7,9 @@
  * @license MIT
  */
 
-#include <QHBoxLayout>
-#include <QVBoxLayout>
 #include <QSpinBox>
-#include <QPushButton>
-#include <QLabel>
-#include <QGroupBox>
 #include <QCheckBox>
+#include <QPushButton>
 
 #include "controls/Utils.hpp"
 #include "controls/panels/LinePanel.hpp"
@@ -27,16 +23,10 @@ LinePanel::LinePanel(const QString& title, Qt::Orientation orientation, QWidget*
     , m_x(new QSpinBox(this))
     , m_y(new QSpinBox(this))
     , m_len(new QSpinBox(this))
-    , m_previewBtn(new QCheckBox(QStringLiteral("Preview"), this))
+    , m_previewBtn(createPreviewCheckBox())
     , m_colorBtn(new ColorButton(this))
-    , m_draw(new QPushButton(QStringLiteral("Draw"), this))
+    , m_draw(createDrawButton())
 {
-    m_previewBtn->setStyleSheet(QStringLiteral("QCheckBox { spacing: 4px; }"));
-    connect(m_previewBtn, &QCheckBox::checkStateChanged, [this](int checked) {
-        m_enablePreview = (bool)checked;
-        updatePreview();
-    });
-
     m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("X:"), m_x), 0, 0);
     m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("Y:"), m_y), 0, 1);
     m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("L:"), m_len), 1, 0);
@@ -46,17 +36,12 @@ LinePanel::LinePanel(const QString& title, Qt::Orientation orientation, QWidget*
     connect(m_x, &QSpinBox::valueChanged, this, &LinePanel::updatePreview);
     connect(m_y, &QSpinBox::valueChanged, this, &LinePanel::updatePreview);
     connect(m_len, &QSpinBox::valueChanged, this, &LinePanel::updatePreview);
-    connect(m_draw, &QPushButton::clicked, this, &LinePanel::updateDraw);
     connect(m_colorBtn, &ColorButton::colorChanged, this, &LinePanel::updatePreview);
 }
 
 void LinePanel::updateRange(const epd_gfx_canvas_t canvas)
 {
-    uint16_t width  = epd_gfx_canvas_get_logical_width(canvas);
-    uint16_t height = epd_gfx_canvas_get_logical_height(canvas);
-
-    m_x->setRange(1, width);
-    m_y->setRange(1, height);
+    setPointRange(m_x, m_y, canvas);
     m_len->setRange(0, 1000);
     m_len->setValue(100);
 }

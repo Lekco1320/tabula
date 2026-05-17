@@ -7,6 +7,7 @@
  * @license MIT
  */
 
+#include <QFileDialog>
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QIcon>
@@ -40,7 +41,7 @@ END_NAMESPACE
 MainWindow::MainWindow(const Project& project, QWidget* parent)
     : QMainWindow(parent)
     , m_project(project)
-    , m_fontProvider(&m_project)
+    , m_fontProvider(m_project)
 {
     setMinimumSize(QSize { kAssetsPaneWidth + kWorkspaceMinW, kWorkspaceMinH });
     setWindowTitle(QFileInfo(m_project.rootDir()).fileName());
@@ -82,6 +83,10 @@ MainWindow::MainWindow(const Project& project, QWidget* parent)
     buttonLayout->addWidget(m_deleteButton);
     assetsLayout->addWidget(buttonRow);
 
+    m_exportButton = new QPushButton(QStringLiteral("Export Assets"), assetsPane);
+    m_exportButton->setDefault(true);
+    assetsLayout->addWidget(m_exportButton);
+
     const ProjectScreen screen = m_project.screen();
     epd_gfx_canvas_config_t config;
     config.width    = static_cast<uint16_t>(screen.width);
@@ -91,13 +96,14 @@ MainWindow::MainWindow(const Project& project, QWidget* parent)
 
     m_workspaceStack  = new QStackedWidget(central);
     m_canvasWorkspace = new CanvasWorkspace(config, &m_fontProvider, m_workspaceStack);
-    m_fontWorkspace   = new FontWorkspace(m_workspaceStack);
+    m_fontWorkspace   = new FontWorkspace(m_project, m_workspaceStack);
     m_workspaceStack->addWidget(m_canvasWorkspace);
     m_workspaceStack->addWidget(m_fontWorkspace);
     m_workspaceStack->setCurrentWidget(m_canvasWorkspace);
 
     connect(m_addButton, &QPushButton::clicked, this, &MainWindow::addSelectedResource);
     connect(m_deleteButton, &QPushButton::clicked, this, &MainWindow::deleteSelectedResource);
+    connect(m_exportButton, &QPushButton::clicked, this, &MainWindow::exportAssets);
 
     root->addWidget(assetsPane);
     root->addWidget(m_workspaceStack, 1);
@@ -121,7 +127,7 @@ void MainWindow::refreshResourceTree()
         m_resourceTree->topLevelItem(i)->setExpanded(true);
     }
     if (m_canvasWorkspace) {
-        m_canvasWorkspace->refreshFonts();
+        m_canvasWorkspace->refreshProjectResources();
     }
     m_resourceTree->setCurrentItem(m_resourceTree->topLevelItem(0));
     updateResourceButtons();
@@ -130,7 +136,7 @@ void MainWindow::refreshResourceTree()
 void MainWindow::addResources(ProjectResourceType type, QTreeWidgetItem* parentItem)
 {
     auto* category = parentItem ? new QTreeWidgetItem(parentItem) : new QTreeWidgetItem(m_resourceTree);
-    category->setText(0, Project::displayName(type));
+    category->setText(0, QStringLiteral("Fonts"));
     category->setIcon(0, QIcon(QStringLiteral(":/common/icons/Font.svg")));
     category->setData(0, kResourceTypeRole, static_cast<int>(type));
 
@@ -213,7 +219,7 @@ void MainWindow::addSelectedResource()
 
         QString fileName;
         QString error;
-        if (!m_project.createFontResource(dialog.fontName(), &fileName, &error)) {
+        if (!m_project.createFontResource(dialog.fontName(), dialog.sourceFontPath(), &fileName, &error)) {
             QMessageBox::critical(this, QStringLiteral("Font Error"), error);
             return;
         }
@@ -242,10 +248,29 @@ void MainWindow::deleteSelectedResource()
     QString error;
     if (!m_project.removeResource(type, fileName, &error)) {
         QMessageBox::critical(this, QStringLiteral("Asset Error"), error);
+        refreshResourceTree();
         return;
     }
 
     refreshResourceTree();
+}
+
+void MainWindow::exportAssets()
+{
+    const QString dir = QFileDialog::getExistingDirectory(this, QStringLiteral("Select Assets Directory to Overwrite"));
+    if (dir.isEmpty()) {
+        return;
+    }
+
+    qint64  totalBytes = 0;
+    QString error;
+    if (!m_project.exportAssets(dir, &totalBytes, &error)) {
+        QMessageBox::critical(this, QStringLiteral("Export Error"), error);
+        return;
+    }
+
+    QMessageBox::information(this, QStringLiteral("Export Complete"),
+        QStringLiteral("Assets exported successfully.\n\nTotal size: %1 bytes.").arg(totalBytes));
 }
 
 ProjectResourceType MainWindow::selectedResourceType() const

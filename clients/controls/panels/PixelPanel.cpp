@@ -1,5 +1,5 @@
 /**
- * @file LinePanel.cpp
+ * @file PixelPanel.cpp
  * @brief Panel to configure and draw a pixel.
  * 
  * @author Lukaß Zhang <lekco_1320@qq.com>
@@ -20,16 +20,10 @@ PixelPanel::PixelPanel(const QString& title, QWidget* parent)
     : ControlPanel(title, parent)
     , m_x(new QSpinBox(this))
     , m_y(new QSpinBox(this))
-    , m_previewBtn(new QCheckBox(QStringLiteral("Preview"), this))
+    , m_previewBtn(createPreviewCheckBox())
     , m_colorBtn(new ColorButton(this))
-    , m_draw(new QPushButton(QStringLiteral("Draw"), this))
+    , m_draw(createDrawButton())
 {
-    m_previewBtn->setStyleSheet(QStringLiteral("QCheckBox { spacing: 4px; }"));
-    connect(m_previewBtn, &QCheckBox::checkStateChanged, [this](int checked) {
-        m_enablePreview = (bool)checked;
-        updatePreview();
-    });
-
     m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("X:"), m_x), 0, 0);
     m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("Y:"), m_y), 0, 1);
     m_root->addWidget(MakeRow(this, 0, m_previewBtn, m_colorBtn), 1, 0);
@@ -37,17 +31,12 @@ PixelPanel::PixelPanel(const QString& title, QWidget* parent)
 
     connect(m_x, &QSpinBox::valueChanged, this, &PixelPanel::updatePreview);
     connect(m_y, &QSpinBox::valueChanged, this, &PixelPanel::updatePreview);
-    connect(m_draw, &QPushButton::clicked, this, &PixelPanel::updateDraw);
     connect(m_colorBtn, &ColorButton::colorChanged, this, &PixelPanel::updatePreview);
 }
 
 void PixelPanel::updateRange(const epd_gfx_canvas_t canvas)
 {
-    uint16_t width  = epd_gfx_canvas_get_logical_width(canvas);
-    uint16_t height = epd_gfx_canvas_get_logical_height(canvas);
-
-    m_x->setRange(1, width);
-    m_y->setRange(1, height);
+    setPointRange(m_x, m_y, canvas);
 }
 
 DrawFunc PixelPanel::drawFunc() const

@@ -12,7 +12,6 @@
 #ifndef _CONTROLPANEL_HPP_
 #define _CONTROLPANEL_HPP_
 
-#include <functional>
 #include <QString>
 #include <QGroupBox>
 #include <QSize>
@@ -24,6 +23,8 @@
 
 class QGridLayout;
 class QCheckBox;
+class QPushButton;
+class QSpinBox;
 class QWidget;
 
 LEKCO_BEGIN_NAMESPACE
@@ -40,6 +41,7 @@ public:
     virtual void updateDraw() const;
     virtual void updatePreview() const;
     virtual void updateRange(epd_gfx_canvas_t canvas);
+    virtual void refreshProjectResources();
 
 signals:
     void refreshRequested() const;
@@ -48,6 +50,10 @@ signals:
 
 protected:
     virtual DrawFunc drawFunc() const = 0;
+
+    QCheckBox* createPreviewCheckBox();
+    QPushButton* createDrawButton(const QString& text = QStringLiteral("Draw"));
+    void setPointRange(QSpinBox* x, QSpinBox* y, epd_gfx_canvas_t canvas) const;
 
     QGridLayout* m_root;
     bool         m_enablePreview;

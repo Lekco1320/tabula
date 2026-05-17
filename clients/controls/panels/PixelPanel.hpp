@@ -1,5 +1,5 @@
 /**
- * @file LinePanel.hpp
+ * @file PixelPanel.hpp
  * @brief Panel to configure and draw a pixel.
  * 
  * @author Lukaß Zhang <lekco_1320@qq.com>

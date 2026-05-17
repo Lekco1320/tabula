@@ -7,10 +7,8 @@
  * @license MIT
  */
 
-#include <QByteArray>
 #include <QCheckBox>
 #include <QComboBox>
-#include <QFile>
 #include <QFocusEvent>
 #include <QKeyEvent>
 #include <QMimeData>
@@ -21,13 +19,10 @@
 #include <QTextCursor>
 #include <QtGlobal>
 #include <epd_core/common.h>
-#include <epd_gfx/font.h>
-#include <epd_gfx/text.h>
 
 #include "controls/panels/TextPanel.hpp"
 #include "controls/widgets/ColorButton.hpp"
 #include "controls/widgets/FlowButton.hpp"
-#include "project/EpdStreamAdapter.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 
@@ -92,15 +87,9 @@ TextPanel::TextPanel(const QString& title, FontProvider* fontProvider, QWidget* 
     , m_background(new ColorButton(ColorButton::Mode::Background, this))
     , m_flow(new FlowButton(this))
     , m_spacing(new QSpinBox(this))
-    , m_previewBtn(new QCheckBox(QStringLiteral("Preview"), this))
-    , m_draw(new QPushButton(QStringLiteral("Draw"), this))
+    , m_previewBtn(createPreviewCheckBox())
+    , m_draw(createDrawButton())
 {
-    m_previewBtn->setStyleSheet(QStringLiteral("QCheckBox { spacing: 4px; }"));
-    connect(m_previewBtn, &QCheckBox::checkStateChanged, [this](int checked) {
-        m_enablePreview = (bool)checked;
-        updatePreview();
-    });
-
     m_spacing->setRange(-16, 64);
     m_spacing->setValue(0);
 
@@ -120,10 +109,12 @@ TextPanel::TextPanel(const QString& title, FontProvider* fontProvider, QWidget* 
         refreshSizes();
     });
     connect(m_size, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) {
+        refreshTextRenderable();
         updateControls();
         updatePreview();
     });
     connect(m_text, &QPlainTextEdit::textChanged, this, [this]() {
+        refreshTextRenderable();
         updateControls();
         updatePreview();
     });
@@ -139,8 +130,6 @@ TextPanel::TextPanel(const QString& title, FontProvider* fontProvider, QWidget* 
     connect(m_spacing, qOverload<int>(&QSpinBox::valueChanged), this, [this](int) {
         updatePreview();
     });
-    connect(m_draw, &QPushButton::clicked, this, &TextPanel::updateDraw);
-
     refreshFonts();
 }
 
@@ -156,11 +145,7 @@ void TextPanel::updatePreview() const
 
 void TextPanel::updateRange(epd_gfx_canvas_t canvas)
 {
-    const uint16_t width  = epd_gfx_canvas_get_logical_width(canvas);
-    const uint16_t height = epd_gfx_canvas_get_logical_height(canvas);
-
-    m_x->setRange(1, width);
-    m_y->setRange(1, height);
+    setPointRange(m_x, m_y, canvas);
 }
 
 void TextPanel::refreshFonts()
@@ -181,71 +166,66 @@ void TextPanel::refreshFonts()
         m_font->addItem(QStringLiteral("No Fonts"), QString());
     } else {
         const int index = m_font->findData(currentFileName);
-        m_font->setCurrentIndex(index >= 0 ? index : 0);
+        auto hasSizes = [this](const QString& fileName) {
+            return m_fontProvider && !m_fontProvider->sizes(fileName).isEmpty();
+        };
+        if (index >= 0 && hasSizes(currentFileName)) {
+            m_font->setCurrentIndex(index);
+        } else {
+            int usableIndex = 0;
+            for (int i = 0; i < m_font->count(); ++i) {
+                if (hasSizes(m_font->itemData(i).toString())) {
+                    usableIndex = i;
+                    break;
+                }
+            }
+            m_font->setCurrentIndex(usableIndex);
+        }
     }
     m_font->blockSignals(false);
 
     refreshSizes();
 }
 
+void TextPanel::refreshProjectResources()
+{
+    refreshFonts();
+}
+
 DrawFunc TextPanel::drawFunc() const
 {
-    const QString             fontFileName = m_font->currentData().toString();
-    const QString             text         = m_text->toPlainText();
-    const int                 size         = m_size->currentData().toInt();
-    const int                 x            = m_x->value();
-    const int                 y            = m_y->value();
-    const epd_gfx_color_t     color        = m_colorBtn->currentColor();
-    const epd_gfx_bg_color_t  background   = m_background->currentBackgroundColor();
-    const epd_gfx_text_flow_t flow         = m_flow->currentFlow();
-    const int                 spacing      = m_spacing->value();
-    FontProvider*             provider     = m_fontProvider;
+    FontProvider* provider = m_fontProvider;
 
-    return [provider, fontFileName, text, size, x, y, color, background, flow, spacing](epd_gfx_canvas_t canvas) {
-        if (!provider || fontFileName.isEmpty() || text.isEmpty() || size <= 0) {
+    FontTextDrawRequest request;
+    request.fileName             = m_font->currentData().toString();
+    request.text                 = m_text->toPlainText();
+    request.origin.x             = static_cast<uint16_t>(m_x->value());
+    request.origin.y             = static_cast<uint16_t>(m_y->value());
+    request.style.size           = static_cast<uint16_t>(m_size->currentData().toInt());
+    request.style.color          = m_colorBtn->currentColor();
+    request.style.background     = m_background->currentBackgroundColor();
+    request.style.flow           = m_flow->currentFlow();
+    request.style.letter_spacing = static_cast<int16_t>(m_spacing->value());
+
+    return [provider, request](epd_gfx_canvas_t canvas) {
+        if (!provider) {
             return EPD_ERR_INVALID_ARG;
         }
-
-        FontResourceInfo info;
-        if (!provider->font(fontFileName, &info)) {
-            return EPD_ERR_NOT_FOUND;
-        }
-
-        QFile file(info.absolutePath);
-        if (!file.open(QIODevice::ReadOnly)) {
-            return EPD_ERR_INVALID_STATE;
-        }
-
-        EpdStreamAdapter stream(&file);
-        epd_gfx_font_t font = nullptr;
-        epd_err_t ret = epd_gfx_font_load(stream.stream(), &font);
-        if (ret != EPD_OK) {
-            return ret;
-        }
-
-        const QByteArray utf8 = text.toUtf8();
-        epd_gfx_text_style_t style;
-        style.size           = static_cast<uint16_t>(size);
-        style.color          = color;
-        style.background     = background;
-        style.flow           = flow;
-        style.letter_spacing = static_cast<int16_t>(spacing);
-
-        ret = epd_gfx_canvas_draw_utf8(canvas, font, utf8.constData(), epd_gfx_point_t{
-            static_cast<uint16_t>(x),
-            static_cast<uint16_t>(y),
-        }, &style, nullptr);
-
-        epd_gfx_font_destroy(font);
-        return ret;
+        return provider->drawText(canvas, request);
     };
 }
 
 bool TextPanel::canDraw() const
 {
+    return canUseTool()
+        && !m_text->toPlainText().isEmpty()
+        && m_renderable;
+}
+
+bool TextPanel::canUseTool() const
+{
     return !m_font->currentData().toString().isEmpty()
-        && m_size->currentData().toInt() > 0
-        && !m_text->toPlainText().isEmpty();
+        && m_size->currentData().toInt() > 0;
 }
 
 void TextPanel::refreshSizes()
@@ -269,15 +249,25 @@ void TextPanel::refreshSizes()
     }
     m_size->blockSignals(false);
 
+    refreshTextRenderable();
     updateControls();
     updatePreview();
+}
+
+void TextPanel::refreshTextRenderable()
+{
+    const QString fontFileName = m_font->currentData().toString();
+    const int     size         = m_size->currentData().toInt();
+    const QString text         = m_text->toPlainText();
+    m_renderable               = text.isEmpty()
+        || (m_fontProvider && m_fontProvider->hasRenderableText(fontFileName, static_cast<uint16_t>(size), text));
 }
 
 void TextPanel::updateControls()
 {
     const bool hasFont = !m_font->currentData().toString().isEmpty();
     const bool hasSize = m_size->currentData().toInt() > 0;
-    const bool enabled = hasFont && hasSize;
+    const bool enabled = canUseTool();
 
     m_size->setEnabled(hasFont);
     m_text->setEnabled(enabled);
@@ -287,7 +277,7 @@ void TextPanel::updateControls()
     m_background->setEnabled(enabled);
     m_flow->setEnabled(enabled);
     m_spacing->setEnabled(enabled);
-    m_previewBtn->setEnabled(canDraw());
+    m_previewBtn->setEnabled(enabled);
     m_draw->setEnabled(canDraw());
 }
 

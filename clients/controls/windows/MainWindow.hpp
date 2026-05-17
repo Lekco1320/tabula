@@ -16,7 +16,7 @@
 #include <QString>
 
 #include "common/Common.h"
-#include "project/ProjectFontProvider.hpp"
+#include "project/FontProvider.hpp"
 #include "project/Project.hpp"
 
 class QPushButton;
@@ -45,15 +45,17 @@ private:
     void updateResourceButtons();
     void addSelectedResource();
     void deleteSelectedResource();
+    void exportAssets();
     ProjectResourceType selectedResourceType() const;
     QString selectedResourceFileName() const;
     bool selectedItemIsResource() const;
 
     Project             m_project;
-    ProjectFontProvider m_fontProvider;
+    FontProvider        m_fontProvider;
     QTreeWidget*        m_resourceTree     = nullptr;
     QPushButton*        m_addButton        = nullptr;
     QPushButton*        m_deleteButton     = nullptr;
+    QPushButton*        m_exportButton     = nullptr;
     QStackedWidget*     m_workspaceStack   = nullptr;
     CanvasWorkspace*    m_canvasWorkspace  = nullptr;
     FontWorkspace*      m_fontWorkspace    = nullptr;

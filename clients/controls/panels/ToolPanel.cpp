@@ -17,6 +17,7 @@
 #include "controls/panels/PixelPanel.hpp"
 #include "controls/panels/TextPanel.hpp"
 #include "controls/widgets/AdaptiveStackedWidget.hpp"
+#include "project/FontProvider.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 
@@ -24,6 +25,7 @@ ToolPanel::ToolPanel(FontProvider* fontProvider, QWidget* parent)
     : QWidget(parent)
     , m_toolBar(new ToolBar(this))
     , m_stackedWidget(new AdaptiveStackedWidget(this))
+    , m_fontProvider(fontProvider)
 {
     m_stackedWidget->setContentsMargins(0, 0, 0, 0);
 
@@ -42,6 +44,8 @@ ToolPanel::ToolPanel(FontProvider* fontProvider, QWidget* parent)
     addControlPanel(fillPanel);
     addControlPanel(textPanel);
     m_stackedWidget->setCollapsed(true);
+    m_toolBar->setToolEnabled(ToolBar::Tool::DrawText,
+        m_fontProvider && m_fontProvider->hasUsableFonts());
 
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -50,13 +54,16 @@ ToolPanel::ToolPanel(FontProvider* fontProvider, QWidget* parent)
     layout->addWidget(m_stackedWidget);
 
     connect(m_toolBar, &ToolBar::toolChanged, this, [this](ToolBar::Tool tool) {
+        if (tool == ToolBar::Tool::None) {
+            m_stackedWidget->setCollapsed(true);
+            return;
+        }
+
         int id = static_cast<int>(tool);
         if (id > -1 && id < m_controlPanels.size()) {
             m_stackedWidget->setCurrentIndex(id);
             m_stackedWidget->setCollapsed(false);
             m_controlPanels[id]->updatePreview();
-        } else if (id == -1) {
-            m_stackedWidget->setCollapsed(true);
         }
     });
 }
@@ -71,14 +78,13 @@ void ToolPanel::updateCanvas(const epd_gfx_canvas_t canvas)
     }
 }
 
-void ToolPanel::refreshFonts()
+void ToolPanel::refreshProjectResources()
 {
     for (auto panel : m_controlPanels) {
-        auto* textPanel = qobject_cast<TextPanel*>(panel);
-        if (textPanel) {
-            textPanel->refreshFonts();
-        }
+        panel->refreshProjectResources();
     }
+    m_toolBar->setToolEnabled(ToolBar::Tool::DrawText,
+        m_fontProvider && m_fontProvider->hasUsableFonts());
 }
 
 void ToolPanel::addControlPanel(ControlPanel* panel)

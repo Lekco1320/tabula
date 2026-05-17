@@ -40,6 +40,7 @@ public:
     explicit ToolBar(QWidget* parent = nullptr);
     
     Tool currentTool() const;
+    void setToolEnabled(Tool tool, bool enabled);
 
 signals:
     void toolChanged(Tool tool);

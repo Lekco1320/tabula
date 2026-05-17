@@ -16,7 +16,6 @@
 #include <QMessageBox>
 #include <QProgressDialog>
 #include <QPushButton>
-#include <QSaveFile>
 #include <QSizePolicy>
 #include <QStackedWidget>
 #include <QVBoxLayout>
@@ -25,7 +24,6 @@
 #include <oclero/qlementine/widgets/Label.hpp>
 #include <epd_asset/font_face.h>
 #include <epd_core/common.h>
-#include <epd_gfx/egf.h>
 #include <epd_gfx/glyph.h>
 
 #include "controls/widgets/FontGlyphGridWidget.hpp"
@@ -33,7 +31,7 @@
 #include "controls/widgets/FontGlyphPreviewWidget.hpp"
 #include "controls/windows/AddGlyphDialog.hpp"
 #include "controls/workspaces/FontWorkspace.hpp"
-#include "project/EpdStreamAdapter.hpp"
+#include "project/FontAssetIO.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 
@@ -45,7 +43,7 @@ constexpr uint32_t kProgressMax      = 100000U;
 
 QString ErrorText(epd_err_t err)
 {
-    return QString::fromLatin1(epd_err_to_str(err));
+    return FontAssetIO::errorText(err);
 }
 
 QString FormatBytes(qint64 bytes)
@@ -55,8 +53,9 @@ QString FormatBytes(qint64 bytes)
 
 END_NAMESPACE
 
-FontWorkspace::FontWorkspace(QWidget* parent)
-    : ResourceWorkspace(parent)
+FontWorkspace::FontWorkspace(const Project& project, QWidget* parent)
+    : QWidget(parent)
+    , m_project(project)
 {
     m_contentStack = new QStackedWidget(this);
 
@@ -191,14 +190,7 @@ void FontWorkspace::loadResource()
     updateFontSummary();
     setDetailsEnabled(false);
 
-    QFile file(m_resource.absolutePath);
-    if (!file.open(QIODevice::ReadOnly)) {
-        QMessageBox::critical(this, QStringLiteral("Font Error"), QStringLiteral("Failed to open font file."));
-        return;
-    }
-
-    EpdStreamAdapter stream(&file);
-    epd_err_t ret = epd_asset_font_asset_load_egf(stream.stream(), &m_asset);
+    epd_err_t ret = FontAssetIO::loadEditableAsset(m_resource.absolutePath, &m_asset);
     if (ret != EPD_OK) {
         QMessageBox::critical(this, QStringLiteral("Font Error"),
             QStringLiteral("Failed to load font file: %1").arg(ErrorText(ret)));
@@ -233,18 +225,9 @@ bool FontWorkspace::saveResource()
         return false;
     }
 
-    QSaveFile file(m_resource.absolutePath);
-    if (!file.open(QIODevice::WriteOnly)) {
-        QMessageBox::critical(this, QStringLiteral("Font Error"), QStringLiteral("Failed to open font file for writing."));
-        loadResource();
-        return false;
-    }
-
-    EpdStreamAdapter stream(&file);
-    const epd_err_t ret = epd_asset_font_asset_write_egf(m_asset, stream.stream());
-    if (ret != EPD_OK || !file.commit()) {
-        QMessageBox::critical(this, QStringLiteral("Font Error"),
-            QStringLiteral("Failed to save font file: %1").arg(ret == EPD_OK ? QStringLiteral("commit failed") : ErrorText(ret)));
+    QString error;
+    if (!FontAssetIO::saveEditableAsset(m_resource.absolutePath, m_asset, &error)) {
+        QMessageBox::critical(this, QStringLiteral("Font Error"), error);
         loadResource();
         return false;
     }
@@ -329,7 +312,7 @@ void FontWorkspace::clearGlyphSelection()
 
 void FontWorkspace::addGlyph()
 {
-    if (!m_asset) {
+    if (!m_asset || !hasEditableSource()) {
         return;
     }
 
@@ -338,7 +321,7 @@ void FontWorkspace::addGlyph()
         return;
     }
 
-    QFile fontFile(dialog.fontPath());
+    QFile fontFile(m_project.fontSourcePath(m_resource.fileName));
     if (!fontFile.open(QIODevice::ReadOnly)) {
         QMessageBox::critical(this, QStringLiteral("Glyph Error"), QStringLiteral("Failed to read source font file."));
         return;
@@ -366,9 +349,12 @@ void FontWorkspace::addGlyph()
     }
 
     epd_asset_font_asset_size_info_t sizeInfo;
-    ret = epd_asset_font_face_get_size_info(face, size, &sizeInfo);
-    if (ret == EPD_OK) {
-        ret = epd_asset_font_asset_set_size_info(m_asset, &sizeInfo);
+    ret = epd_asset_font_asset_get_size_info(m_asset, size, &sizeInfo);
+    if (ret == EPD_ERR_NOT_FOUND) {
+        ret = epd_asset_font_face_get_size_info(face, size, &sizeInfo);
+        if (ret == EPD_OK) {
+            ret = epd_asset_font_asset_set_size_info(m_asset, &sizeInfo);
+        }
     }
     if (ret != EPD_OK) {
         epd_asset_font_face_destroy(face);
@@ -584,9 +570,14 @@ void FontWorkspace::deleteGlyph()
     }
 }
 
+bool FontWorkspace::hasEditableSource() const
+{
+    return m_asset && m_project.fontSourceExists(m_resource.fileName);
+}
+
 void FontWorkspace::setDetailsEnabled(bool enabled)
 {
-    m_addButton->setEnabled(enabled);
+    m_addButton->setEnabled(enabled && hasEditableSource());
     m_deleteButton->setEnabled(enabled && m_selectionKind != SelectionKind::None);
 }
 
@@ -634,13 +625,20 @@ void FontWorkspace::updateFontSummary()
             .arg(codepointCount);
     }
 
+    const QString sourcePath = m_project.fontSourcePath(m_resource.fileName);
+    const QString sourceText = hasEditableSource()
+        ? QFileInfo(sourcePath).fileName()
+        : QStringLiteral("<span style=\"color: #d32f2f;\">Missing</span>");
+
     m_metricsLabel->setText(QStringLiteral(
         "<table cellspacing=\"0\" cellpadding=\"2\" width=\"100%\">"
-        "<tr><td>File Size</td><td align=\"right\">%1 bytes</td></tr>"
-        "<tr><td>Sizes</td><td align=\"right\">%2</td></tr>"
-        "<tr><td>Total Glyphs</td><td align=\"right\">%3</td></tr>"
-        "%4"
+        "<tr><td>Source</td><td align=\"right\">%1</td></tr>"
+        "<tr><td>File Size</td><td align=\"right\">%2 bytes</td></tr>"
+        "<tr><td>Sizes</td><td align=\"right\">%3</td></tr>"
+        "<tr><td>Total Glyphs</td><td align=\"right\">%4</td></tr>"
+        "%5"
         "</table>")
+        .arg(sourceText)
         .arg(fileInfo.size())
         .arg(sizeCount)
         .arg(glyphCount)
@@ -654,26 +652,13 @@ void FontWorkspace::updateFontResourcesSummary(const QVector<ProjectResource>& r
     QString rows;
 
     for (const ProjectResource& resource : resources) {
-        QFileInfo fileInfo(resource.absolutePath);
-        QFile     file(resource.absolutePath);
-        if (!file.open(QIODevice::ReadOnly)) {
-            continue;
-        }
-
-        EpdStreamAdapter stream(&file);
         epd_gfx_egf_header_t header = {};
-        if (!epd_gfx_egf_read_header(stream.stream(), &header) || !epd_gfx_egf_check_magic(&header)) {
+        if (!FontAssetIO::readHeader(resource.absolutePath, &header)
+            || !FontAssetIO::isValidEgfFile(resource.absolutePath)) {
             continue;
         }
 
-        const quint64 expectedSize = EPD_GFX_EGF_HEADER_BYTES
-            + static_cast<quint64>(header.size_count) * EPD_GFX_EGF_SIZE_RECORD_BYTES
-            + static_cast<quint64>(header.glyph_count) * EPD_GFX_EGF_GLYPH_INDEX_BYTES
-            + header.data_count;
-        if (static_cast<quint64>(fileInfo.size()) != expectedSize) {
-            continue;
-        }
-
+        QFileInfo fileInfo(resource.absolutePath);
         ++fontCount;
         totalBytes += fileInfo.size();
         rows += QStringLiteral(

@@ -30,11 +30,12 @@ target_sources(tabula-host PRIVATE
     controls/Utils.hpp
     project/EpdStreamAdapter.cpp
     project/EpdStreamAdapter.hpp
+    project/FontAssetIO.cpp
+    project/FontAssetIO.hpp
+    project/FontProvider.cpp
     project/FontProvider.hpp
     project/Project.cpp
-    project/Project.hpp
-    project/ProjectFontProvider.cpp
-    project/ProjectFontProvider.hpp)
+    project/Project.hpp)
 
 target_sources(tabula-host PRIVATE
     controls/bars/CursorBar.cpp
@@ -84,9 +85,7 @@ target_sources(tabula-host PRIVATE
     controls/workspaces/CanvasWorkspace.cpp
     controls/workspaces/CanvasWorkspace.hpp
     controls/workspaces/FontWorkspace.cpp
-    controls/workspaces/FontWorkspace.hpp
-    controls/workspaces/ResourceWorkspace.cpp
-    controls/workspaces/ResourceWorkspace.hpp)
+    controls/workspaces/FontWorkspace.hpp)
 
 target_sources(tabula-host PRIVATE
     controls/windows/AddGlyphDialog.cpp

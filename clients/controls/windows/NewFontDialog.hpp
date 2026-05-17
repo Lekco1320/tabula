@@ -30,11 +30,14 @@ public:
     explicit NewFontDialog(QWidget* parent = nullptr);
 
     QString fontName() const;
+    QString sourceFontPath() const;
 
 private:
     void accept() override;
+    void browseSourceFont();
 
-    QLineEdit* m_fontNameEdit = nullptr;
+    QLineEdit* m_fontNameEdit   = nullptr;
+    QLineEdit* m_sourceFontEdit = nullptr;
 };
 
 LEKCO_END_NAMESPACE

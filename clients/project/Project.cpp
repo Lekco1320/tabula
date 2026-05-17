@@ -8,15 +8,16 @@
  */
 
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSaveFile>
 #include <epd_asset/font_asset.h>
-#include <epd_gfx/egf.h>
 
 #include "project/EpdStreamAdapter.hpp"
+#include "project/FontAssetIO.hpp"
 #include "project/Project.hpp"
 
 LEKCO_BEGIN_NAMESPACE
@@ -24,6 +25,47 @@ LEKCO_BEGIN_NAMESPACE
 BEGIN_NAMESPACE()
 
 constexpr int kManifestVersion = 1;
+constexpr auto kSourcesFontsDir = "sources/fonts";
+
+bool HasSameFileContent(const QString& leftPath, const QString& rightPath)
+{
+    QFile left(leftPath);
+    QFile right(rightPath);
+    if (!left.open(QIODevice::ReadOnly) || !right.open(QIODevice::ReadOnly) || left.size() != right.size()) {
+        return false;
+    }
+
+    constexpr qint64 kChunkSize = 64 * 1024;
+    while (!left.atEnd()) {
+        if (left.read(kChunkSize) != right.read(kChunkSize)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+QString SafeSourceFileName(const QFileInfo& sourceInfo)
+{
+    QString baseName = sourceInfo.completeBaseName();
+    for (int i = 0; i < baseName.size(); ++i) {
+        const ushort value = baseName.at(i).unicode();
+        const bool valid = (value >= 'A' && value <= 'Z')
+            || (value >= 'a' && value <= 'z')
+            || (value >= '0' && value <= '9')
+            || value == '_'
+            || value == '-';
+        if (!valid) {
+            baseName[i] = QLatin1Char('_');
+        }
+    }
+
+    if (baseName.isEmpty()) {
+        baseName = QStringLiteral("source");
+    }
+
+    return QStringLiteral("%1.%2").arg(baseName, sourceInfo.suffix().toLower());
+}
 
 void SetError(QString* error, const QString& message)
 {
@@ -49,6 +91,7 @@ bool Project::create(const QString& rootDir, const ProjectScreen& screen, QStrin
 
     m_rootDir = QFileInfo(root.absolutePath()).absoluteFilePath();
     m_screen  = screen;
+    m_fontSources.clear();
 
     if (QFileInfo::exists(manifestPath())) {
         SetError(error, QStringLiteral("A manifest already exists in this directory."));
@@ -104,6 +147,17 @@ bool Project::open(const QString& path, QString* error)
     m_rootDir       = QFileInfo(pathToManifest).absolutePath();
     m_screen.width  = width;
     m_screen.height = height;
+    m_fontSources.clear();
+
+    const QJsonObject fonts = root.value(QStringLiteral("fonts")).toObject();
+    for (auto it = fonts.constBegin(); it != fonts.constEnd(); ++it) {
+        const QJsonObject font = it.value().toObject();
+        const QString source   = font.value(QStringLiteral("source")).toString();
+        if (validateResourceFileName(ProjectResourceType::Fonts, it.key()) && !source.isEmpty()
+            && !QFileInfo(source).isAbsolute() && pathIsInProject(absoluteProjectPath(source))) {
+            m_fontSources.insert(it.key(), source);
+        }
+    }
 
     return ensureDirectories(error);
 }
@@ -119,9 +173,17 @@ bool Project::save(QString* error) const
     screen.insert(QStringLiteral("width"), m_screen.width);
     screen.insert(QStringLiteral("height"), m_screen.height);
 
+    QJsonObject fonts;
+    for (auto it = m_fontSources.constBegin(); it != m_fontSources.constEnd(); ++it) {
+        QJsonObject font;
+        font.insert(QStringLiteral("source"), it.value());
+        fonts.insert(it.key(), font);
+    }
+
     QJsonObject root;
     root.insert(QStringLiteral("version"), kManifestVersion);
     root.insert(QStringLiteral("screen"), screen);
+    root.insert(QStringLiteral("fonts"), fonts);
 
     QSaveFile file(manifestPath());
     if (!file.open(QIODevice::WriteOnly)) {
@@ -138,7 +200,8 @@ bool Project::save(QString* error) const
     return true;
 }
 
-bool Project::createFontResource(const QString& fontName, QString* outFileName, QString* error) const
+bool Project::createFontResource(const QString& fontName, const QString& sourceFontPath,
+    QString* outFileName, QString* error)
 {
     if (!validateFontName(fontName, error)) {
         return false;
@@ -152,6 +215,11 @@ bool Project::createFontResource(const QString& fontName, QString* outFileName, 
     const QString targetPath = resourcePath(ProjectResourceType::Fonts, fileName);
     if (QFileInfo::exists(targetPath)) {
         SetError(error, QStringLiteral("A font with the same name already exists."));
+        return false;
+    }
+
+    const QString sourceRelativePath = copyFontSource(sourceFontPath, error);
+    if (sourceRelativePath.isEmpty()) {
         return false;
     }
 
@@ -170,12 +238,22 @@ bool Project::createFontResource(const QString& fontName, QString* outFileName, 
     }
     epd_asset_font_asset_destroy(asset);
     if (ret != EPD_OK) {
+        removeUnusedFontSource(sourceRelativePath, fileName);
         SetError(error, QStringLiteral("Failed to write font file."));
         return false;
     }
 
     if (!target.commit()) {
+        removeUnusedFontSource(sourceRelativePath, fileName);
         SetError(error, QStringLiteral("Failed to save font file."));
+        return false;
+    }
+
+    m_fontSources.insert(fileName, sourceRelativePath);
+    if (!save(error)) {
+        m_fontSources.remove(fileName);
+        QFile::remove(targetPath);
+        removeUnusedFontSource(sourceRelativePath, fileName);
         return false;
     }
 
@@ -185,8 +263,13 @@ bool Project::createFontResource(const QString& fontName, QString* outFileName, 
     return true;
 }
 
-bool Project::removeResource(ProjectResourceType type, const QString& fileName, QString* error) const
+bool Project::removeResource(ProjectResourceType type, const QString& fileName, QString* error)
 {
+    if (type != ProjectResourceType::Fonts) {
+        SetError(error, QStringLiteral("Invalid resource type."));
+        return false;
+    }
+
     if (!validateResourceFileName(type, fileName, error)) {
         return false;
     }
@@ -197,24 +280,99 @@ bool Project::removeResource(ProjectResourceType type, const QString& fileName, 
         return false;
     }
 
+    const bool    hasSourceEntry     = m_fontSources.contains(fileName);
+    const QString sourceRelativePath = m_fontSources.value(fileName);
+    if (hasSourceEntry) {
+        m_fontSources.remove(fileName);
+        if (!save(error)) {
+            m_fontSources.insert(fileName, sourceRelativePath);
+            return false;
+        }
+    }
+
     if (!QFile::remove(path)) {
+        if (hasSourceEntry) {
+            m_fontSources.insert(fileName, sourceRelativePath);
+            (void)save();
+        }
         SetError(error, QStringLiteral("Failed to delete resource file."));
+        return false;
+    }
+
+    if (!removeUnusedFontSource(sourceRelativePath, fileName)) {
+        SetError(error, QStringLiteral("Failed to delete unused source font."));
         return false;
     }
 
     return true;
 }
 
+bool Project::exportAssets(const QString& targetDir, qint64* outBytes, QString* error) const
+{
+    if (targetDir.trimmed().isEmpty()) {
+        SetError(error, QStringLiteral("Export directory is empty."));
+        return false;
+    }
+
+    const QString sourcePath = assetsDir();
+    if (!QFileInfo(sourcePath).isDir()) {
+        SetError(error, QStringLiteral("Project assets directory does not exist."));
+        return false;
+    }
+
+    const QFileInfo targetInfo(targetDir);
+    if (QFileInfo(sourcePath).absoluteFilePath() == targetInfo.absoluteFilePath()) {
+        SetError(error, QStringLiteral("Export target cannot be the project assets directory."));
+        return false;
+    }
+
+    QDir target(targetDir);
+    if (target.exists() && !target.removeRecursively()) {
+        SetError(error, QStringLiteral("Failed to remove old export directory."));
+        return false;
+    }
+
+    QDir targetParent(targetInfo.absolutePath());
+    if (!targetParent.mkpath(targetInfo.fileName())) {
+        SetError(error, QStringLiteral("Failed to create export directory."));
+        return false;
+    }
+
+    qint64           totalBytes = 0;
+    QDirIterator     it(sourcePath, QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+    const QDir       sourceDir(sourcePath);
+    const QDir       targetDirHandle(targetDir);
+    while (it.hasNext()) {
+        const QString inputPath    = it.next();
+        const QString relativePath = sourceDir.relativeFilePath(inputPath);
+        const QString outputPath   = targetDirHandle.filePath(relativePath);
+        if (!QDir().mkpath(QFileInfo(outputPath).absolutePath()) || !QFile::copy(inputPath, outputPath)) {
+            SetError(error, QStringLiteral("Failed to copy asset file."));
+            return false;
+        }
+        totalBytes += QFileInfo(outputPath).size();
+    }
+
+    if (outBytes) {
+        *outBytes = totalBytes;
+    }
+    return true;
+}
+
 QVector<ProjectResource> Project::resources(ProjectResourceType type) const
 {
     QVector<ProjectResource> result;
+    if (type != ProjectResourceType::Fonts) {
+        return result;
+    }
+
     const QDir dir(resourceDir(type));
     const QFileInfoList files = dir.entryInfoList(QDir::Files | QDir::Readable, QDir::Name);
     for (const QFileInfo& file : files) {
         if (!validateResourceFileName(type, file.fileName())) {
             continue;
         }
-        if (type == ProjectResourceType::Fonts && !isValidFontResource(file.absoluteFilePath())) {
+        if (!isValidFontResource(file.absoluteFilePath())) {
             continue;
         }
 
@@ -247,9 +405,16 @@ QString Project::assetsDir() const
     return QDir(m_rootDir).filePath(QStringLiteral("assets"));
 }
 
+QString Project::sourcesDir() const
+{
+    return QDir(m_rootDir).filePath(QStringLiteral("sources"));
+}
+
 QString Project::resourceDir(ProjectResourceType type) const
 {
-    return QDir(assetsDir()).filePath(directoryName(type));
+    return type == ProjectResourceType::Fonts
+        ? QDir(assetsDir()).filePath(QStringLiteral("fonts"))
+        : QString();
 }
 
 ProjectScreen Project::screen() const
@@ -257,40 +422,21 @@ ProjectScreen Project::screen() const
     return m_screen;
 }
 
-QString Project::displayName(ProjectResourceType type)
+QString Project::fontSourcePath(const QString& fontFileName) const
 {
-    switch (type)
-    {
-    case ProjectResourceType::Fonts:
-        return QStringLiteral("Fonts");
-
-    case ProjectResourceType::Images:
-        return QStringLiteral("Images");
-
-    case ProjectResourceType::Icons:
-        return QStringLiteral("Icons");
-
-    default:
-        return QStringLiteral("Unknown");
-    }
-}
-
-QString Project::directoryName(ProjectResourceType type)
-{
-    switch (type)
-    {
-    case ProjectResourceType::Fonts:
-        return QStringLiteral("fonts");
-
-    case ProjectResourceType::Images:
-        return QStringLiteral("images");
-
-    case ProjectResourceType::Icons:
-        return QStringLiteral("icons");
-
-    default:
+    const QString sourceRelativePath = m_fontSources.value(fontFileName);
+    if (sourceRelativePath.isEmpty() || QFileInfo(sourceRelativePath).isAbsolute()) {
         return QString();
     }
+
+    const QString sourcePath = absoluteProjectPath(sourceRelativePath);
+    return pathIsInProject(sourcePath) ? sourcePath : QString();
+}
+
+bool Project::fontSourceExists(const QString& fontFileName) const
+{
+    const QString sourcePath = fontSourcePath(fontFileName);
+    return !sourcePath.isEmpty() && QFileInfo(sourcePath).isFile();
 }
 
 bool Project::validateFontName(const QString& fontName, QString* error)
@@ -319,15 +465,14 @@ bool Project::validateFontName(const QString& fontName, QString* error)
 bool Project::validateResourceFileName(ProjectResourceType type, const QString& fileName, QString* error)
 {
     const QFileInfo info(fileName);
-    if (type == ProjectResourceType::Unknown || fileName.trimmed().isEmpty()
+    if (type != ProjectResourceType::Fonts || fileName.trimmed().isEmpty()
         || fileName.contains(QLatin1Char('/')) || fileName.contains(QLatin1Char('\\'))
         || fileName != info.fileName()) {
         SetError(error, QStringLiteral("Invalid resource file name."));
         return false;
     }
 
-    if (type == ProjectResourceType::Fonts
-        && info.suffix().compare(QStringLiteral("egf"), Qt::CaseInsensitive) != 0) {
+    if (info.suffix().compare(QStringLiteral("egf"), Qt::CaseInsensitive) != 0) {
         SetError(error, QStringLiteral("Font resources must use the .egf extension."));
         return false;
     }
@@ -339,8 +484,7 @@ bool Project::ensureDirectories(QString* error) const
 {
     QDir root(m_rootDir);
     if (!root.mkpath(QStringLiteral("assets/fonts"))
-        || !root.mkpath(QStringLiteral("assets/images"))
-        || !root.mkpath(QStringLiteral("assets/icons"))) {
+        || !root.mkpath(QString::fromLatin1(kSourcesFontsDir))) {
         SetError(error, QStringLiteral("Failed to create project asset directories."));
         return false;
     }
@@ -349,27 +493,86 @@ bool Project::ensureDirectories(QString* error) const
 
 bool Project::isValidFontResource(const QString& path) const
 {
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly)) {
-        return false;
-    }
-
-    EpdStreamAdapter stream(&file);
-    epd_gfx_egf_header_t header = {};
-    if (!epd_gfx_egf_read_header(stream.stream(), &header) || !epd_gfx_egf_check_magic(&header)) {
-        return false;
-    }
-
-    const quint64 expectedSize = EPD_GFX_EGF_HEADER_BYTES
-        + static_cast<quint64>(header.size_count) * EPD_GFX_EGF_SIZE_RECORD_BYTES
-        + static_cast<quint64>(header.glyph_count) * EPD_GFX_EGF_GLYPH_INDEX_BYTES
-        + header.data_count;
-    return static_cast<quint64>(file.size()) == expectedSize;
+    return FontAssetIO::isValidEgfFile(path);
 }
 
 QString Project::resourcePath(ProjectResourceType type, const QString& fileName) const
 {
     return QDir(resourceDir(type)).filePath(fileName);
+}
+
+QString Project::copyFontSource(const QString& sourceFontPath, QString* error) const
+{
+    const QFileInfo sourceInfo(sourceFontPath);
+    if (!sourceInfo.isFile()) {
+        SetError(error, QStringLiteral("Source font file does not exist."));
+        return QString();
+    }
+
+    const QString suffix = sourceInfo.suffix();
+    if (suffix.compare(QStringLiteral("ttf"), Qt::CaseInsensitive) != 0
+        && suffix.compare(QStringLiteral("otf"), Qt::CaseInsensitive) != 0) {
+        SetError(error, QStringLiteral("Source font file must use the .ttf or .otf extension."));
+        return QString();
+    }
+
+    QDir root(m_rootDir);
+    if (!root.mkpath(QString::fromLatin1(kSourcesFontsDir))) {
+        SetError(error, QStringLiteral("Failed to create source font directory."));
+        return QString();
+    }
+
+    const QString fileName   = SafeSourceFileName(sourceInfo);
+    const QString targetPath = QDir(sourcesDir()).filePath(QStringLiteral("fonts/%1").arg(fileName));
+    if (QFileInfo::exists(targetPath)) {
+        if (HasSameFileContent(sourceInfo.absoluteFilePath(), targetPath)) {
+            return QStringLiteral("%1/%2").arg(QString::fromLatin1(kSourcesFontsDir), fileName);
+        }
+
+        SetError(error, QStringLiteral("A different source font with the same name already exists."));
+        return QString();
+    }
+
+    if (!QFile::copy(sourceInfo.absoluteFilePath(), targetPath)) {
+        SetError(error, QStringLiteral("Failed to copy source font file."));
+        return QString();
+    }
+
+    return QStringLiteral("%1/%2").arg(QString::fromLatin1(kSourcesFontsDir), fileName);
+}
+
+QString Project::absoluteProjectPath(const QString& relativePath) const
+{
+    return QFileInfo(QDir(m_rootDir).filePath(relativePath)).absoluteFilePath();
+}
+
+bool Project::pathIsInProject(const QString& path) const
+{
+    const QDir    root(QFileInfo(m_rootDir).absoluteFilePath());
+    const QString relativePath = root.relativeFilePath(QFileInfo(path).absoluteFilePath());
+    return relativePath == QStringLiteral(".")
+        || (!relativePath.startsWith(QStringLiteral("../")) && !relativePath.startsWith(QStringLiteral("..\\"))
+            && relativePath != QStringLiteral("..") && !QFileInfo(relativePath).isAbsolute());
+}
+
+bool Project::sourceUsedByOtherFont(const QString& sourceRelativePath, const QString& ignoredFontFileName) const
+{
+    for (auto it = m_fontSources.constBegin(); it != m_fontSources.constEnd(); ++it) {
+        if (it.key() != ignoredFontFileName && it.value() == sourceRelativePath) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Project::removeUnusedFontSource(const QString& sourceRelativePath, const QString& ignoredFontFileName) const
+{
+    if (sourceRelativePath.isEmpty() || sourceUsedByOtherFont(sourceRelativePath, ignoredFontFileName)) {
+        return true;
+    }
+
+    const QString sourcePath = absoluteProjectPath(sourceRelativePath);
+    return !pathIsInProject(sourcePath) || !QFileInfo(sourcePath).isFile() || QFile::remove(sourcePath);
 }
 
 LEKCO_END_NAMESPACE

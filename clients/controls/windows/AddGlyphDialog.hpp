@@ -36,7 +36,6 @@ class AddGlyphDialog
 public:
     explicit AddGlyphDialog(QWidget* parent = nullptr);
 
-    QString fontPath() const;
     uint16_t size() const;
     uint32_t startCodepoint() const;
     uint32_t endCodepoint() const;
@@ -46,13 +45,11 @@ public:
 
 private:
     void accept() override;
-    void browseFont();
     void updateMode();
     void updateRenderMode(int index = 0);
 
     static bool parseCodepoint(const QString& text, uint32_t* out_codepoint);
 
-    QLineEdit*      m_fontPathEdit        = nullptr;
     QSpinBox*       m_sizeSpin            = nullptr;
     QRadioButton*   m_singleRadio         = nullptr;
     QRadioButton*   m_rangeRadio          = nullptr;

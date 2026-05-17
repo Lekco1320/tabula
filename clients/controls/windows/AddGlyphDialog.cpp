@@ -9,18 +9,16 @@
 
 #include <QComboBox>
 #include <QDialogButtonBox>
-#include <QFileDialog>
-#include <QFileInfo>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
-#include <QPushButton>
 #include <QRadioButton>
 #include <QSpinBox>
 #include <QStackedWidget>
 #include <QVBoxLayout>
+#include <QWidget>
 
 #include "controls/windows/AddGlyphDialog.hpp"
 
@@ -40,16 +38,6 @@ AddGlyphDialog::AddGlyphDialog(QWidget* parent)
 {
     setWindowTitle(QStringLiteral("Add Glyph"));
     setModal(true);
-
-    m_fontPathEdit = new QLineEdit(this);
-    auto* browseButton = new QPushButton(QStringLiteral("Browse..."), this);
-    connect(browseButton, &QPushButton::clicked, this, &AddGlyphDialog::browseFont);
-
-    auto* fontRow = new QWidget(this);
-    auto* fontLayout = new QHBoxLayout(fontRow);
-    fontLayout->setContentsMargins(0, 0, 0, 0);
-    fontLayout->addWidget(m_fontPathEdit, 1);
-    fontLayout->addWidget(browseButton);
 
     m_sizeSpin = new QSpinBox(this);
     m_sizeSpin->setRange(1, 65535);
@@ -118,7 +106,6 @@ AddGlyphDialog::AddGlyphDialog(QWidget* parent)
     m_renderParamStack->addWidget(grayParams);
 
     auto* form = new QFormLayout;
-    form->addRow(QStringLiteral("Font File:"), fontRow);
     form->addRow(QStringLiteral("Size:"), m_sizeSpin);
     form->addRow(QStringLiteral("Mode:"), modeRow);
     form->addRow(QStringLiteral("Codepoint:"), m_codepointStack);
@@ -141,11 +128,6 @@ AddGlyphDialog::AddGlyphDialog(QWidget* parent)
 
     updateMode();
     updateRenderMode();
-}
-
-QString AddGlyphDialog::fontPath() const
-{
-    return m_fontPathEdit->text().trimmed();
 }
 
 uint16_t AddGlyphDialog::size() const
@@ -180,20 +162,6 @@ int8_t AddGlyphDialog::bias() const
 
 void AddGlyphDialog::accept()
 {
-    const QFileInfo fontInfo(fontPath());
-    if (!fontInfo.isFile()) {
-        QMessageBox::critical(this, QStringLiteral("Glyph Error"), QStringLiteral("Font file does not exist."));
-        return;
-    }
-
-    const QString suffix = fontInfo.suffix();
-    if (suffix.compare(QStringLiteral("ttf"), Qt::CaseInsensitive) != 0
-        && suffix.compare(QStringLiteral("otf"), Qt::CaseInsensitive) != 0) {
-        QMessageBox::critical(this, QStringLiteral("Glyph Error"),
-            QStringLiteral("Font file must use the .ttf or .otf extension."));
-        return;
-    }
-
     uint32_t start = 0U;
     uint32_t end   = 0U;
     if (m_singleRadio->isChecked()) {
@@ -213,15 +181,6 @@ void AddGlyphDialog::accept()
     m_startCodepoint = start;
     m_endCodepoint   = end;
     QDialog::accept();
-}
-
-void AddGlyphDialog::browseFont()
-{
-    const QString file = QFileDialog::getOpenFileName(this, QStringLiteral("Select Font File"),
-        QString(), QStringLiteral("SFNT Fonts (*.ttf *.otf)"));
-    if (!file.isEmpty()) {
-        m_fontPathEdit->setText(file);
-    }
 }
 
 void AddGlyphDialog::updateMode()

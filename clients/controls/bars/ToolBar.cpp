@@ -35,7 +35,7 @@ ToolBar::ToolBar(QWidget* parent)
     ADD_TOOLBUTTON(DrawText,  "Draw text");
 
     connect(static_cast<IconButtonBar*>(this), &IconButtonBar::selectionChanged, this, [this](int id) {
-        m_current = static_cast<Tool>(id);
+        m_current = id >= 0 ? static_cast<Tool>(id) : Tool::None;
         emit toolChanged(m_current);
     });
 }
@@ -43,6 +43,19 @@ ToolBar::ToolBar(QWidget* parent)
 ToolBar::Tool ToolBar::currentTool() const
 {
     return m_current;
+}
+
+void ToolBar::setToolEnabled(Tool tool, bool enabled)
+{
+    auto* button = m_btnGroup->button(static_cast<int>(tool));
+    if (!button) {
+        return;
+    }
+
+    if (!enabled && button->isChecked()) {
+        button->setChecked(false);
+    }
+    button->setEnabled(enabled);
 }
 
 LEKCO_END_NAMESPACE

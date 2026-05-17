@@ -23,16 +23,10 @@ RectPanel::RectPanel(const QString& title, bool isDraw, QWidget* parent)
     , m_y(new QSpinBox(this))
     , m_width(new QSpinBox(this))
     , m_height(new QSpinBox(this))
-    , m_previewBtn(new QCheckBox(QStringLiteral("Preview"), this))
+    , m_previewBtn(createPreviewCheckBox())
     , m_colorBtn(new ColorButton(this))
-    , m_draw(new QPushButton(QStringLiteral("Draw"), this))
+    , m_draw(createDrawButton())
 {
-    m_previewBtn->setStyleSheet(QStringLiteral("QCheckBox { spacing: 4px; }"));
-    connect(m_previewBtn, &QCheckBox::checkStateChanged, [this](int checked) {
-        m_enablePreview = (bool)checked;
-        updatePreview();
-    });
-
     m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("X:"), m_x), 0, 0);
     m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("Y:"), m_y), 0, 1);
     m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("W:"), m_width), 1, 0);
@@ -44,17 +38,12 @@ RectPanel::RectPanel(const QString& title, bool isDraw, QWidget* parent)
     connect(m_y, &QSpinBox::valueChanged, this, &RectPanel::updatePreview);
     connect(m_width, &QSpinBox::valueChanged, this, &RectPanel::updatePreview);
     connect(m_height, &QSpinBox::valueChanged, this, &RectPanel::updatePreview);
-    connect(m_draw, &QPushButton::clicked, this, &RectPanel::updateDraw);
     connect(m_colorBtn, &ColorButton::colorChanged, this, &RectPanel::updatePreview);
 }
 
 void RectPanel::updateRange(const epd_gfx_canvas_t canvas)
 {
-    uint16_t width  = epd_gfx_canvas_get_logical_width(canvas);
-    uint16_t height = epd_gfx_canvas_get_logical_height(canvas);
-
-    m_x->setRange(1, width);
-    m_y->setRange(1, height);
+    setPointRange(m_x, m_y, canvas);
     m_width->setRange(0, 1000);
     m_width->setValue(100);
     m_height->setRange(0, 1000);

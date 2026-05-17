@@ -58,13 +58,16 @@ public:
 
     void updatePreview() const override;
     void updateRange(epd_gfx_canvas_t canvas) override;
-    void refreshFonts();
+    void refreshProjectResources() override;
 
 private:
     DrawFunc drawFunc() const override;
 
+    bool canUseTool() const;
     bool canDraw() const;
+    void refreshFonts();
     void refreshSizes();
+    void refreshTextRenderable();
     void updateControls();
 
     FontProvider*       m_fontProvider = nullptr;
@@ -79,6 +82,7 @@ private:
     QSpinBox*           m_spacing      = nullptr;
     QCheckBox*          m_previewBtn   = nullptr;
     QPushButton*        m_draw         = nullptr;
+    bool                m_renderable   = true;
 };
 
 LEKCO_END_NAMESPACE
