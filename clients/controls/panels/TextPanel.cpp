@@ -22,7 +22,6 @@
 
 #include "controls/panels/TextPanel.hpp"
 #include "controls/widgets/ColorButton.hpp"
-#include "controls/widgets/FlowButton.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 
@@ -85,7 +84,6 @@ TextPanel::TextPanel(const QString& title, FontProvider* fontProvider, QWidget* 
     , m_y(new QSpinBox(this))
     , m_colorBtn(new ColorButton(this))
     , m_background(new ColorButton(ColorButton::Mode::Background, this))
-    , m_flow(new FlowButton(this))
     , m_spacing(new QSpinBox(this))
     , m_previewBtn(createPreviewCheckBox())
     , m_draw(createDrawButton())
@@ -97,10 +95,9 @@ TextPanel::TextPanel(const QString& title, FontProvider* fontProvider, QWidget* 
     m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("Size:"), m_size), 1, 0, 1, 2);
     m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("X:"), m_x), 2, 0);
     m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("Y:"), m_y), 2, 1);
-    m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("Fore Color:"), m_colorBtn), 3, 0);
-    m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("Back Color:"), m_background), 3, 1);
-    m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("Space:"), m_spacing), 4, 0);
-    m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("Text Flow:"), m_flow), 4, 1);
+    m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("Space:"), m_spacing), 3, 0, 1, 2);
+    m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("Fore Color:"), m_colorBtn), 4, 0);
+    m_root->addWidget(MakeLabeledWidget(this, QStringLiteral("Back Color:"), m_background), 4, 1);
     m_root->addWidget(m_text, 5, 0, 1, 2);
     m_root->addWidget(m_previewBtn, 6, 0);
     m_root->addWidget(m_draw, 6, 1, Qt::AlignRight);
@@ -126,7 +123,6 @@ TextPanel::TextPanel(const QString& title, FontProvider* fontProvider, QWidget* 
     });
     connect(m_colorBtn, &ColorButton::colorChanged, this, &TextPanel::updatePreview);
     connect(m_background, &ColorButton::backgroundColorChanged, this, &TextPanel::updatePreview);
-    connect(m_flow, &FlowButton::flowChanged, this, &TextPanel::updatePreview);
     connect(m_spacing, qOverload<int>(&QSpinBox::valueChanged), this, [this](int) {
         updatePreview();
     });
@@ -204,7 +200,6 @@ DrawFunc TextPanel::drawFunc() const
     request.style.size           = static_cast<uint16_t>(m_size->currentData().toInt());
     request.style.color          = m_colorBtn->currentColor();
     request.style.background     = m_background->currentBackgroundColor();
-    request.style.flow           = m_flow->currentFlow();
     request.style.letter_spacing = static_cast<int16_t>(m_spacing->value());
 
     return [provider, request](epd_gfx_canvas_t canvas) {
@@ -275,7 +270,6 @@ void TextPanel::updateControls()
     m_y->setEnabled(enabled);
     m_colorBtn->setEnabled(enabled);
     m_background->setEnabled(enabled);
-    m_flow->setEnabled(enabled);
     m_spacing->setEnabled(enabled);
     m_previewBtn->setEnabled(enabled);
     m_draw->setEnabled(canDraw());

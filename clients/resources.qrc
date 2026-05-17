@@ -15,7 +15,5 @@
         <file>common/icons/Rotation180.svg</file>
         <file>common/icons/Rotation270.svg</file>
         <file>common/icons/Rotation90.svg</file>
-        <file>common/icons/TextHAlign.svg</file>
-        <file>common/icons/TextVAlign.svg</file>
     </qresource>
 </RCC>

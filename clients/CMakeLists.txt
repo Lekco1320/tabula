@@ -76,8 +76,6 @@ target_sources(tabula-host PRIVATE
     controls/widgets/FontGlyphImage.hpp
     controls/widgets/FontGlyphPreviewWidget.cpp
     controls/widgets/FontGlyphPreviewWidget.hpp
-    controls/widgets/FlowButton.cpp
-    controls/widgets/FlowButton.hpp
     controls/widgets/FlowLayout.cpp
     controls/widgets/FlowLayout.hpp)
 

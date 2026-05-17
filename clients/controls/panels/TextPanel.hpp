@@ -29,7 +29,6 @@ class QSpinBox;
 LEKCO_BEGIN_NAMESPACE
 
 class ColorButton;
-class FlowButton;
 
 class SingleLineTextEdit
     : public QPlainTextEdit
@@ -78,7 +77,6 @@ private:
     QSpinBox*           m_y            = nullptr;
     ColorButton*        m_colorBtn     = nullptr;
     ColorButton*        m_background   = nullptr;
-    FlowButton*         m_flow         = nullptr;
     QSpinBox*           m_spacing      = nullptr;
     QCheckBox*          m_previewBtn   = nullptr;
     QPushButton*        m_draw         = nullptr;

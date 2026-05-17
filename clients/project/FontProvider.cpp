@@ -122,7 +122,7 @@ epd_err_t FontProvider::drawText(epd_gfx_canvas_t canvas, const FontTextDrawRequ
 
     const QByteArray utf8 = request.text.toUtf8();
     return FontAssetIO::withRuntimeFont(info.absolutePath, [&request, utf8, canvas](epd_gfx_font_t font) {
-        return epd_gfx_canvas_draw_utf8(canvas, font, utf8.constData(), request.origin, &request.style, nullptr);
+        return epd_gfx_canvas_draw_utf8(canvas, font, utf8.constData(), request.origin, &request.style);
     });
 }
 

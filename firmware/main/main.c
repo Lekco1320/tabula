@@ -202,11 +202,10 @@ void app_main(void)
         .size           = 16,
         .color          = EPD_GFX_WHITE,
         .background     = EPD_GFX_BG_RED,
-        .flow           = EPD_GFX_TEXT_FLOW_HORIZONTAL,
         .letter_spacing = 0,
     };
     ret = epd_gfx_canvas_draw_utf8(canvas, system_font, u8"I Love Lukas Zhang",
-        (epd_gfx_point_t){ 250, 150 }, &system_style, NULL);
+        (epd_gfx_point_t){ 250, 150 }, &system_style);
     if (ret != EPD_OK) {
         ESP_LOGE("epd_test", "Draw system text failed! err=%s", epd_err_to_str(ret));
         goto clean_fonts;
@@ -216,11 +215,10 @@ void app_main(void)
         .size           = 32,
         .color          = EPD_GFX_BLACK,
         .background     = EPD_GFX_BG_TRANSPARENT,
-        .flow           = EPD_GFX_TEXT_FLOW_HORIZONTAL,
         .letter_spacing = 0,
     };
     ret = epd_gfx_canvas_draw_utf8(canvas, song_font, u8"我爱卢卡斯",
-        (epd_gfx_point_t){ 245, 170 }, &song_style, NULL);
+        (epd_gfx_point_t){ 245, 170 }, &song_style);
     if (ret != EPD_OK) {
         ESP_LOGE("epd_test", "Draw song text failed! err=%s", epd_err_to_str(ret));
         goto clean_fonts;
