@@ -71,15 +71,16 @@ epd_err_t epd_gfx_font_get_size_info(const epd_gfx_font_t font,
 bool epd_gfx_font_contains_size(const epd_gfx_font_t font, uint16_t size);
 
 /**
- * @brief Get an exact glyph by size and codepoint from a font.
+ * @brief Load an exact glyph by size and codepoint from a font.
  *
  * @param font Font handle.
  * @param key Glyph key.
- * @param out_glyph Pointer to receive the glyph handle.
+ * @param out_glyph Pointer to receive the loaded glyph handle. The caller owns
+ * the glyph and must release it with `epd_gfx_glyph_destroy`.
  * @return `EPD_OK` on success, `EPD_ERR_NOT_FOUND` if no exact glyph exists,
  * otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_gfx_font_get_glyph(const epd_gfx_font_t font, epd_gfx_glyph_key_t key,
+epd_err_t epd_gfx_font_load_glyph(const epd_gfx_font_t font, epd_gfx_glyph_key_t key,
     epd_gfx_glyph_t* out_glyph);
 
 /**

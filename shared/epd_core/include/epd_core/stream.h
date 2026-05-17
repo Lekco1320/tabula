@@ -47,6 +47,44 @@ typedef struct {
     epd_stream_close_fn close;
 } epd_stream_t;
 
+/**
+ * @brief Read exactly `size` bytes from a stream.
+ *
+ * @param stream Source stream.
+ * @param dst Destination buffer. May be NULL when `size` is 0.
+ * @param size Number of bytes to read.
+ * @return true if exactly `size` bytes were read, otherwise false.
+ */
+bool epd_stream_read_exact(const epd_stream_t* stream, void* dst, size_t size);
+
+/**
+ * @brief Write exactly `size` bytes to a stream.
+ *
+ * @param stream Destination stream.
+ * @param src Source buffer. May be NULL when `size` is 0.
+ * @param size Number of bytes to write.
+ * @return true if exactly `size` bytes were written, otherwise false.
+ */
+bool epd_stream_write_exact(const epd_stream_t* stream, const void* src, size_t size);
+
+/**
+ * @brief Seek to a stream position.
+ *
+ * @param stream Stream to seek.
+ * @param offset Seek offset.
+ * @param whence Seek origin.
+ * @return true on success, otherwise false.
+ */
+bool epd_stream_seek(const epd_stream_t* stream, int64_t offset, epd_seek_whence_t whence);
+
+/**
+ * @brief Close a stream and clear its callback table.
+ *
+ * @param stream Stream to close.
+ * @return true on success, otherwise false.
+ */
+bool epd_stream_close(epd_stream_t* stream);
+
 #ifdef __cplusplus
 }
 #endif

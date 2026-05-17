@@ -384,7 +384,7 @@ FontGlyphGridWidget::GlyphRenderData FontGlyphGridWidget::glyphRenderData(uint16
     glyphKey.size      = size;
 
     epd_gfx_glyph_t glyph = nullptr;
-    if (epd_asset_font_asset_get_glyph(m_asset, glyphKey, &glyph) != EPD_OK || !glyph) {
+    if (epd_asset_font_asset_copy_glyph(m_asset, glyphKey, &glyph) != EPD_OK || !glyph) {
         return GlyphRenderData();
     }
 

@@ -1,8 +1,10 @@
 set(EPD_GFX_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(EPD_GFX_PRIV_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/priv_include)
 set(EPD_GFX_SRCS
+    bitmap.c
     canvas.c
     codec.c
+    ebm.c
     egf.c
     font.c
     glyph.c

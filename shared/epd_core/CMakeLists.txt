@@ -1,5 +1,7 @@
 set(EPD_CORE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
-set(EPD_CORE_SRCS common.c)
+set(EPD_CORE_SRCS
+    common.c
+    stream.c)
 
 if(COMMAND idf_component_register)
     idf_component_register(

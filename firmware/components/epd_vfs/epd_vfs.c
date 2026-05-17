@@ -142,11 +142,5 @@ epd_err_t epd_vfs_open_file(const char* path, epd_stream_t* out_stream)
 
 epd_err_t epd_vfs_close_file(epd_stream_t* stream)
 {
-    if (!stream || !stream->ctx || !stream->close) {
-        return EPD_ERR_INVALID_ARG;
-    }
-
-    bool closed = stream->close(stream->ctx);
-    memset(stream, 0, sizeof(*stream));
-    return closed ? EPD_OK : EPD_FAIL;
+    return epd_stream_close(stream) ? EPD_OK : EPD_FAIL;
 }

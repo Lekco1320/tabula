@@ -116,7 +116,7 @@ static epd_err_t epd_gfx_font_find_glyph(const epd_gfx_font_t font, epd_gfx_glyp
 
 epd_err_t epd_gfx_font_load(const epd_stream_t* stream, epd_gfx_font_t* out_font)
 {
-    if (!stream || !out_font || !stream->read || !stream->seek) {
+    if (!stream || !out_font) {
         return EPD_ERR_INVALID_ARG;
     }
 
@@ -127,7 +127,7 @@ epd_err_t epd_gfx_font_load(const epd_stream_t* stream, epd_gfx_font_t* out_font
 
     epd_err_t            ret    = EPD_OK;
     epd_gfx_egf_header_t header = { 0 };
-    if (!stream->seek(stream->ctx, 0, EPD_SEEK_SET)) {
+    if (!epd_stream_seek(stream, 0, EPD_SEEK_SET)) {
         ret = EPD_ERR_INVALID_STATE;
         goto fail;
     }
@@ -172,10 +172,6 @@ epd_err_t epd_gfx_font_get_size_info(const epd_gfx_font_t font,
     }
 
     const epd_stream_t* stream = &font->stream;
-    if (!stream->read || !stream->seek) {
-        return EPD_ERR_NOT_SUPPORTED;
-    }
-
     epd_gfx_egf_size_record_t record = { 0 };
     epd_err_t                 ret    = epd_gfx_font_find_size(stream, font->header.size_count, size, &record);
     if (ret != EPD_OK) {
@@ -197,15 +193,11 @@ bool epd_gfx_font_contains_size(const epd_gfx_font_t font, uint16_t size)
     }
 
     const epd_stream_t* stream = &font->stream;
-    if (!stream->read || !stream->seek) {
-        return false;
-    }
-
     epd_gfx_egf_size_record_t record = { 0 };
     return epd_gfx_font_find_size(stream, font->header.size_count, size, &record) == EPD_OK;
 }
 
-epd_err_t epd_gfx_font_get_glyph(const epd_gfx_font_t font, epd_gfx_glyph_key_t key,
+epd_err_t epd_gfx_font_load_glyph(const epd_gfx_font_t font, epd_gfx_glyph_key_t key,
     epd_gfx_glyph_t* out_glyph)
 {
     if (!font || !out_glyph) {
@@ -213,10 +205,6 @@ epd_err_t epd_gfx_font_get_glyph(const epd_gfx_font_t font, epd_gfx_glyph_key_t 
     }
 
     const epd_stream_t* stream = &font->stream;
-    if (!stream->read || !stream->seek) {
-        return EPD_ERR_NOT_SUPPORTED;
-    }
-
     epd_gfx_egf_size_record_t size_record = { 0 };
     epd_gfx_egf_glyph_index_t glyph_index = { 0 };
     uint8_t*                  data        = NULL;
@@ -234,11 +222,11 @@ epd_err_t epd_gfx_font_get_glyph(const epd_gfx_font_t font, epd_gfx_glyph_key_t 
             goto clean;
         }
         uint32_t data_offset = font->glyph_data_table_offset + size_record.glyph_data_offset + glyph_index.data_offset;
-        if (!stream->seek(stream->ctx, (int64_t)data_offset, EPD_SEEK_SET)) {
+        if (!epd_stream_seek(stream, (int64_t)data_offset, EPD_SEEK_SET)) {
             ret = EPD_ERR_INVALID_STATE;
             goto clean;
         }
-        if (stream->read(stream->ctx, data, size) != size) {
+        if (!epd_stream_read_exact(stream, data, size)) {
             ret = EPD_ERR_INVALID_RESPONSE;
             goto clean;
         }
@@ -275,11 +263,6 @@ clean:
 bool epd_gfx_font_contains_glyph(const epd_gfx_font_t font, epd_gfx_glyph_key_t key)
 {
     if (!font) {
-        return false;
-    }
-
-    const epd_stream_t* stream = &font->stream;
-    if (!stream->read || !stream->seek) {
         return false;
     }
 

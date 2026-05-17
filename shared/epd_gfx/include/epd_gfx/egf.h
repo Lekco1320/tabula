@@ -67,16 +67,6 @@ typedef struct {
 } epd_gfx_egf_glyph_index_t;
 
 /**
- * @brief Read exactly `size` bytes from a stream.
- *
- * @param stream Source stream.
- * @param dst Destination buffer.
- * @param size Number of bytes to read.
- * @return true if exactly `size` bytes were read, otherwise false.
- */
-bool epd_gfx_egf_stream_read_exact(const epd_stream_t* stream, void* dst, size_t size);
-
-/**
  * @brief Check whether an EGF header contains the EGF1 magic.
  *
  * @param header Header to validate.

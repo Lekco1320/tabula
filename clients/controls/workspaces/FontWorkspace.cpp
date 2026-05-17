@@ -750,7 +750,7 @@ void FontWorkspace::updateGlyphDetails(uint16_t size, uint32_t codepoint)
     key.size      = size;
 
     epd_gfx_glyph_t glyph = nullptr;
-    epd_err_t       ret   = epd_asset_font_asset_get_glyph(m_asset, key, &glyph);
+    epd_err_t       ret   = epd_asset_font_asset_copy_glyph(m_asset, key, &glyph);
     if (ret != EPD_OK || !glyph) {
         clearGlyphSelection();
         return;

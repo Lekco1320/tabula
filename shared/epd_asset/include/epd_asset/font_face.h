@@ -75,7 +75,8 @@ epd_err_t epd_asset_font_face_get_size_info(const epd_asset_font_face_t font,
  *
  * @param font Font face handle.
  * @param config Glyph render configuration.
- * @param out_glyph Pointer to receive the rendered glyph handle.
+ * @param out_glyph Pointer to receive the rendered glyph handle. The caller owns
+ * the glyph and must release it with `epd_gfx_glyph_destroy`.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
 epd_err_t epd_asset_font_face_render_glyph(const epd_asset_font_face_t font,

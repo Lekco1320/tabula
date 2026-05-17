@@ -122,7 +122,7 @@ epd_err_t epd_asset_font_asset_get_size_info(const epd_asset_font_asset_t asset,
 epd_err_t epd_asset_font_asset_remove_size(epd_asset_font_asset_t asset, uint16_t size);
 
 /**
- * @brief Get a glyph copy from a font asset.
+ * @brief Copy a glyph from a font asset.
  *
  * The returned glyph is a deep copy owned by the caller and must be released with
  * `epd_gfx_glyph_destroy`.
@@ -132,7 +132,7 @@ epd_err_t epd_asset_font_asset_remove_size(epd_asset_font_asset_t asset, uint16_
  * @param out_glyph Pointer to receive the copied glyph handle.
  * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
  */
-epd_err_t epd_asset_font_asset_get_glyph(const epd_asset_font_asset_t asset,
+epd_err_t epd_asset_font_asset_copy_glyph(const epd_asset_font_asset_t asset,
     epd_asset_font_asset_glyph_key_t key, epd_gfx_glyph_t* out_glyph);
 
 /**

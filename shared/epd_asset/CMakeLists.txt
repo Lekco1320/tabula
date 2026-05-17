@@ -1,6 +1,7 @@
 set(EPD_ASSET_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(EPD_ASSET_PRIV_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/priv_include)
 set(EPD_ASSET_SRCS
+    bitmap_asset.c
     font_asset.c
     font_face.c)
 

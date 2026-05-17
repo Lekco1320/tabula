@@ -130,7 +130,7 @@ static epd_err_t epd_gfx_text_walk_codepoint(const epd_gfx_font_t font,
         .size      = style->size,
     };
     epd_gfx_glyph_t glyph = NULL;
-    epd_err_t       ret   = epd_gfx_font_get_glyph(font, key, &glyph);
+    epd_err_t       ret   = epd_gfx_font_load_glyph(font, key, &glyph);
     if (ret != EPD_OK) {
         return ret;
     }

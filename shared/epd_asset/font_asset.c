@@ -156,7 +156,7 @@ static epd_asset_font_asset_stats_t epd_asset_font_asset_stats(const epd_asset_f
 
 static epd_err_t epd_asset_font_asset_write_exact(epd_stream_t* stream, const void* data, size_t size)
 {
-    return (stream->write(stream->ctx, data, size) == size) ? EPD_OK : EPD_ERR_INVALID_STATE;
+    return epd_stream_write_exact(stream, data, size) ? EPD_OK : EPD_ERR_INVALID_STATE;
 }
 
 static epd_err_t epd_asset_font_asset_write_header(epd_stream_t* stream, uint32_t size_count,
@@ -262,7 +262,7 @@ static epd_err_t epd_asset_font_asset_write_glyph_data_table(const epd_asset_fon
     return EPD_OK;
 }
 
-static epd_err_t epd_asset_font_asset_read_glyph_data(const epd_stream_t* stream, uint32_t data_offset,
+static epd_err_t epd_asset_font_asset_load_glyph_data(const epd_stream_t* stream, uint32_t data_offset,
     uint32_t data_bytes, uint8_t** out_data)
 {
     uint8_t* data = NULL;
@@ -272,11 +272,11 @@ static epd_err_t epd_asset_font_asset_read_glyph_data(const epd_stream_t* stream
             return EPD_ERR_NO_MEM;
         }
 
-        if (!stream->seek(stream->ctx, (int64_t)data_offset, EPD_SEEK_SET)) {
+        if (!epd_stream_seek(stream, (int64_t)data_offset, EPD_SEEK_SET)) {
             free(data);
             return EPD_ERR_INVALID_STATE;
         }
-        if (!epd_gfx_egf_stream_read_exact(stream, data, data_bytes)) {
+        if (!epd_stream_read_exact(stream, data, data_bytes)) {
             free(data);
             return EPD_ERR_INVALID_RESPONSE;
         }
@@ -304,14 +304,14 @@ epd_err_t epd_asset_font_asset_create(epd_asset_font_asset_t* out_asset)
 
 epd_err_t epd_asset_font_asset_load_egf(const epd_stream_t* stream, epd_asset_font_asset_t* out_asset)
 {
-    if (!stream || !out_asset || !stream->read || !stream->seek) {
+    if (!stream || !out_asset) {
         return EPD_ERR_INVALID_ARG;
     }
     *out_asset = NULL;
 
     epd_err_t            ret    = EPD_OK;
     epd_gfx_egf_header_t header = { 0 };
-    if (!stream->seek(stream->ctx, 0, EPD_SEEK_SET)) {
+    if (!epd_stream_seek(stream, 0, EPD_SEEK_SET)) {
         return EPD_ERR_INVALID_STATE;
     }
     if (!epd_gfx_egf_read_header(stream, &header)) {
@@ -362,7 +362,7 @@ epd_err_t epd_asset_font_asset_load_egf(const epd_stream_t* stream, epd_asset_fo
             uint32_t data_bytes  = epd_gfx_glyph_data_bytes(glyph_index.width, glyph_index.height);
             uint32_t data_offset = glyph_data_table_offset + size_record.glyph_data_offset + glyph_index.data_offset;
             uint8_t* data        = NULL;
-            EPD_CHECK_GOTO(epd_asset_font_asset_read_glyph_data(stream, data_offset, data_bytes, &data), fail);
+            EPD_CHECK_GOTO(epd_asset_font_asset_load_glyph_data(stream, data_offset, data_bytes, &data), fail);
 
             epd_asset_font_asset_glyph_t glyph;
             glyph.codepoint = glyph_index.codepoint;
@@ -552,7 +552,7 @@ epd_err_t epd_asset_font_asset_remove_size(epd_asset_font_asset_t asset, uint16_
     return EPD_OK;
 }
 
-epd_err_t epd_asset_font_asset_get_glyph(const epd_asset_font_asset_t asset,
+epd_err_t epd_asset_font_asset_copy_glyph(const epd_asset_font_asset_t asset,
     epd_asset_font_asset_glyph_key_t key, epd_gfx_glyph_t* out_glyph)
 {
     if (!asset || !out_glyph || key.size == 0U) {
@@ -666,7 +666,7 @@ bool epd_asset_font_asset_contains_glyph(const epd_asset_font_asset_t asset,
 
 epd_err_t epd_asset_font_asset_write_egf(const epd_asset_font_asset_t asset, epd_stream_t* stream)
 {
-    if (!asset || !stream || !stream->write) {
+    if (!asset || !stream) {
         return EPD_ERR_INVALID_ARG;
     }
 
