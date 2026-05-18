@@ -21,7 +21,6 @@
 class QCheckBox;
 class QComboBox;
 class QFocusEvent;
-class QKeyEvent;
 class QMimeData;
 class QPushButton;
 class QSpinBox;
@@ -29,18 +28,19 @@ class QSpinBox;
 LEKCO_BEGIN_NAMESPACE
 
 class ColorButton;
+class TextAlignButton;
+class TextWrapButton;
 
-class SingleLineTextEdit
+class TextBoxEdit
     : public QPlainTextEdit
 {
     Q_OBJECT
 
 public:
-    explicit SingleLineTextEdit(QWidget* parent = nullptr);
+    explicit TextBoxEdit(QWidget* parent = nullptr);
 
 protected:
     void insertFromMimeData(const QMimeData* source) override;
-    void keyPressEvent(QKeyEvent* event) override;
     void focusOutEvent(QFocusEvent* event) override;
 
 private:
@@ -62,25 +62,32 @@ public:
 private:
     DrawFunc drawFunc() const override;
 
+    void connectSignals();
     bool canUseTool() const;
     bool canDraw() const;
     void refreshFonts();
     void refreshSizes();
     void refreshTextRenderable();
+    void updateBoxRange(bool expandToMax = false);
     void updateControls();
 
-    FontProvider*       m_fontProvider = nullptr;
-    QComboBox*          m_font         = nullptr;
-    QComboBox*          m_size         = nullptr;
-    SingleLineTextEdit* m_text         = nullptr;
-    QSpinBox*           m_x            = nullptr;
-    QSpinBox*           m_y            = nullptr;
-    ColorButton*        m_colorBtn     = nullptr;
-    ColorButton*        m_background   = nullptr;
-    QSpinBox*           m_spacing      = nullptr;
-    QCheckBox*          m_previewBtn   = nullptr;
-    QPushButton*        m_draw         = nullptr;
-    bool                m_renderable   = true;
+    FontProvider*    m_fontProvider = nullptr;
+    QComboBox*       m_font         = nullptr;
+    QComboBox*       m_size         = nullptr;
+    TextBoxEdit*     m_text         = nullptr;
+    QSpinBox*        m_x            = nullptr;
+    QSpinBox*        m_y            = nullptr;
+    QSpinBox*        m_width        = nullptr;
+    QSpinBox*        m_height       = nullptr;
+    QSpinBox*        m_lineSpacing  = nullptr;
+    QSpinBox*        m_charSpacing  = nullptr;
+    ColorButton*     m_foreground   = nullptr;
+    ColorButton*     m_background   = nullptr;
+    TextAlignButton* m_align        = nullptr;
+    TextWrapButton*  m_wrap         = nullptr;
+    QCheckBox*       m_previewBtn   = nullptr;
+    QPushButton*     m_draw         = nullptr;
+    bool             m_renderable   = true;
 };
 
 LEKCO_END_NAMESPACE

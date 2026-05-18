@@ -30,10 +30,10 @@ struct FontResourceInfo {
 };
 
 struct FontTextDrawRequest {
-    QString              fileName;
-    QString              text;
-    epd_gfx_point_t      origin;
-    epd_gfx_text_style_t style;
+    QString                  fileName;
+    QString                  text;
+    epd_gfx_rect_t           box;
+    epd_gfx_text_box_style_t style;
 };
 
 class FontProvider

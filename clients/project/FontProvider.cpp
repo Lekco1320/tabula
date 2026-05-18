@@ -9,6 +9,7 @@
 
 #include <QByteArray>
 #include <QFileInfo>
+#include <epd_gfx/font.h>
 #include <epd_gfx/glyph.h>
 #include <epd_gfx/text.h>
 
@@ -93,7 +94,10 @@ bool FontProvider::hasRenderableText(const QString& fileName, uint16_t size, con
     const QVector<uint> codepoints = text.toUcs4();
     const epd_err_t     ret        = FontAssetIO::withRuntimeFont(info.absolutePath, [size, codepoints](epd_gfx_font_t font) {
         for (uint codepoint : codepoints) {
-            if (codepoint == '\r' || codepoint == '\n' || codepoint == '\t') {
+            if (codepoint == '\r' || codepoint == '\n') {
+                continue;
+            }
+            if (codepoint == '\t') {
                 codepoint = ' ';
             }
 
@@ -111,7 +115,8 @@ bool FontProvider::hasRenderableText(const QString& fileName, uint16_t size, con
 
 epd_err_t FontProvider::drawText(epd_gfx_canvas_t canvas, const FontTextDrawRequest& request) const
 {
-    if (!canvas || request.fileName.isEmpty() || request.text.isEmpty() || request.style.size == 0U) {
+    if (!canvas || request.fileName.isEmpty() || request.text.isEmpty()
+        || request.style.text.size == 0U || request.box.width == 0U || request.box.height == 0U) {
         return EPD_ERR_INVALID_ARG;
     }
 
@@ -122,7 +127,7 @@ epd_err_t FontProvider::drawText(epd_gfx_canvas_t canvas, const FontTextDrawRequ
 
     const QByteArray utf8 = request.text.toUtf8();
     return FontAssetIO::withRuntimeFont(info.absolutePath, [&request, utf8, canvas](epd_gfx_font_t font) {
-        return epd_gfx_canvas_draw_utf8(canvas, font, utf8.constData(), request.origin, &request.style);
+        return epd_gfx_canvas_draw_utf8_box(canvas, font, utf8.constData(), request.box, &request.style);
     });
 }
 

@@ -70,6 +70,8 @@ target_sources(tabula-host PRIVATE
     controls/widgets/CanvasPreviewer.hpp
     controls/widgets/ColorButton.cpp
     controls/widgets/ColorButton.hpp
+    controls/widgets/CycleIconButton.cpp
+    controls/widgets/CycleIconButton.hpp
     controls/widgets/FontGlyphGridWidget.cpp
     controls/widgets/FontGlyphGridWidget.hpp
     controls/widgets/FontGlyphImage.cpp
@@ -77,7 +79,11 @@ target_sources(tabula-host PRIVATE
     controls/widgets/FontGlyphPreviewWidget.cpp
     controls/widgets/FontGlyphPreviewWidget.hpp
     controls/widgets/FlowLayout.cpp
-    controls/widgets/FlowLayout.hpp)
+    controls/widgets/FlowLayout.hpp
+    controls/widgets/TextAlignButton.cpp
+    controls/widgets/TextAlignButton.hpp
+    controls/widgets/TextWrapButton.cpp
+    controls/widgets/TextWrapButton.hpp)
 
 target_sources(tabula-host PRIVATE
     controls/workspaces/CanvasWorkspace.cpp

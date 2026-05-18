@@ -160,9 +160,7 @@ void app_main(void)
     }
 
     epd_stream_t   system_font_stream = { 0 };
-    epd_stream_t   song_font_stream   = { 0 };
     epd_gfx_font_t system_font        = NULL;
-    epd_gfx_font_t song_font          = NULL;
     bool           vfs_mounted        = false;
 
     epd_gfx_canvas_fill(canvas, EPD_GFX_WHITE);
@@ -180,47 +178,64 @@ void app_main(void)
         goto clean_fonts;
     }
 
-    ret = epd_vfs_open_file(EPD_VFS_FONTS_PATH "/song.egf", &song_font_stream);
-    if (ret != EPD_OK) {
-        ESP_LOGE("epd_test", "Open song font failed! err=%s", epd_err_to_str(ret));
-        goto clean_fonts;
-    }
-
     ret = epd_gfx_font_load(&system_font_stream, &system_font);
     if (ret != EPD_OK) {
         ESP_LOGE("epd_test", "Load system font failed! err=%s", epd_err_to_str(ret));
         goto clean_fonts;
     }
 
-    ret = epd_gfx_font_load(&song_font_stream, &song_font);
+    epd_gfx_text_box_style_t title_style = {
+        .text = {
+            .size           = 16,
+            .color          = EPD_GFX_WHITE,
+            .background     = EPD_GFX_BG_RED,
+            .letter_spacing = 0,
+        },
+        .align        = EPD_GFX_TEXT_ALIGN_CENTER,
+        .line_spacing = 0,
+        .wrap         = false,
+    };
+    ret = epd_gfx_canvas_draw_utf8_box(canvas, system_font,
+        "Universal Declaration of Human Rights",
+        (epd_gfx_rect_t){ 1, 1, 640, 384 }, &title_style);
     if (ret != EPD_OK) {
-        ESP_LOGE("epd_test", "Load song font failed! err=%s", epd_err_to_str(ret));
+        ESP_LOGE("epd_test", "Draw title text failed! err=%s", epd_err_to_str(ret));
         goto clean_fonts;
     }
 
-    epd_gfx_text_style_t system_style = {
-        .size           = 16,
-        .color          = EPD_GFX_WHITE,
-        .background     = EPD_GFX_BG_RED,
-        .letter_spacing = 0,
+    epd_gfx_text_box_style_t body_style = {
+        .text = {
+            .size           = 16,
+            .color          = EPD_GFX_BLACK,
+            .background     = EPD_GFX_BG_TRANSPARENT,
+            .letter_spacing = 0,
+        },
+        .align        = EPD_GFX_TEXT_ALIGN_START,
+        .line_spacing = 0,
+        .wrap         = true,
     };
-    ret = epd_gfx_canvas_draw_utf8(canvas, system_font, u8"I Love Lukas Zhang",
-        (epd_gfx_point_t){ 250, 150 }, &system_style);
+    ret = epd_gfx_canvas_draw_utf8_box(canvas, system_font,
+        "Whereas recognition of the inherent dignity and of the equal and "
+        "inalienable rights of all members of the human family is the foundation "
+        "of freedom, justice and peace in the world,\n\n"
+        "Whereas disregard and contempt for human rights have resulted in "
+        "barbarous acts which have outraged the conscience of mankind, and the "
+        "advent of a world in which human beings shall enjoy freedom of speech "
+        "and belief and freedom from fear and want has been proclaimed as the "
+        "highest aspiration of the common people,\n\n"
+        "Whereas it is essential, if man is not to be compelled to have recourse, "
+        "as a last resort, to rebellion against tyranny and oppression, that "
+        "human rights should be protected by the rule of law,\n\n"
+        "Whereas it is essential to promote the development of friendly relations "
+        "between nations,\n\n"
+        "Whereas the peoples of the United Nations have in the Charter reaffirmed "
+        "their faith in fundamental human rights, in the dignity and worth of the "
+        "human person and in the equal rights of men and women and have determined "
+        "to promote social progress and better standards of life in larger "
+        "freedom,\n\n",
+        (epd_gfx_rect_t){ 10, 20, 620, 365 }, &body_style);
     if (ret != EPD_OK) {
-        ESP_LOGE("epd_test", "Draw system text failed! err=%s", epd_err_to_str(ret));
-        goto clean_fonts;
-    }
-
-    epd_gfx_text_style_t song_style = {
-        .size           = 32,
-        .color          = EPD_GFX_BLACK,
-        .background     = EPD_GFX_BG_TRANSPARENT,
-        .letter_spacing = 0,
-    };
-    ret = epd_gfx_canvas_draw_utf8(canvas, song_font, u8"我爱卢卡斯",
-        (epd_gfx_point_t){ 245, 170 }, &song_style);
-    if (ret != EPD_OK) {
-        ESP_LOGE("epd_test", "Draw song text failed! err=%s", epd_err_to_str(ret));
+        ESP_LOGE("epd_test", "Draw body text failed! err=%s", epd_err_to_str(ret));
         goto clean_fonts;
     }
 
@@ -241,12 +256,8 @@ void app_main(void)
 
 clean_fonts:
     (void)epd_gfx_font_destroy(system_font);
-    (void)epd_gfx_font_destroy(song_font);
     if (system_font_stream.ctx) {
         (void)epd_vfs_close_file(&system_font_stream);
-    }
-    if (song_font_stream.ctx) {
-        (void)epd_vfs_close_file(&song_font_stream);
     }
     if (vfs_mounted) {
         (void)epd_vfs_unmount();
