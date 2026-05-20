@@ -63,6 +63,8 @@ private:
     DrawFunc drawFunc() const override;
 
     void connectSignals();
+    void updateTextState();
+    void updatePosition();
     bool canUseTool() const;
     bool canDraw() const;
     void refreshFonts();

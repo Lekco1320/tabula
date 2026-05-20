@@ -9,9 +9,9 @@
 
 #include <QIcon>
 #include <QSize>
-#include <QSizePolicy>
 #include <QString>
 
+#include "controls/Utils.hpp"
 #include "controls/widgets/CycleIconButton.hpp"
 
 LEKCO_BEGIN_NAMESPACE
@@ -19,14 +19,7 @@ LEKCO_BEGIN_NAMESPACE
 CycleIconButton::CycleIconButton(QWidget* parent)
     : QToolButton(parent)
 {
-    setAutoRaise(false);
-    setCheckable(false);
-    setMinimumSize(24, 24);
-    setMaximumSize(24, 24);
-    setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    setStyleSheet(QStringLiteral(
-        "QToolButton { border: 1px solid #a0a0a0; border-radius: 3px; padding: 0; }"
-        "QToolButton:pressed { border: 1px solid #707070; }"));
+    SetupIconToolButton(this, true);
 
     connect(this, &QToolButton::clicked, this, &CycleIconButton::nextIndex);
 }

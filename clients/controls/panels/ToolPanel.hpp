@@ -16,11 +16,11 @@
 #include <QVector>
 
 #include "common/Common.h"
+#include "controls/bars/ToolBar.hpp"
 #include "controls/panels/ControlPanel.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 
-class ToolBar;
 class AdaptiveStackedWidget;
 class FontProvider;
 
@@ -46,6 +46,7 @@ private:
     FontProvider*          m_fontProvider;
 
     void addControlPanel(ControlPanel* panel);
+    void setTool(ToolBar::Tool tool);
 };
 
 LEKCO_END_NAMESPACE

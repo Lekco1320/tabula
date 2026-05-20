@@ -28,6 +28,8 @@ target_sources(tabula-host PRIVATE
     resources.qrc
     controls/Utils.cpp
     controls/Utils.hpp
+    project/BitmapAssetIO.cpp
+    project/BitmapAssetIO.hpp
     project/EpdStreamAdapter.cpp
     project/EpdStreamAdapter.hpp
     project/FontAssetIO.cpp
@@ -38,8 +40,6 @@ target_sources(tabula-host PRIVATE
     project/Project.hpp)
 
 target_sources(tabula-host PRIVATE
-    controls/bars/CursorBar.cpp
-    controls/bars/CursorBar.hpp
     controls/bars/IconButtonBar.cpp
     controls/bars/IconButtonBar.hpp
     controls/bars/RotationBar.cpp
@@ -72,6 +72,8 @@ target_sources(tabula-host PRIVATE
     controls/widgets/ColorButton.hpp
     controls/widgets/CycleIconButton.cpp
     controls/widgets/CycleIconButton.hpp
+    controls/widgets/EpdFramePreviewer.cpp
+    controls/widgets/EpdFramePreviewer.hpp
     controls/widgets/FontGlyphGridWidget.cpp
     controls/widgets/FontGlyphGridWidget.hpp
     controls/widgets/FontGlyphImage.cpp
@@ -86,6 +88,8 @@ target_sources(tabula-host PRIVATE
     controls/widgets/TextWrapButton.hpp)
 
 target_sources(tabula-host PRIVATE
+    controls/workspaces/BitmapWorkspace.cpp
+    controls/workspaces/BitmapWorkspace.hpp
     controls/workspaces/CanvasWorkspace.cpp
     controls/workspaces/CanvasWorkspace.hpp
     controls/workspaces/FontWorkspace.cpp
@@ -96,6 +100,8 @@ target_sources(tabula-host PRIVATE
     controls/windows/AddGlyphDialog.hpp
     controls/windows/MainWindow.cpp
     controls/windows/MainWindow.hpp
+    controls/windows/NewBitmapDialog.cpp
+    controls/windows/NewBitmapDialog.hpp
     controls/windows/NewFontDialog.cpp
     controls/windows/NewFontDialog.hpp
     controls/windows/ProjectDialog.cpp

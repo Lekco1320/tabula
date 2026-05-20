@@ -170,27 +170,11 @@ DrawFunc TextPanel::drawFunc() const
 
 void TextPanel::connectSignals()
 {
-    connect(m_font, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) {
-        refreshSizes();
-    });
-    connect(m_size, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) {
-        refreshTextRenderable();
-        updateControls();
-        updatePreview();
-    });
-    connect(m_text, &QPlainTextEdit::textChanged, this, [this]() {
-        refreshTextRenderable();
-        updateControls();
-        updatePreview();
-    });
-    connect(m_x, qOverload<int>(&QSpinBox::valueChanged), this, [this](int) {
-        updateBoxRange();
-        updatePreview();
-    });
-    connect(m_y, qOverload<int>(&QSpinBox::valueChanged), this, [this](int) {
-        updateBoxRange();
-        updatePreview();
-    });
+    connect(m_font, qOverload<int>(&QComboBox::currentIndexChanged), this, &TextPanel::refreshSizes);
+    connect(m_size, qOverload<int>(&QComboBox::currentIndexChanged), this, &TextPanel::updateTextState);
+    connect(m_text, &QPlainTextEdit::textChanged, this, &TextPanel::updateTextState);
+    connect(m_x, qOverload<int>(&QSpinBox::valueChanged), this, &TextPanel::updatePosition);
+    connect(m_y, qOverload<int>(&QSpinBox::valueChanged), this, &TextPanel::updatePosition);
     connect(m_width, qOverload<int>(&QSpinBox::valueChanged), this, &TextPanel::updatePreview);
     connect(m_height, qOverload<int>(&QSpinBox::valueChanged), this, &TextPanel::updatePreview);
     connect(m_foreground, &ColorButton::colorChanged, this, &TextPanel::updatePreview);
@@ -199,6 +183,19 @@ void TextPanel::connectSignals()
     connect(m_charSpacing, qOverload<int>(&QSpinBox::valueChanged), this, &TextPanel::updatePreview);
     connect(m_align, &TextAlignButton::currentIndexChanged, this, &TextPanel::updatePreview);
     connect(m_wrap, &TextWrapButton::currentIndexChanged, this, &TextPanel::updatePreview);
+}
+
+void TextPanel::updateTextState()
+{
+    refreshTextRenderable();
+    updateControls();
+    updatePreview();
+}
+
+void TextPanel::updatePosition()
+{
+    updateBoxRange();
+    updatePreview();
 }
 
 bool TextPanel::canUseTool() const

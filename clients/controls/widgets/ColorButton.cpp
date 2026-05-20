@@ -28,14 +28,7 @@ ColorButton::ColorButton(Mode mode, QWidget* parent)
     , m_mode(mode)
     , m_index(0)
 {
-    setAutoRaise(false);
-    setCheckable(false);
-    setMinimumSize(24, 24);
-    setMaximumSize(24, 24);
-    setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    setStyleSheet(QStringLiteral(
-        "QToolButton { border: 1px solid #a0a0a0; border-radius: 3px; padding: 0; }"
-        "QToolButton:pressed { border: 1px solid #707070; }"));
+    SetupIconToolButton(this);
 
     updateIcon();
     connect(this, &QToolButton::clicked, this, &ColorButton::nextColor);
@@ -58,15 +51,19 @@ epd_gfx_bg_color_t ColorButton::currentBackgroundColor() const
 void ColorButton::updateIcon()
 {
     QPixmap pm(20, 20);
+    pm.fill(Qt::transparent);
+    QPainter painter(&pm);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+
+    const QRect rect(1, 1, 18, 18);
     if (m_mode == Mode::Background && m_index == 0) {
-        pm.fill(Qt::white);
-        QPainter painter(&pm);
-        painter.setRenderHint(QPainter::Antialiasing, true);
+        painter.fillRect(rect, Qt::white);
         painter.setPen(QPen(Qt::red, 2));
-        painter.drawLine(2, 18, 18, 2);
+        painter.drawLine(rect.bottomLeft() + QPoint(2, -2),
+            rect.topRight() + QPoint(-2, 2));
     } else {
         const int index = (m_mode == Mode::Background) ? m_index - 1 : m_index;
-        pm.fill(s_colors[index]);
+        painter.fillRect(rect, s_colors[index]);
     }
     setIcon(QIcon(pm));
     setIconSize(pm.size());

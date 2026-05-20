@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
+        <file>common/icons/Bitmap.svg</file>
+        <file>common/icons/BitmapFile.svg</file>
         <file>common/icons/DrawHLine.svg</file>
         <file>common/icons/DrawPixel.svg</file>
         <file>common/icons/DrawRect.svg</file>
@@ -20,5 +22,7 @@
         <file>common/icons/TextAlignRight.svg</file>
         <file>common/icons/TextWrapOverflow.svg</file>
         <file>common/icons/TextWrapTruncation.svg</file>
+        <file>common/icons/ZoomIn.svg</file>
+        <file>common/icons/ZoomOut.svg</file>
     </qresource>
 </RCC>

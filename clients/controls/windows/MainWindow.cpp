@@ -22,7 +22,9 @@
 #include <epd_gfx/canvas.h>
 
 #include "controls/windows/MainWindow.hpp"
+#include "controls/windows/NewBitmapDialog.hpp"
 #include "controls/windows/NewFontDialog.hpp"
+#include "controls/workspaces/BitmapWorkspace.hpp"
 #include "controls/workspaces/CanvasWorkspace.hpp"
 #include "controls/workspaces/FontWorkspace.hpp"
 
@@ -35,6 +37,27 @@ constexpr int kResourceFileRole = Qt::UserRole + 2;
 constexpr int kAssetsPaneWidth  = 240;
 constexpr int kWorkspaceMinW    = 1050;
 constexpr int kWorkspaceMinH    = 750;
+
+QString ResourceTypeTitle(ProjectResourceType type)
+{
+    return type == ProjectResourceType::Bitmaps
+        ? QStringLiteral("Bitmaps")
+        : QStringLiteral("Fonts");
+}
+
+QString ResourceTypeIcon(ProjectResourceType type)
+{
+    return type == ProjectResourceType::Bitmaps
+        ? QStringLiteral(":/common/icons/Bitmap.svg")
+        : QStringLiteral(":/common/icons/Font.svg");
+}
+
+QString ResourceFileIcon(ProjectResourceType type)
+{
+    return type == ProjectResourceType::Bitmaps
+        ? QStringLiteral(":/common/icons/BitmapFile.svg")
+        : QStringLiteral(":/common/icons/FontFile.svg");
+}
 
 END_NAMESPACE
 
@@ -95,9 +118,11 @@ MainWindow::MainWindow(const Project& project, QWidget* parent)
     config.rotation = EPD_GFX_ROTATE_0;
 
     m_workspaceStack  = new QStackedWidget(central);
+    m_bitmapWorkspace = new BitmapWorkspace(m_project, m_workspaceStack);
     m_canvasWorkspace = new CanvasWorkspace(config, &m_fontProvider, m_workspaceStack);
     m_fontWorkspace   = new FontWorkspace(m_project, m_workspaceStack);
     m_workspaceStack->addWidget(m_canvasWorkspace);
+    m_workspaceStack->addWidget(m_bitmapWorkspace);
     m_workspaceStack->addWidget(m_fontWorkspace);
     m_workspaceStack->setCurrentWidget(m_canvasWorkspace);
 
@@ -121,6 +146,7 @@ void MainWindow::refreshResourceTree()
     canvasItem->setIcon(0, QIcon(QStringLiteral(":/common/icons/Pointer.svg")));
     canvasItem->setData(0, kResourceTypeRole, static_cast<int>(ProjectResourceType::Unknown));
 
+    addResources(ProjectResourceType::Bitmaps, nullptr);
     addResources(ProjectResourceType::Fonts, nullptr);
 
     for (int i = 0; i < m_resourceTree->topLevelItemCount(); ++i) {
@@ -136,15 +162,15 @@ void MainWindow::refreshResourceTree()
 void MainWindow::addResources(ProjectResourceType type, QTreeWidgetItem* parentItem)
 {
     auto* category = parentItem ? new QTreeWidgetItem(parentItem) : new QTreeWidgetItem(m_resourceTree);
-    category->setText(0, QStringLiteral("Fonts"));
-    category->setIcon(0, QIcon(QStringLiteral(":/common/icons/Font.svg")));
+    category->setText(0, ResourceTypeTitle(type));
+    category->setIcon(0, QIcon(ResourceTypeIcon(type)));
     category->setData(0, kResourceTypeRole, static_cast<int>(type));
 
     const QVector<ProjectResource> resources = m_project.resources(type);
     for (const ProjectResource& resource : resources) {
         auto* item = new QTreeWidgetItem(category);
         item->setText(0, resource.fileName);
-        item->setIcon(0, QIcon(QStringLiteral(":/common/icons/FontFile.svg")));
+        item->setIcon(0, QIcon(ResourceFileIcon(type)));
         item->setData(0, kResourceTypeRole, static_cast<int>(resource.type));
         item->setData(0, kResourceFileRole, resource.fileName);
     }
@@ -172,7 +198,28 @@ void MainWindow::updateWorkspace()
 {
     const ProjectResourceType type     = selectedResourceType();
     const QString             fileName = selectedResourceFileName();
+    if (type == ProjectResourceType::Bitmaps) {
+        m_fontWorkspace->clearResource();
+        const QVector<ProjectResource> resources = m_project.resources(type);
+        if (fileName.isEmpty()) {
+            m_bitmapWorkspace->setBitmapResources(resources);
+            m_workspaceStack->setCurrentWidget(m_bitmapWorkspace);
+            return;
+        }
+
+        for (const ProjectResource& resource : resources) {
+            if (resource.fileName == fileName) {
+                if (m_bitmapWorkspace->resourcePath() != resource.absolutePath) {
+                    m_bitmapWorkspace->setResource(resource);
+                }
+                m_workspaceStack->setCurrentWidget(m_bitmapWorkspace);
+                return;
+            }
+        }
+    }
+
     if (type == ProjectResourceType::Fonts) {
+        m_bitmapWorkspace->clearResource();
         const QVector<ProjectResource> resources = m_project.resources(type);
         if (fileName.isEmpty()) {
             m_fontWorkspace->setFontResources(resources);
@@ -191,6 +238,7 @@ void MainWindow::updateWorkspace()
         }
     }
 
+    m_bitmapWorkspace->clearResource();
     m_fontWorkspace->clearResource();
     m_workspaceStack->setCurrentWidget(m_canvasWorkspace);
 }
@@ -221,6 +269,26 @@ void MainWindow::addSelectedResource()
         QString error;
         if (!m_project.createFontResource(dialog.fontName(), dialog.sourceFontPath(), &fileName, &error)) {
             QMessageBox::critical(this, QStringLiteral("Font Error"), error);
+            return;
+        }
+
+        refreshResourceTree();
+        selectResource(type, fileName);
+        updateResourceButtons();
+        return;
+    }
+
+    if (type == ProjectResourceType::Bitmaps) {
+        NewBitmapDialog dialog(this);
+        if (dialog.exec() != QDialog::Accepted) {
+            return;
+        }
+
+        QString fileName;
+        QString error;
+        if (!m_project.createBitmapResource(dialog.bitmapName(), dialog.sourceImagePath(),
+                dialog.targetWidth(), dialog.targetHeight(), dialog.outputFormat(), &fileName, &error)) {
+            QMessageBox::critical(this, QStringLiteral("Bitmap Error"), error);
             return;
         }
 

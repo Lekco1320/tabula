@@ -26,6 +26,7 @@ class QTreeWidgetItem;
 
 LEKCO_BEGIN_NAMESPACE
 
+class BitmapWorkspace;
 class CanvasWorkspace;
 class FontWorkspace;
 
@@ -57,6 +58,7 @@ private:
     QPushButton*        m_deleteButton     = nullptr;
     QPushButton*        m_exportButton     = nullptr;
     QStackedWidget*     m_workspaceStack   = nullptr;
+    BitmapWorkspace*    m_bitmapWorkspace  = nullptr;
     CanvasWorkspace*    m_canvasWorkspace  = nullptr;
     FontWorkspace*      m_fontWorkspace    = nullptr;
 };

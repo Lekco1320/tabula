@@ -9,7 +9,6 @@
 
 #include <QVBoxLayout>
 
-#include "controls/bars/ToolBar.hpp"
 #include "controls/panels/ToolPanel.hpp"
 #include "controls/panels/LinePanel.hpp"
 #include "controls/panels/RectPanel.hpp"
@@ -53,19 +52,7 @@ ToolPanel::ToolPanel(FontProvider* fontProvider, QWidget* parent)
     layout->addWidget(m_toolBar);
     layout->addWidget(m_stackedWidget);
 
-    connect(m_toolBar, &ToolBar::toolChanged, this, [this](ToolBar::Tool tool) {
-        if (tool == ToolBar::Tool::None) {
-            m_stackedWidget->setCollapsed(true);
-            return;
-        }
-
-        int id = static_cast<int>(tool);
-        if (id > -1 && id < m_controlPanels.size()) {
-            m_stackedWidget->setCurrentIndex(id);
-            m_stackedWidget->setCollapsed(false);
-            m_controlPanels[id]->updatePreview();
-        }
-    });
+    connect(m_toolBar, &ToolBar::toolChanged, this, &ToolPanel::setTool);
 }
 
 void ToolPanel::updateCanvas(const epd_gfx_canvas_t canvas)
@@ -94,6 +81,21 @@ void ToolPanel::addControlPanel(ControlPanel* panel)
     connect(panel, &ControlPanel::refreshRequested, this, &ToolPanel::refreshRequested);
     connect(panel, &ControlPanel::drawRequested, this, &ToolPanel::drawRequested);
     connect(panel, &ControlPanel::previewRequested, this, &ToolPanel::previewRequested);
+}
+
+void ToolPanel::setTool(ToolBar::Tool tool)
+{
+    if (tool == ToolBar::Tool::None) {
+        m_stackedWidget->setCollapsed(true);
+        return;
+    }
+
+    int id = static_cast<int>(tool);
+    if (id > -1 && id < m_controlPanels.size()) {
+        m_stackedWidget->setCurrentIndex(id);
+        m_stackedWidget->setCollapsed(false);
+        m_controlPanels[id]->updatePreview();
+    }
 }
 
 LEKCO_END_NAMESPACE

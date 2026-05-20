@@ -20,7 +20,6 @@
 LEKCO_BEGIN_NAMESPACE
 
 class CanvasPreviewer;
-class CursorBar;
 class FontProvider;
 class RotationBar;
 class ToolPanel;
@@ -38,7 +37,6 @@ public:
 
 private:
     epd_gfx_canvas_config_t m_canvasConfig;
-    CursorBar*             m_cursorBar   = nullptr;
     ToolPanel*             m_toolPanel   = nullptr;
     CanvasPreviewer*       m_previewer   = nullptr;
     RotationBar*           m_rotationBar = nullptr;

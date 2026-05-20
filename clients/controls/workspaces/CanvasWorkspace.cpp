@@ -7,14 +7,12 @@
  * @license MIT
  */
 
-#include <QFrame>
 #include <QHBoxLayout>
 #include <QMessageBox>
 #include <QSizePolicy>
 #include <QVBoxLayout>
 #include <QWidget>
 
-#include "controls/bars/CursorBar.hpp"
 #include "controls/bars/RotationBar.hpp"
 #include "controls/panels/ToolPanel.hpp"
 #include "controls/widgets/CanvasPreviewer.hpp"
@@ -49,16 +47,10 @@ CanvasWorkspace::CanvasWorkspace(const epd_gfx_canvas_config_t& config, FontProv
     rightLayout->setContentsMargins(10, 10, 12, 10);
     rightLayout->setSpacing(12);
 
-    m_cursorBar = new CursorBar(rightPane);
-    rightLayout->addWidget(m_cursorBar);
-    connect(m_cursorBar, &CursorBar::cursorChanged, m_previewer, &CanvasPreviewer::setCursor);
-
     m_rotationBar = new RotationBar(rightPane);
     m_rotationBar->setCurrentTool(m_canvasConfig.rotation);
     rightLayout->addWidget(m_rotationBar);
-    connect(m_rotationBar, &RotationBar::rotationChanged, this, [this](epd_gfx_rotation_t rotation) {
-        m_previewer->setRotation(rotation);
-    });
+    connect(m_rotationBar, &RotationBar::rotationChanged, m_previewer, &CanvasPreviewer::setRotation);
 
     m_toolPanel = new ToolPanel(fontProvider, rightPane);
     m_toolPanel->updateCanvas(m_previewer->getCanvas());
@@ -74,13 +66,9 @@ CanvasWorkspace::CanvasWorkspace(const epd_gfx_canvas_config_t& config, FontProv
         QMessageBox::critical(this, QStringLiteral("Error"), message);
     });
 
-    auto* divider = new QFrame(this);
-    divider->setFrameShape(QFrame::VLine);
-    divider->setFrameShadow(QFrame::Plain);
-    divider->setLineWidth(1);
-    divider->setMidLineWidth(0);
+    auto* divider = new QWidget(this);
     divider->setFixedWidth(1);
-    divider->setStyleSheet(QStringLiteral("color: #b0b0b0;"));
+    divider->setStyleSheet(QStringLiteral("background-color: #b0b0b0;"));
     divider->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
     root->addWidget(leftPane, 1);

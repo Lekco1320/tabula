@@ -14,6 +14,7 @@
 
 #include <functional>
 #include <type_traits>
+#include <QImage>
 #include <QLabel>
 #include <QColor>
 #include <QWidget>
@@ -23,6 +24,8 @@
 
 #include "common/Common.h"
 
+class QToolButton;
+
 LEKCO_BEGIN_NAMESPACE
 
 using DrawFunc = std::function<epd_err_t(epd_gfx_canvas_t)>;
@@ -31,7 +34,11 @@ QColor EpdColorToQColor(epd_gfx_color_t color);
 
 epd_gfx_color_t QColorToEpdColor(QColor color);
 
+bool FrameViewToQImage(const epd_gfx_frame_view_t* view, QImage* outImage);
+
 void SetWindowCenterScreen(QWidget* window);
+
+void SetupIconToolButton(QToolButton* button, bool persistent = false);
 
 template <typename... Widgets>
 std::enable_if_t<(std::is_base_of_v<QWidget, std::remove_pointer_t<Widgets>> && ...), QWidget*>

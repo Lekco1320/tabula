@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- white outline underlay: document -->
+  <path d="M10 4H30L40 14V42C40 43.1046 39.1046 44 38 44H10C8.89543 44 8 43.1046 8 42V6C8 4.89543 8.89543 4 10 4Z"
+        fill="none"
+        stroke="#FFFFFF"
+        stroke-width="8"
+        stroke-linejoin="round" />
+
+  <!-- white outline underlay: picture icon -->
+  <g transform="translate(8 8) scale(0.6)">
+    <path d="M18 23C20.7614 23 23 20.7614 23 18C23 15.2386 20.7614 13 18 13C15.2386 13 13 15.2386 13 18C13 20.7614 15.2386 23 18 23Z"
+          fill="none"
+          stroke="#FFFFFF"
+          stroke-width="14"
+          stroke-linecap="round"
+          stroke-linejoin="round" />
+    <path d="M27.7901 26.2194C28.6064 25.1269 30.2528 25.1538 31.0329 26.2725L39.8077 38.8561C40.7322 40.182 39.7835 42.0001 38.1671 42.0001H16L27.7901 26.2194Z"
+          stroke="#FFFFFF"
+          stroke-width="14"
+          stroke-linecap="round"
+          stroke-linejoin="round" />
+  </g>
+
+  <!-- main black document -->
+  <path d="M10 4H30L40 14V42C40 43.1046 39.1046 44 38 44H10C8.89543 44 8 43.1046 8 42V6C8 4.89543 8.89543 4 10 4Z"
+        fill="none"
+        stroke="#000000"
+        stroke-width="4"
+        stroke-linejoin="round" />
+
+  <!-- main black picture icon -->
+  <g transform="translate(8 8) scale(0.6)">
+    <path d="M18 23C20.7614 23 23 20.7614 23 18C23 15.2386 20.7614 13 18 13C15.2386 13 13 15.2386 13 18C13 20.7614 15.2386 23 18 23Z"
+          fill="none"
+          stroke="#000000"
+          stroke-width="8"
+          stroke-linecap="round"
+          stroke-linejoin="round" />
+    <path d="M27.7901 26.2194C28.6064 25.1269 30.2528 25.1538 31.0329 26.2725L39.8077 38.8561C40.7322 40.182 39.7835 42.0001 38.1671 42.0001H16L27.7901 26.2194Z"
+          stroke="#000000"
+          stroke-width="8"
+          stroke-linecap="round"
+          stroke-linejoin="round" />
+  </g>
+</svg>
