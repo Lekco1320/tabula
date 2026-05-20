@@ -12,6 +12,7 @@
 #include <epd_core/math.h>
 #include <epd_core/common.h>
 
+#include "epd_gfx/bitmap.h"
 #include "epd_gfx/codec.h"
 #include "epd_gfx/canvas.h"
 #include "epd_gfx/canvas_impl.h"
@@ -70,6 +71,39 @@ static EPD_INLINE bool epd_gfx_check_bound(const epd_gfx_canvas_t canvas, uint16
 static EPD_INLINE bool epd_gfx_check_bound_mapped(const epd_gfx_canvas_t canvas, uint16_t x, uint16_t y)
 {
     return x < canvas->width && y < canvas->height;
+}
+
+static bool epd_gfx_canvas_clip_axis(int32_t start, uint16_t extent,
+    uint16_t limit, uint16_t* out_src, uint16_t* out_dst, uint16_t* out_length)
+{
+    int32_t src = 0;
+    int32_t dst = start;
+
+    if (!extent || !limit) {
+        return false;
+    }
+
+    if (dst < 0) {
+        src = -dst;
+        dst = 0;
+        if (src >= extent) {
+            return false;
+        }
+    }
+    if (dst >= limit) {
+        return false;
+    }
+
+    int32_t available = (int32_t)limit - dst;
+    int32_t length    = EPD_MIN((int32_t)extent - src, available);
+    if (length <= 0) {
+        return false;
+    }
+
+    *out_src    = (uint16_t)src;
+    *out_dst    = (uint16_t)dst;
+    *out_length = (uint16_t)length;
+    return true;
 }
 
 epd_err_t epd_gfx_canvas_create(const epd_gfx_canvas_config_t* config, epd_gfx_canvas_t* out_canvas)
@@ -683,62 +717,339 @@ typedef struct {
     uint16_t dst_y;
     uint16_t width;
     uint16_t height;
-} epd_gfx_glyph_clip_t;
+} epd_gfx_frame_view_clip_t;
 
-static bool epd_gfx_canvas_clip_glyph_axis(uint16_t origin, int16_t offset,
-    uint16_t extent, uint16_t limit, uint16_t* out_src, uint16_t* out_dst,
-    uint16_t* out_length)
+static epd_err_t epd_gfx_frame_view_validate(const epd_gfx_frame_view_t* view)
 {
-    uint16_t src = 0U;
-    uint16_t dst = 0U;
-
-    if (!extent || !limit) {
-        return false;
+    if (!view) {
+        return EPD_ERR_INVALID_ARG;
+    }
+    if (view->format != EPD_GFX_FORMAT_NATIVE && view->format != EPD_GFX_FORMAT_PLANES) {
+        return EPD_ERR_NOT_SUPPORTED;
+    }
+    if (!view->width || !view->height) {
+        return EPD_ERR_INVALID_ARG;
     }
 
-    if (offset < 0) {
-        uint16_t delta = (uint16_t)(0U - (uint16_t)offset);
-        if (delta >= origin) {
-            src = delta - origin + 1U;
-            if (src >= extent) {
-                return false;
-            }
-        } else {
-            dst = origin - delta - 1U;
+    switch (view->format)
+    {
+    case EPD_GFX_FORMAT_NATIVE:
+        if (!view->buf_native) {
+            return EPD_ERR_INVALID_ARG;
         }
-    } else {
-        uint16_t top = epd_sat_add_uint16(origin, (uint16_t)offset);
-        if (!top) {
-            src = 1U;
-            if (src >= extent) {
-                return false;
-            }
-        } else {
-            if (top > limit) {
-                return false;
-            }
-            dst = top - 1U;
+        if (view->stride < epd_gfx_native_stride(view->width)) {
+            return EPD_ERR_INVALID_SIZE;
         }
-    }
+        return EPD_OK;
 
-    uint16_t available = limit - dst;
-    uint16_t length    = EPD_MIN((uint16_t)(extent - src), available);
-    if (!length) {
-        return false;
-    }
+    case EPD_GFX_FORMAT_PLANES:
+        if (!view->buf_wht || !view->buf_red) {
+            return EPD_ERR_INVALID_ARG;
+        }
+        if (view->stride < epd_gfx_planes_stride(view->width)) {
+            return EPD_ERR_INVALID_SIZE;
+        }
+        return EPD_OK;
 
-    *out_src    = src;
-    *out_dst    = dst;
-    *out_length = length;
-    return true;
+    default:
+        return EPD_ERR_NOT_SUPPORTED;
+    }
 }
+
+static bool epd_gfx_canvas_clip_frame_view(const epd_gfx_frame_view_t* view,
+    epd_gfx_point_t point, uint16_t width, uint16_t height,
+    epd_gfx_frame_view_clip_t* out_clip)
+{
+    return epd_gfx_canvas_clip_axis((int32_t)point.x - 1, view->width, width,
+        &out_clip->src_x, &out_clip->dst_x, &out_clip->width)
+        && epd_gfx_canvas_clip_axis((int32_t)point.y - 1, view->height, height,
+        &out_clip->src_y, &out_clip->dst_y, &out_clip->height);
+}
+
+static epd_gfx_color_t epd_gfx_frame_view_get_pixel(const epd_gfx_frame_view_t* view,
+    uint16_t x, uint16_t y)
+{
+    switch (view->format)
+    {
+    case EPD_GFX_FORMAT_NATIVE: {
+        const uint8_t* row = view->buf_native + (uint32_t)y * view->stride;
+        return epd_gfx_native_get_pixel(row[x / 2U], (uint8_t)(x & 1U));
+    }
+
+    case EPD_GFX_FORMAT_PLANES: {
+        const uint8_t* row_wht = view->buf_wht + (uint32_t)y * view->stride;
+        const uint8_t* row_red = view->buf_red + (uint32_t)y * view->stride;
+        return epd_gfx_planes_get_pixel(row_wht[x / 8U], row_red[x / 8U], (uint8_t)(x & 7U));
+    }
+
+    default:
+        return EPD_GFX_WHITE;
+    }
+}
+
+static void epd_gfx_canvas_draw_pixel_mapped(epd_gfx_canvas_t canvas,
+    uint16_t x, uint16_t y, epd_gfx_color_t color)
+{
+    if (epd_gfx_canvas_in_planes(canvas)) {
+        uint32_t index = (uint32_t)canvas->buf_stride * y + x / 8U;
+        epd_gfx_planes_set_pixel(canvas->buf_wht + index, canvas->buf_red + index,
+            (uint8_t)(x & 7U), color);
+    } else {
+        uint32_t index = (uint32_t)canvas->buf_stride * y + x / 2U;
+        epd_gfx_native_set_pixel(canvas->buf_native + index, (uint8_t)(x & 1U), color);
+    }
+}
+
+static epd_err_t epd_gfx_canvas_draw_frame_view_pixels_rot0(epd_gfx_canvas_t canvas,
+    const epd_gfx_frame_view_t* view, const epd_gfx_frame_view_clip_t* clip)
+{
+    for (uint16_t y = 0U; y < clip->height; ++y) {
+        uint16_t src_y = clip->src_y + y;
+        uint16_t dst_y = clip->dst_y + y;
+        for (uint16_t x = 0U; x < clip->width; ++x) {
+            epd_gfx_color_t color = epd_gfx_frame_view_get_pixel(view,
+                (uint16_t)(clip->src_x + x), src_y);
+            epd_gfx_canvas_draw_pixel_mapped(canvas, (uint16_t)(clip->dst_x + x),
+                dst_y, color);
+        }
+    }
+
+    return EPD_OK;
+}
+
+static void epd_gfx_canvas_copy_native_pixel(const uint8_t* src_row, uint16_t src_x,
+    uint8_t* dst_row, uint16_t dst_x)
+{
+    epd_gfx_color_t color = epd_gfx_native_get_pixel(src_row[src_x / 2U],
+        (uint8_t)(src_x & 1U));
+    epd_gfx_native_set_pixel(dst_row + dst_x / 2U, (uint8_t)(dst_x & 1U), color);
+}
+
+static epd_err_t epd_gfx_canvas_draw_frame_view_native_rot0(epd_gfx_canvas_t canvas,
+    const epd_gfx_frame_view_t* view, const epd_gfx_frame_view_clip_t* clip)
+{
+    for (uint16_t y = 0U; y < clip->height; ++y) {
+        const uint8_t* src_row = view->buf_native + (uint32_t)(clip->src_y + y) * view->stride;
+        uint8_t*       dst_row = canvas->buf_native + (uint32_t)(clip->dst_y + y) * canvas->buf_stride;
+        uint16_t       src_x   = clip->src_x;
+        uint16_t       dst_x   = clip->dst_x;
+        uint16_t       remain  = clip->width;
+
+        if ((src_x & 1U) == (dst_x & 1U)) {
+            if ((dst_x & 1U) && remain) {
+                epd_gfx_canvas_copy_native_pixel(src_row, src_x, dst_row, dst_x);
+                ++src_x;
+                ++dst_x;
+                --remain;
+            }
+
+            uint16_t bytes = remain / 2U;
+            if (bytes) {
+                memmove(dst_row + dst_x / 2U, src_row + src_x / 2U, bytes);
+                src_x  += bytes * 2U;
+                dst_x  += bytes * 2U;
+                remain -= bytes * 2U;
+            }
+
+            if (remain) {
+                epd_gfx_canvas_copy_native_pixel(src_row, src_x, dst_row, dst_x);
+            }
+            continue;
+        }
+
+        while (remain) {
+            uint8_t dst_digit = (uint8_t)(dst_x & 1U);
+            uint8_t count     = (uint8_t)EPD_MIN((uint16_t)(2U - dst_digit), remain);
+            uint8_t mask      = 0U;
+            uint8_t value     = 0U;
+            for (uint8_t i = 0U; i < count; ++i) {
+                epd_gfx_color_t color = epd_gfx_native_get_pixel(
+                    src_row[(src_x + i) / 2U], (uint8_t)((src_x + i) & 1U));
+                uint8_t digit = (uint8_t)(1U - ((dst_x + i) & 1U));
+                mask  |= epd_gfx_mask_nibble(digit);
+                value |= (uint8_t)((uint8_t)color << (digit << 2U));
+            }
+
+            uint16_t index = dst_x / 2U;
+            dst_row[index] = (uint8_t)((dst_row[index] & (uint8_t)~mask) | (value & mask));
+            src_x  += count;
+            dst_x  += count;
+            remain -= count;
+        }
+    }
+
+    return EPD_OK;
+}
+
+static void epd_gfx_canvas_copy_planes_pixel(const uint8_t* src_wht, const uint8_t* src_red,
+    uint16_t src_x, uint8_t* dst_wht, uint8_t* dst_red, uint16_t dst_x)
+{
+    epd_gfx_color_t color = epd_gfx_planes_get_pixel(src_wht[src_x / 8U],
+        src_red[src_x / 8U], (uint8_t)(src_x & 7U));
+    epd_gfx_planes_set_pixel(dst_wht + dst_x / 8U, dst_red + dst_x / 8U,
+        (uint8_t)(dst_x & 7U), color);
+}
+
+static epd_err_t epd_gfx_canvas_draw_frame_view_planes_rot0(epd_gfx_canvas_t canvas,
+    const epd_gfx_frame_view_t* view, const epd_gfx_frame_view_clip_t* clip)
+{
+    for (uint16_t y = 0U; y < clip->height; ++y) {
+        const uint8_t* src_wht = view->buf_wht + (uint32_t)(clip->src_y + y) * view->stride;
+        const uint8_t* src_red = view->buf_red + (uint32_t)(clip->src_y + y) * view->stride;
+        uint8_t*       dst_wht = canvas->buf_wht + (uint32_t)(clip->dst_y + y) * canvas->buf_stride;
+        uint8_t*       dst_red = canvas->buf_red + (uint32_t)(clip->dst_y + y) * canvas->buf_stride;
+        uint16_t       src_x   = clip->src_x;
+        uint16_t       dst_x   = clip->dst_x;
+        uint16_t       remain  = clip->width;
+
+        if ((src_x & 7U) == (dst_x & 7U)) {
+            while ((dst_x & 7U) && remain) {
+                epd_gfx_canvas_copy_planes_pixel(src_wht, src_red, src_x,
+                    dst_wht, dst_red, dst_x);
+                ++src_x;
+                ++dst_x;
+                --remain;
+            }
+
+            uint16_t bytes = remain / 8U;
+            if (bytes) {
+                memmove(dst_wht + dst_x / 8U, src_wht + src_x / 8U, bytes);
+                memmove(dst_red + dst_x / 8U, src_red + src_x / 8U, bytes);
+                src_x  += bytes * 8U;
+                dst_x  += bytes * 8U;
+                remain -= bytes * 8U;
+            }
+
+            while (remain) {
+                epd_gfx_canvas_copy_planes_pixel(src_wht, src_red, src_x,
+                    dst_wht, dst_red, dst_x);
+                ++src_x;
+                ++dst_x;
+                --remain;
+            }
+            continue;
+        }
+
+        while (remain) {
+            uint8_t dst_bit = (uint8_t)(dst_x & 7U);
+            uint8_t count   = (uint8_t)EPD_MIN((uint16_t)(8U - dst_bit), remain);
+            uint8_t mask    = 0U;
+            uint8_t wbits   = 0U;
+            uint8_t rbits   = 0U;
+            for (uint8_t i = 0U; i < count; ++i) {
+                epd_gfx_color_t color = epd_gfx_planes_get_pixel(
+                    src_wht[(src_x + i) / 8U], src_red[(src_x + i) / 8U],
+                    (uint8_t)((src_x + i) & 7U));
+                uint8_t wbit  = 0U;
+                uint8_t rbit  = 0U;
+                uint8_t digit = (uint8_t)(7U - ((dst_x + i) & 7U));
+                uint8_t bit   = epd_gfx_mask_bit(digit);
+
+                epd_gfx_color_to_bits(color, &wbit, &rbit);
+                mask |= bit;
+                if (wbit) {
+                    wbits |= bit;
+                }
+                if (rbit) {
+                    rbits |= bit;
+                }
+            }
+
+            uint16_t index = dst_x / 8U;
+            dst_wht[index] = (uint8_t)((dst_wht[index] & (uint8_t)~mask) | (wbits & mask));
+            dst_red[index] = (uint8_t)((dst_red[index] & (uint8_t)~mask) | (rbits & mask));
+            src_x  += count;
+            dst_x  += count;
+            remain -= count;
+        }
+    }
+
+    return EPD_OK;
+}
+
+static epd_err_t epd_gfx_canvas_draw_frame_view_mapped(epd_gfx_canvas_t canvas,
+    const epd_gfx_frame_view_t* view, const epd_gfx_frame_view_clip_t* clip)
+{
+    epd_err_t ret = EPD_OK;
+    for (uint16_t y = 0U; y < clip->height; ++y) {
+        uint16_t src_y = clip->src_y + y;
+        uint16_t dst_y = clip->dst_y + y + 1U;
+        for (uint16_t x = 0U; x < clip->width; ++x) {
+            epd_gfx_color_t color = epd_gfx_frame_view_get_pixel(view,
+                (uint16_t)(clip->src_x + x), src_y);
+            EPD_CHECK_RET(epd_gfx_canvas_draw_pixel(canvas, (epd_gfx_point_t){
+                (uint16_t)(clip->dst_x + x + 1U),
+                dst_y,
+            }, color));
+        }
+    }
+
+    return EPD_OK;
+}
+
+epd_err_t epd_gfx_canvas_draw_frame_view(epd_gfx_canvas_t canvas,
+    const epd_gfx_frame_view_t* view, epd_gfx_point_t point)
+{
+    if (!canvas) {
+        return EPD_ERR_INVALID_ARG;
+    }
+
+    epd_err_t ret = epd_gfx_frame_view_validate(view);
+    if (ret != EPD_OK) {
+        return ret;
+    }
+
+    epd_gfx_frame_view_clip_t clip;
+    uint16_t                  lw = epd_gfx_canvas_get_logical_width(canvas);
+    uint16_t                  lh = epd_gfx_canvas_get_logical_height(canvas);
+    if (!epd_gfx_canvas_clip_frame_view(view, point, lw, lh, &clip)) {
+        return EPD_OK;
+    }
+
+    if (epd_gfx_canvas_get_rotation(canvas) != EPD_GFX_ROTATE_0) {
+        return epd_gfx_canvas_draw_frame_view_mapped(canvas, view, &clip);
+    }
+
+    if (epd_gfx_canvas_get_format(canvas) != view->format) {
+        return epd_gfx_canvas_draw_frame_view_pixels_rot0(canvas, view, &clip);
+    }
+    if (view->format == EPD_GFX_FORMAT_PLANES) {
+        return epd_gfx_canvas_draw_frame_view_planes_rot0(canvas, view, &clip);
+    }
+    return epd_gfx_canvas_draw_frame_view_native_rot0(canvas, view, &clip);
+}
+
+epd_err_t epd_gfx_canvas_draw_bitmap(epd_gfx_canvas_t canvas,
+    epd_gfx_bitmap_t bitmap, epd_gfx_point_t point)
+{
+    if (!canvas || !bitmap) {
+        return EPD_ERR_INVALID_ARG;
+    }
+
+    epd_gfx_frame_view_t view = { 0 };
+    epd_err_t ret = epd_gfx_bitmap_get_frame_view(bitmap, &view);
+    if (ret != EPD_OK) {
+        return ret;
+    }
+
+    return epd_gfx_canvas_draw_frame_view(canvas, &view, point);
+}
+
+typedef struct {
+    uint16_t src_x;
+    uint16_t src_y;
+    uint16_t dst_x;
+    uint16_t dst_y;
+    uint16_t width;
+    uint16_t height;
+} epd_gfx_glyph_clip_t;
 
 static bool epd_gfx_canvas_clip_glyph(const epd_gfx_glyph_t glyph, uint16_t x, uint16_t y,
     uint16_t width, uint16_t height, epd_gfx_glyph_clip_t* out_clip)
 {
-    return epd_gfx_canvas_clip_glyph_axis(x, glyph->xoffset, glyph->width, width,
+    return epd_gfx_canvas_clip_axis((int32_t)x + glyph->xoffset - 1, glyph->width, width,
         &out_clip->src_x, &out_clip->dst_x, &out_clip->width)
-        && epd_gfx_canvas_clip_glyph_axis(y, glyph->yoffset, glyph->height, height,
+        && epd_gfx_canvas_clip_axis((int32_t)y + glyph->yoffset - 1, glyph->height, height,
         &out_clip->src_y, &out_clip->dst_y, &out_clip->height);
 }
 

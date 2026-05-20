@@ -17,6 +17,7 @@
 
 #include "epd_gfx/common.h"
 #include "epd_gfx/frame_view.h"
+#include "epd_gfx/bitmap.h"
 #include "epd_gfx/glyph.h"
 
 #ifdef __cplusplus
@@ -231,6 +232,28 @@ epd_err_t epd_gfx_canvas_load_native(epd_gfx_canvas_t canvas, const uint8_t* dat
  */
 epd_err_t epd_gfx_canvas_load_planes(epd_gfx_canvas_t canvas, const uint8_t* pwht,
     const uint8_t* pred, uint32_t size);
+
+/**
+ * @brief Draw a frame view at a logical top-left point.
+ *
+ * @param canvas Canvas handle.
+ * @param view Source frame view.
+ * @param point Logical top-left point.
+ * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
+ */
+epd_err_t epd_gfx_canvas_draw_frame_view(epd_gfx_canvas_t canvas,
+    const epd_gfx_frame_view_t* view, epd_gfx_point_t point);
+
+/**
+ * @brief Draw a bitmap at a logical top-left point.
+ *
+ * @param canvas Canvas handle.
+ * @param bitmap Bitmap handle to draw.
+ * @param point Logical top-left point.
+ * @return `EPD_OK` on success, otherwise an error code from `epd_err_t`.
+ */
+epd_err_t epd_gfx_canvas_draw_bitmap(epd_gfx_canvas_t canvas,
+    epd_gfx_bitmap_t bitmap, epd_gfx_point_t point);
 
 /**
  * @brief Draw a glyph at a logical baseline origin.
