@@ -15,11 +15,10 @@
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QImageReader>
-#include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPushButton>
-#include <QSlider>
+#include <QSpinBox>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -48,25 +47,20 @@ NewBitmapDialog::NewBitmapDialog(QWidget* parent)
     sourceLayout->addWidget(m_sourceImageEdit, 1);
     sourceLayout->addWidget(browseButton);
 
-    m_scaleSlider = new QSlider(Qt::Horizontal, this);
-    m_scaleSlider->setRange(1, 400);
-    m_scaleSlider->setValue(100);
-    connect(m_scaleSlider, &QSlider::valueChanged, this, &NewBitmapDialog::refreshSize);
+    m_widthSpin = new QSpinBox(this);
+    m_widthSpin->setRange(1, UINT16_MAX);
+    m_widthSpin->setValue(1);
 
-    m_scaleLabel = new QLabel(QStringLiteral("100%"), this);
-    m_scaleLabel->setFixedWidth(fontMetrics().horizontalAdvance(QStringLiteral("400%")) + 4);
-    m_scaleLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    m_heightSpin = new QSpinBox(this);
+    m_heightSpin->setRange(1, UINT16_MAX);
+    m_heightSpin->setValue(1);
 
-    m_sizeLabel = new QLabel(QStringLiteral("-"), this);
-    m_sizeLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-
-    auto* scaleRow = new QWidget(this);
-    auto* scaleLayout = new QHBoxLayout(scaleRow);
-    scaleLayout->setContentsMargins(0, 0, 0, 0);
-    scaleLayout->setSpacing(4);
-    scaleLayout->addWidget(m_scaleSlider, 1);
-    scaleLayout->addWidget(m_scaleLabel);
-    scaleLayout->addWidget(m_sizeLabel);
+    auto* sizeRow = new QWidget(this);
+    auto* sizeLayout = new QHBoxLayout(sizeRow);
+    sizeLayout->setContentsMargins(0, 0, 0, 0);
+    sizeLayout->setSpacing(4);
+    sizeLayout->addWidget(m_widthSpin);
+    sizeLayout->addWidget(m_heightSpin);
 
     m_formatCombo = new QComboBox(this);
     m_formatCombo->addItem(QStringLiteral("Native"), EPD_GFX_FORMAT_NATIVE);
@@ -75,7 +69,7 @@ NewBitmapDialog::NewBitmapDialog(QWidget* parent)
     auto* form = new QFormLayout;
     form->addRow(QStringLiteral("Bitmap Name:"), m_bitmapNameEdit);
     form->addRow(QStringLiteral("Source Image:"), sourceRow);
-    form->addRow(QStringLiteral("Scale:"), scaleRow);
+    form->addRow(QStringLiteral("W / H:"), sizeRow);
     form->addRow(QStringLiteral("Output Format:"), m_formatCombo);
 
     auto* buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
@@ -100,14 +94,12 @@ QString NewBitmapDialog::sourceImagePath() const
 
 uint16_t NewBitmapDialog::targetWidth() const
 {
-    const int width = (m_sourceWidth * m_scaleSlider->value() + 50) / 100;
-    return width > 0 && width <= UINT16_MAX ? static_cast<uint16_t>(width) : 0U;
+    return static_cast<uint16_t>(m_widthSpin->value());
 }
 
 uint16_t NewBitmapDialog::targetHeight() const
 {
-    const int height = (m_sourceHeight * m_scaleSlider->value() + 50) / 100;
-    return height > 0 && height <= UINT16_MAX ? static_cast<uint16_t>(height) : 0U;
+    return static_cast<uint16_t>(m_heightSpin->value());
 }
 
 epd_gfx_format_t NewBitmapDialog::outputFormat() const
@@ -136,14 +128,6 @@ void NewBitmapDialog::accept()
         return;
     }
 
-    m_sourceWidth  = imageSize.width();
-    m_sourceHeight = imageSize.height();
-    if (targetWidth() == 0U || targetHeight() == 0U) {
-        QMessageBox::critical(this, QStringLiteral("Bitmap Error"),
-            QStringLiteral("Bitmap size must be in range 1..65535."));
-        return;
-    }
-
     QDialog::accept();
 }
 
@@ -160,37 +144,18 @@ void NewBitmapDialog::browseSourceImage()
         m_bitmapNameEdit->setText(QFileInfo(file).completeBaseName());
     }
 
-    refreshSize();
 }
 
 void NewBitmapDialog::refreshSize()
 {
     QImageReader reader(sourceImagePath());
     const QSize imageSize = reader.size();
-    if (imageSize.isValid()) {
-        m_sourceWidth  = imageSize.width();
-        m_sourceHeight = imageSize.height();
-    } else {
-        m_sourceWidth  = 0;
-        m_sourceHeight = 0;
-    }
-
-    if (m_sourceWidth <= 0 || m_sourceHeight <= 0) {
-        m_scaleLabel->setText(QStringLiteral("%1%").arg(m_scaleSlider->value()));
-        m_sizeLabel->setText(QStringLiteral("-"));
+    if (!imageSize.isValid()) {
         return;
     }
 
-    if (targetWidth() == 0U || targetHeight() == 0U) {
-        m_scaleLabel->setText(QStringLiteral("%1%").arg(m_scaleSlider->value()));
-        m_sizeLabel->setText(QStringLiteral("out of range"));
-        return;
-    }
-
-    m_scaleLabel->setText(QStringLiteral("%1%").arg(m_scaleSlider->value()));
-    m_sizeLabel->setText(QStringLiteral("%1 x %2")
-        .arg(targetWidth())
-        .arg(targetHeight()));
+    m_widthSpin->setValue(imageSize.width() > UINT16_MAX ? UINT16_MAX : imageSize.width());
+    m_heightSpin->setValue(imageSize.height() > UINT16_MAX ? UINT16_MAX : imageSize.height());
 }
 
 LEKCO_END_NAMESPACE

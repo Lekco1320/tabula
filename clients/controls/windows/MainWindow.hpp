@@ -16,6 +16,7 @@
 #include <QString>
 
 #include "common/Common.h"
+#include "project/BitmapProvider.hpp"
 #include "project/FontProvider.hpp"
 #include "project/Project.hpp"
 
@@ -52,6 +53,7 @@ private:
     bool selectedItemIsResource() const;
 
     Project             m_project;
+    BitmapProvider      m_bitmapProvider;
     FontProvider        m_fontProvider;
     QTreeWidget*        m_resourceTree     = nullptr;
     QPushButton*        m_addButton        = nullptr;

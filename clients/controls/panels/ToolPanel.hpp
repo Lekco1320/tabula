@@ -22,6 +22,7 @@
 LEKCO_BEGIN_NAMESPACE
 
 class AdaptiveStackedWidget;
+class BitmapProvider;
 class FontProvider;
 
 class ToolPanel
@@ -30,7 +31,7 @@ class ToolPanel
     Q_OBJECT
 
 public:
-    explicit ToolPanel(FontProvider* fontProvider, QWidget* parent = nullptr);
+    explicit ToolPanel(FontProvider* fontProvider, BitmapProvider* bitmapProvider, QWidget* parent = nullptr);
     void updateCanvas(const epd_gfx_canvas_t canvas);
     void refreshProjectResources();
 
@@ -40,10 +41,11 @@ signals:
     void previewRequested(const DrawFunc& drawFunc);
 
 private:
-    ToolBar*               m_toolBar;
+    ToolBar*               m_toolBar        = nullptr;
     QVector<ControlPanel*> m_controlPanels;
-    AdaptiveStackedWidget* m_stackedWidget;
-    FontProvider*          m_fontProvider;
+    AdaptiveStackedWidget* m_stackedWidget  = nullptr;
+    BitmapProvider*        m_bitmapProvider = nullptr;
+    FontProvider*          m_fontProvider   = nullptr;
 
     void addControlPanel(ControlPanel* panel);
     void setTool(ToolBar::Tool tool);

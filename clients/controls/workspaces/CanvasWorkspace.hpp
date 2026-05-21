@@ -19,6 +19,9 @@
 
 LEKCO_BEGIN_NAMESPACE
 
+constexpr int kWorkspaceDetailsPaneWidth = 270;
+
+class BitmapProvider;
 class CanvasPreviewer;
 class FontProvider;
 class RotationBar;
@@ -31,7 +34,7 @@ class CanvasWorkspace
 
 public:
     explicit CanvasWorkspace(const epd_gfx_canvas_config_t& config, FontProvider* fontProvider,
-        QWidget* parent = nullptr);
+        BitmapProvider* bitmapProvider, QWidget* parent = nullptr);
 
     void refreshProjectResources();
 

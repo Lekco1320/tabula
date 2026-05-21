@@ -13,17 +13,20 @@
 #include "controls/panels/LinePanel.hpp"
 #include "controls/panels/RectPanel.hpp"
 #include "controls/panels/FillPanel.hpp"
+#include "controls/panels/BitmapPanel.hpp"
 #include "controls/panels/PixelPanel.hpp"
 #include "controls/panels/TextPanel.hpp"
 #include "controls/widgets/AdaptiveStackedWidget.hpp"
+#include "project/BitmapProvider.hpp"
 #include "project/FontProvider.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 
-ToolPanel::ToolPanel(FontProvider* fontProvider, QWidget* parent)
+ToolPanel::ToolPanel(FontProvider* fontProvider, BitmapProvider* bitmapProvider, QWidget* parent)
     : QWidget(parent)
     , m_toolBar(new ToolBar(this))
     , m_stackedWidget(new AdaptiveStackedWidget(this))
+    , m_bitmapProvider(bitmapProvider)
     , m_fontProvider(fontProvider)
 {
     m_stackedWidget->setContentsMargins(0, 0, 0, 0);
@@ -33,8 +36,9 @@ ToolPanel::ToolPanel(FontProvider* fontProvider, QWidget* parent)
     auto* dRectPanel = new RectPanel(QStringLiteral("Draw Rectange"), true, this);
     auto* fRectPanel = new RectPanel(QStringLiteral("Fill Rectange"), false, this);
     auto* pixelPanel = new PixelPanel(QStringLiteral("Draw Pixel"), this);
-    auto* fillPanel  = new FillPanel(QStringLiteral("Fill Panel"), this);
-    auto* textPanel  = new TextPanel(QStringLiteral("Draw Text"), fontProvider, this);
+    auto* fillPanel   = new FillPanel(QStringLiteral("Fill Panel"), this);
+    auto* textPanel   = new TextPanel(QStringLiteral("Draw Text"), fontProvider, this);
+    auto* bitmapPanel = new BitmapPanel(QStringLiteral("Draw Bitmap"), bitmapProvider, this);
     addControlPanel(hLinePanel);
     addControlPanel(vLinePanel);
     addControlPanel(dRectPanel);
@@ -42,9 +46,12 @@ ToolPanel::ToolPanel(FontProvider* fontProvider, QWidget* parent)
     addControlPanel(pixelPanel);
     addControlPanel(fillPanel);
     addControlPanel(textPanel);
+    addControlPanel(bitmapPanel);
     m_stackedWidget->setCollapsed(true);
     m_toolBar->setToolEnabled(ToolBar::Tool::DrawText,
         m_fontProvider && m_fontProvider->hasUsableFonts());
+    m_toolBar->setToolEnabled(ToolBar::Tool::DrawBitmap,
+        m_bitmapProvider && m_bitmapProvider->hasUsableBitmaps());
 
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -72,6 +79,8 @@ void ToolPanel::refreshProjectResources()
     }
     m_toolBar->setToolEnabled(ToolBar::Tool::DrawText,
         m_fontProvider && m_fontProvider->hasUsableFonts());
+    m_toolBar->setToolEnabled(ToolBar::Tool::DrawBitmap,
+        m_bitmapProvider && m_bitmapProvider->hasUsableBitmaps());
 }
 
 void ToolPanel::addControlPanel(ControlPanel* panel)

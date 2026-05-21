@@ -23,7 +23,7 @@ LEKCO_BEGIN_NAMESPACE
 
 RotationBar::RotationBar(QWidget* parent)
     : IconButtonBar(QStringLiteral("Rotation"), false, parent)
-    , m_layout(new FlowLayout(this, 5, 2, 2))
+    , m_layout(new FlowLayout(this, 3, 2, 2))
     , m_rotation(EPD_GFX_ROTATE_0)
 {
     ADD_TOOLBUTTON(EPD_GFX_ROTATE_0, Rotation0, "Rotate 0°");

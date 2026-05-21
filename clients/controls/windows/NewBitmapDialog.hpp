@@ -19,9 +19,8 @@
 #include "common/Common.h"
 
 class QComboBox;
-class QLabel;
 class QLineEdit;
-class QSlider;
+class QSpinBox;
 
 LEKCO_BEGIN_NAMESPACE
 
@@ -46,12 +45,9 @@ private:
 
     QLineEdit* m_bitmapNameEdit  = nullptr;
     QLineEdit* m_sourceImageEdit = nullptr;
-    QSlider*   m_scaleSlider     = nullptr;
     QComboBox* m_formatCombo     = nullptr;
-    QLabel*    m_scaleLabel      = nullptr;
-    QLabel*    m_sizeLabel       = nullptr;
-    int        m_sourceWidth     = 0;
-    int        m_sourceHeight    = 0;
+    QSpinBox*  m_widthSpin       = nullptr;
+    QSpinBox*  m_heightSpin      = nullptr;
 };
 
 LEKCO_END_NAMESPACE

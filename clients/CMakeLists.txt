@@ -30,6 +30,8 @@ target_sources(tabula-host PRIVATE
     controls/Utils.hpp
     project/BitmapAssetIO.cpp
     project/BitmapAssetIO.hpp
+    project/BitmapProvider.cpp
+    project/BitmapProvider.hpp
     project/EpdStreamAdapter.cpp
     project/EpdStreamAdapter.hpp
     project/FontAssetIO.cpp
@@ -50,6 +52,8 @@ target_sources(tabula-host PRIVATE
 target_sources(tabula-host PRIVATE
     controls/panels/ControlPanel.cpp
     controls/panels/ControlPanel.hpp
+    controls/panels/BitmapPanel.cpp
+    controls/panels/BitmapPanel.hpp
     controls/panels/FillPanel.cpp
     controls/panels/FillPanel.hpp
     controls/panels/LinePanel.cpp

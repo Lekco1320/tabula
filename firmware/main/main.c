@@ -11,6 +11,7 @@
 #include "led_strip.h"
 #include <epd_core/common.h>
 #include <epd_core/stream.h>
+#include <epd_gfx/bitmap.h>
 #include <epd_gfx/canvas.h>
 #include <epd_gfx/font.h>
 #include <epd_gfx/text.h>
@@ -140,7 +141,7 @@ void app_main(void)
         .width    = 640,
         .height   = 384,
         .format   = EPD_GFX_FORMAT_NATIVE,
-        .rotation = EPD_GFX_ROTATE_0,
+        .rotation = EPD_GFX_ROTATE_90,
     };
     epd_gfx_canvas_t canvas = NULL;
     ret = epd_gfx_canvas_create(&canvas_config, &canvas);
@@ -159,9 +160,11 @@ void app_main(void)
         ESP_LOGI("epd_test", "EPD panel sink created!");
     }
 
-    epd_stream_t   system_font_stream = { 0 };
-    epd_gfx_font_t system_font        = NULL;
-    bool           vfs_mounted        = false;
+    epd_stream_t     bitmap_stream      = { 0 };
+    epd_stream_t     system_font_stream = { 0 };
+    epd_gfx_bitmap_t tangyuan_bitmap    = NULL;
+    epd_gfx_font_t   system_font        = NULL;
+    bool             vfs_mounted        = false;
 
     epd_gfx_canvas_fill(canvas, EPD_GFX_WHITE);
 
@@ -171,6 +174,24 @@ void app_main(void)
         goto clean_fonts;
     }
     vfs_mounted = true;
+
+    ret = epd_vfs_open_file(EPD_VFS_BITMAPS_PATH "/tangyuan.ebm", &bitmap_stream);
+    if (ret != EPD_OK) {
+        ESP_LOGE("epd_test", "Open tangyuan bitmap failed! err=%s", epd_err_to_str(ret));
+        goto clean_fonts;
+    }
+
+    ret = epd_gfx_bitmap_load(&bitmap_stream, &tangyuan_bitmap);
+    if (ret != EPD_OK) {
+        ESP_LOGE("epd_test", "Load tangyuan bitmap failed! err=%s", epd_err_to_str(ret));
+        goto clean_fonts;
+    }
+
+    ret = epd_gfx_canvas_draw_bitmap(canvas, tangyuan_bitmap, (epd_gfx_point_t){ 1, 1 });
+    if (ret != EPD_OK) {
+        ESP_LOGE("epd_test", "Draw tangyuan bitmap failed! err=%s", epd_err_to_str(ret));
+        goto clean_fonts;
+    }
 
     ret = epd_vfs_open_file(EPD_VFS_FONTS_PATH "/system.egf", &system_font_stream);
     if (ret != EPD_OK) {
@@ -184,58 +205,29 @@ void app_main(void)
         goto clean_fonts;
     }
 
-    epd_gfx_text_box_style_t title_style = {
+    epd_gfx_font_size_info_t size_info = { 0 };
+    ret = epd_gfx_font_get_size_info(system_font, 16, &size_info);
+    if (ret != EPD_OK) {
+        ESP_LOGE("epd_test", "Get system font size failed! err=%s", epd_err_to_str(ret));
+        goto clean_fonts;
+    }
+
+    epd_gfx_text_box_style_t text_style = {
         .text = {
             .size           = 16,
-            .color          = EPD_GFX_WHITE,
-            .background     = EPD_GFX_BG_RED,
+            .color          = EPD_GFX_BLACK,
+            .background     = EPD_GFX_BG_WHITE,
             .letter_spacing = 0,
         },
         .align        = EPD_GFX_TEXT_ALIGN_CENTER,
         .line_spacing = 0,
         .wrap         = false,
     };
-    ret = epd_gfx_canvas_draw_utf8_box(canvas, system_font,
-        "Universal Declaration of Human Rights",
-        (epd_gfx_rect_t){ 1, 1, 640, 384 }, &title_style);
+    ret = epd_gfx_canvas_draw_utf8_box(canvas, system_font, "TANGYUAN",
+        (epd_gfx_rect_t){ 1, 450, epd_gfx_canvas_get_logical_width(canvas) - 2,
+            (uint16_t)size_info.line_height }, &text_style);
     if (ret != EPD_OK) {
-        ESP_LOGE("epd_test", "Draw title text failed! err=%s", epd_err_to_str(ret));
-        goto clean_fonts;
-    }
-
-    epd_gfx_text_box_style_t body_style = {
-        .text = {
-            .size           = 16,
-            .color          = EPD_GFX_BLACK,
-            .background     = EPD_GFX_BG_TRANSPARENT,
-            .letter_spacing = 0,
-        },
-        .align        = EPD_GFX_TEXT_ALIGN_START,
-        .line_spacing = 0,
-        .wrap         = true,
-    };
-    ret = epd_gfx_canvas_draw_utf8_box(canvas, system_font,
-        "Whereas recognition of the inherent dignity and of the equal and "
-        "inalienable rights of all members of the human family is the foundation "
-        "of freedom, justice and peace in the world,\n\n"
-        "Whereas disregard and contempt for human rights have resulted in "
-        "barbarous acts which have outraged the conscience of mankind, and the "
-        "advent of a world in which human beings shall enjoy freedom of speech "
-        "and belief and freedom from fear and want has been proclaimed as the "
-        "highest aspiration of the common people,\n\n"
-        "Whereas it is essential, if man is not to be compelled to have recourse, "
-        "as a last resort, to rebellion against tyranny and oppression, that "
-        "human rights should be protected by the rule of law,\n\n"
-        "Whereas it is essential to promote the development of friendly relations "
-        "between nations,\n\n"
-        "Whereas the peoples of the United Nations have in the Charter reaffirmed "
-        "their faith in fundamental human rights, in the dignity and worth of the "
-        "human person and in the equal rights of men and women and have determined "
-        "to promote social progress and better standards of life in larger "
-        "freedom,\n\n",
-        (epd_gfx_rect_t){ 10, 20, 620, 365 }, &body_style);
-    if (ret != EPD_OK) {
-        ESP_LOGE("epd_test", "Draw body text failed! err=%s", epd_err_to_str(ret));
+        ESP_LOGE("epd_test", "Draw text failed! err=%s", epd_err_to_str(ret));
         goto clean_fonts;
     }
 
@@ -255,7 +247,11 @@ void app_main(void)
     }
 
 clean_fonts:
+    (void)epd_gfx_bitmap_destroy(tangyuan_bitmap);
     (void)epd_gfx_font_destroy(system_font);
+    if (bitmap_stream.ctx) {
+        (void)epd_vfs_close_file(&bitmap_stream);
+    }
     if (system_font_stream.ctx) {
         (void)epd_vfs_close_file(&system_font_stream);
     }

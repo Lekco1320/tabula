@@ -64,6 +64,7 @@ END_NAMESPACE
 MainWindow::MainWindow(const Project& project, QWidget* parent)
     : QMainWindow(parent)
     , m_project(project)
+    , m_bitmapProvider(m_project)
     , m_fontProvider(m_project)
 {
     setMinimumSize(QSize { kAssetsPaneWidth + kWorkspaceMinW, kWorkspaceMinH });
@@ -119,7 +120,7 @@ MainWindow::MainWindow(const Project& project, QWidget* parent)
 
     m_workspaceStack  = new QStackedWidget(central);
     m_bitmapWorkspace = new BitmapWorkspace(m_project, m_workspaceStack);
-    m_canvasWorkspace = new CanvasWorkspace(config, &m_fontProvider, m_workspaceStack);
+    m_canvasWorkspace = new CanvasWorkspace(config, &m_fontProvider, &m_bitmapProvider, m_workspaceStack);
     m_fontWorkspace   = new FontWorkspace(m_project, m_workspaceStack);
     m_workspaceStack->addWidget(m_canvasWorkspace);
     m_workspaceStack->addWidget(m_bitmapWorkspace);

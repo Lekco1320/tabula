@@ -23,7 +23,7 @@ LEKCO_BEGIN_NAMESPACE
 
 ToolBar::ToolBar(QWidget* parent)
     : IconButtonBar(QStringLiteral("Tools"), true, parent)
-    , m_layout(new FlowLayout(this, 5, 2, 2))
+    , m_layout(new FlowLayout(this, 3, 2, 2))
     , m_current(Tool::None)
 {
     ADD_TOOLBUTTON(DrawHLine, "Draw horizontal line");
@@ -33,6 +33,9 @@ ToolBar::ToolBar(QWidget* parent)
     ADD_TOOLBUTTON(DrawPixel, "Draw pixel");
     ADD_TOOLBUTTON(FillPanel, "Fill panel");
     ADD_TOOLBUTTON(DrawText,  "Draw text");
+    m_layout->addWidget(appendButton(static_cast<int>(Tool::DrawBitmap),
+        QIcon(QStringLiteral(":/common/icons/Bitmap.svg")),
+        QStringLiteral("Draw bitmap")));
 
     connect(static_cast<IconButtonBar*>(this), &IconButtonBar::selectionChanged, this, [this](int id) {
         m_current = id >= 0 ? static_cast<Tool>(id) : Tool::None;

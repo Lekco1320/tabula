@@ -30,6 +30,7 @@
 #include "controls/widgets/FontGlyphImage.hpp"
 #include "controls/widgets/FontGlyphPreviewWidget.hpp"
 #include "controls/windows/AddGlyphDialog.hpp"
+#include "controls/workspaces/CanvasWorkspace.hpp"
 #include "controls/workspaces/FontWorkspace.hpp"
 #include "project/FontAssetIO.hpp"
 
@@ -37,7 +38,6 @@ LEKCO_BEGIN_NAMESPACE
 
 BEGIN_NAMESPACE()
 
-constexpr int      kDetailsPaneWidth = 270;
 constexpr int      kPreviewSize      = 160;
 constexpr uint32_t kProgressMax      = 100000U;
 
@@ -90,7 +90,7 @@ FontWorkspace::FontWorkspace(const Project& project, QWidget* parent)
     connect(m_grid, &FontGlyphGridWidget::selectionCleared, this, &FontWorkspace::clearGlyphSelection);
 
     auto* detailsPane = new QWidget(m_editorPage);
-    detailsPane->setFixedWidth(kDetailsPaneWidth);
+    detailsPane->setFixedWidth(kWorkspaceDetailsPaneWidth);
     detailsPane->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
     auto* detailsLayout = new QVBoxLayout(detailsPane);
     detailsLayout->setContentsMargins(12, 12, 12, 12);

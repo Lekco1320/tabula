@@ -19,8 +19,9 @@
 extern "C" {
 #endif
 
-#define EPD_VFS_ASSETS_PATH "/assets"
-#define EPD_VFS_FONTS_PATH  EPD_VFS_ASSETS_PATH "/fonts"
+#define EPD_VFS_ASSETS_PATH                      "/assets"
+#define EPD_VFS_BITMAPS_PATH EPD_VFS_ASSETS_PATH "/bitmaps"
+#define EPD_VFS_FONTS_PATH  EPD_VFS_ASSETS_PATH  "/fonts"
 
 /**
  * @brief Mount project VFS partitions.

@@ -17,12 +17,13 @@
 #include "controls/panels/ToolPanel.hpp"
 #include "controls/widgets/CanvasPreviewer.hpp"
 #include "controls/workspaces/CanvasWorkspace.hpp"
+#include "project/BitmapProvider.hpp"
 #include "project/FontProvider.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 
 CanvasWorkspace::CanvasWorkspace(const epd_gfx_canvas_config_t& config, FontProvider* fontProvider,
-    QWidget* parent)
+    BitmapProvider* bitmapProvider, QWidget* parent)
     : QWidget(parent)
     , m_canvasConfig(config)
 {
@@ -41,10 +42,10 @@ CanvasWorkspace::CanvasWorkspace(const epd_gfx_canvas_config_t& config, FontProv
     leftLayout->addWidget(m_previewer, 1);
 
     auto* rightPane = new QWidget(this);
-    rightPane->setFixedWidth(250);
+    rightPane->setFixedWidth(kWorkspaceDetailsPaneWidth);
     rightPane->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
     auto* rightLayout = new QVBoxLayout(rightPane);
-    rightLayout->setContentsMargins(10, 10, 12, 10);
+    rightLayout->setContentsMargins(8, 10, 8, 10);
     rightLayout->setSpacing(12);
 
     m_rotationBar = new RotationBar(rightPane);
@@ -52,7 +53,7 @@ CanvasWorkspace::CanvasWorkspace(const epd_gfx_canvas_config_t& config, FontProv
     rightLayout->addWidget(m_rotationBar);
     connect(m_rotationBar, &RotationBar::rotationChanged, m_previewer, &CanvasPreviewer::setRotation);
 
-    m_toolPanel = new ToolPanel(fontProvider, rightPane);
+    m_toolPanel = new ToolPanel(fontProvider, bitmapProvider, rightPane);
     m_toolPanel->updateCanvas(m_previewer->getCanvas());
     rightLayout->addWidget(m_toolPanel);
     rightLayout->addStretch(1);

@@ -24,13 +24,13 @@
 
 #include "controls/widgets/EpdFramePreviewer.hpp"
 #include "controls/workspaces/BitmapWorkspace.hpp"
+#include "controls/workspaces/CanvasWorkspace.hpp"
 #include "project/BitmapAssetIO.hpp"
 
 LEKCO_BEGIN_NAMESPACE
 
 BEGIN_NAMESPACE()
 
-constexpr int kDetailsPaneWidth = 270;
 constexpr int kDetailsSpacing = 4;
 constexpr int kSectionSpacing = 12;
 constexpr int kTitleContentSpacing = 10;
@@ -81,7 +81,7 @@ BitmapWorkspace::BitmapWorkspace(Project& project, QWidget* parent)
     editorLayout->addWidget(divider);
 
     auto* detailsPane = new QWidget(m_editorPage);
-    detailsPane->setFixedWidth(kDetailsPaneWidth);
+    detailsPane->setFixedWidth(kWorkspaceDetailsPaneWidth);
     detailsPane->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
     auto* detailsLayout = new QVBoxLayout(detailsPane);
     detailsLayout->setContentsMargins(12, 12, 12, 12);
