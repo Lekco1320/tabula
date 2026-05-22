@@ -1,5 +1,5 @@
 <div align="left">
-    <img src="docs/tabula.svg" alt="title" width="120">
+    <img src="docs/tabula.svg" alt="Tabula" width="120">
     <p />
 </div>
 
@@ -10,35 +10,38 @@
 > \
 > \- board or plank
 
+Tabula is a desktop-to-device toolchain for building black/white/red e-paper interfaces.
+
+It gives you a Qt desktop editor for preparing fonts, bitmaps, and canvas previews, plus ESP32-S3 firmware that can render the same assets on a UC8159-based e-paper panel.
+
 ![ESP32-S3](https://img.shields.io/badge/MCU-ESP32--S3-red)
 ![Driver](https://img.shields.io/badge/Driver-UC8159-blue)
 ![Qt](https://img.shields.io/badge/Desktop-Qt6-green)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 
-## Introduction
+## What You Can Do
 
-**Tabula** is an integrated e-paper display solution that bridges the gap between hardware drivers and desktop design tools. Built on the ESP32-S3 microcontroller and the UC8159 display controller, it drives a 7.5-inch Black/White/Red e-paper panel. The accompanying Qt desktop suite features a built-in rendering engine identical to the firmware, providing a pixel-perfect environment for design verification.
+- ✅ Create project-local font and bitmap assets.
+- ✅ Preview e-paper canvas output on desktop before flashing.
+- ✅ Draw primitives, text boxes, and bitmaps with the same runtime used on device.
+- ✅ Generate three-color bitmaps with multiple dithering algorithms.
+- ✅ Export assets for firmware and load them from the board.
 
-The system architecture is modular; if your display is incompatible with the UC8159, you can adapt the solution by modifying the relevant codec and driver layers.
+## Repository
 
-## Implemented Features
+```text
+clients/    Qt desktop editor and preview tools
+firmware/   ESP-IDF firmware for the e-paper board
+shared/     Shared C runtime used by both desktop and firmware
+docs/       Project images and documentation assets
+tools/      Development helpers
+```
 
-### Firmware
-- [x] **UC8159 Driver**: Core display driver implementation.
-- [ ] **Main Logic**: Application state machine and control flow.
-- [ ] **Image Display**: Full-frame buffer rendering pipeline.
-- [ ] **Calendar**: RTC integration and calendar widget logic.
-- [ ] **Connectivity**: WiFi and Bluetooth stack integration.
+## Getting Started
 
-### Graphics Layer
-- [x] **Native Codec**: 2bpp native format handling.
-- [x] **Compressed Codec**: 4bpp compressed planes format decoding.
-- [x] **Primitives**: Drawing support for pixels, lines, rectangles, and fill operations.
-- [x] **Rotation**: Coordinate transformation for rotated rendering.
-- [ ] **Font Engine**: Glyph rasterization and text rendering.
-- [ ] **Bitmap Rendering**: Support for external bitmap assets.
-- [ ] **Dithering**: Image dithering algorithms (e.g., Floyd-Steinberg) for 3-color displays.
+- Desktop editor: see `clients/README.md`.
+- Board firmware: see `firmware/README.md`.
 
-### Qt Desktop Client
-- [x] **Design Verification**: WYSIWYG preview tools with simulation.
-- [ ] **Device Communication**: USB/WiFi data synchronization protocol with the MCU.
+## Status
+
+Tabula is under active development. The current workflow focuses on local asset creation, desktop preview, asset export, and board-side rendering. Live device synchronization is not part of the current workflow.
